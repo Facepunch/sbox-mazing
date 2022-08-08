@@ -13,8 +13,10 @@ public class MazingCamera: CameraMode
 
         Rotation = Rotation.FromYaw(90f) * Rotation.FromPitch( 80f );
 
-		float distance = 1600f * pawn.Scale;
-		Position = center - Rotation.Forward * distance;
+		var distance = 1600f * pawn.Scale;
+        var target = center - Rotation.Forward * distance;
+
+		Position = Vector3.Lerp( Position.WithZ( target.z ), target, 0.5f );
 
 		FieldOfView = 20;
 

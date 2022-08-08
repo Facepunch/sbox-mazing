@@ -75,29 +75,28 @@ partial class MazingPlayer : Sandbox.Player
 
     private void CheckForVault()
     {
-        if ( Controller?.HasEvent( "jump" ) ?? false )
+        if ( !(Controller?.HasEvent( "jump" ) ?? false) ) return;
+
+        Log.Info("Vault event!");
+
+        if (!IsServer)
         {
-            Log.Info("Vault event!");
+            return;
+        }
 
-            LastItemDrop = 0f;
+        LastItemDrop = 0f;
 
-            if (!IsServer)
-            {
-                return;
-            }
-
-            if (HeldKey != null)
-            {
-                HeldKey.IsHeld = false;
-                HeldKey.Parent = null;
-                HeldKey = null;
-            }
+        if (HeldKey != null)
+        {
+            HeldKey.IsHeld = false;
+            HeldKey.Parent = null;
+            HeldKey = null;
         }
     }
 
     private void CheckForKeyPickup()
     {
-        if ( HeldKey != null || HasExited || LastItemDrop < 0.5f )
+        if ( HeldKey != null || HasExited || LastItemDrop < 0.6f )
         {
             return;
         }

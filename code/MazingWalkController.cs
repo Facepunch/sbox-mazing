@@ -160,6 +160,8 @@ public partial class MazingWalkController : BasePlayerController
         Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
         Velocity += new Vector3(0, 0, BaseVelocity.z) * Time.Delta;
 
+        WishVelocity = default;
+
         BaseVelocity = BaseVelocity.WithZ(0);
 
         /*
@@ -298,8 +300,7 @@ public partial class MazingWalkController : BasePlayerController
                     wishVelocityAdd += perp;
                 }
 
-                if (SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f &&
-                    (AutoJump ? Input.Down(InputButton.Jump) : Input.Pressed(InputButton.Jump)))
+                if (SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && Input.Down(InputButton.Jump))
                 {
                     CheckVaultButton(row + dRow, col + dCol);
                 }
