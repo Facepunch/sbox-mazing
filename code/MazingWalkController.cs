@@ -6,7 +6,7 @@ namespace Mazing;
 
 public partial class MazingWalkController : BasePlayerController
 {
-    [Net] public float DefaultSpeed { get; set; } = 190.0f;
+    [Net] public float DefaultSpeed { get; set; } = 160f;
     [Net] public float Acceleration { get; set; } = 10.0f;
     [Net] public float AirAcceleration { get; set; } = 50.0f;
     [Net] public float FallSoundZ { get; set; } = -30.0f;
@@ -26,16 +26,16 @@ public partial class MazingWalkController : BasePlayerController
     [Net] public float AirControl { get; set; } = 30.0f;
     [Net] public bool AutoJump { get; set; } = false;
     [Net] public float VaultTime { get; set; } = 0.6f;
+    [Net] public float PostVaultTime { get; set; } = 0.2f;
     [Net] public float VaultHeight { get; set; } = 192f;
     [Net] public float VaultCooldown { get; set; } = 3.5f;
 
-    [Net]
-    public bool IsVaulting { get; set; }
+    public bool IsVaulting => SinceVault < VaultTime;
 
-    [Net]
+    [Net, Predicted]
     public Vector3 VaultOrigin { get; set; }
 
-    [Net]
+    [Net, Predicted]
     public Vector3 VaultTarget { get; set; }
 
     [Net]
@@ -46,6 +46,7 @@ public partial class MazingWalkController : BasePlayerController
     public MazingWalkController()
     {
         Unstuck = new Unstuck(this);
+        SinceVault = float.MaxValue;
     }
 
     /// <summary>
@@ -202,6 +203,7 @@ public partial class MazingWalkController : BasePlayerController
             WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
 
             var wishVelocityAdd = Vector3.Zero;
+            var velocityAdd = Vector3.Zero;
             var positionAdd = Vector3.Zero;
 
             var rowFrac = rowF - row;
@@ -254,6 +256,10 @@ public partial class MazingWalkController : BasePlayerController
 
                 var moveDot = Vector3.Dot(WishVelocity, normal);
 
+                //
+                // If you're too close to a wall, immediately move back and cancel any velocity
+                // in that direction
+                //
                 if ( playerDist < 0f )
                 {
                     positionAdd += playerDist * normal;
@@ -262,17 +268,26 @@ public partial class MazingWalkController : BasePlayerController
 
                     if ( directWall && velDot > 0f )
                     {
-                        Velocity -= velDot * normal;
+                        velocityAdd -= velDot * normal;
                     }
                 }
 
-                if ( moveDot > 0f &&
-                     (Math.Abs( Vector3.Dot( WishVelocity, new Vector3( normal.y, -normal.x ) ) ) > 0.5f ||
-                      Vector3.Dot( normal, EyeRotation.Forward ) > 0.5f) )
+                var perpMoveDot = Math.Abs( Vector3.Dot( WishVelocity, new Vector3( normal.y, -normal.x ) ) );
+
+                //
+                // If you're trying to walk into a wall, cancel that movement if either:
+                //   1) you are also moving in a perpendicular direction
+                //   2) you aren't currently facing that direction
+                //
+                if ( moveDot > 0f && (perpMoveDot > 0.5f || Vector3.Dot( normal, EyeRotation.Forward ) > 0.5f) )
                 {
                     wishVelocityAdd -= moveDot * normal * Math.Clamp( 1f - playerDist, 0f, 1f );
                 }
 
+                //
+                // If you're walking towards a gap between walls, but you're not cleanly going through
+                // the middle, walk perpendicular so you'll be in the middle of the gap
+                //
                 if ( !directWall && moveDot > 0f )
                 {
                     var perp = dRow != 0 ? colFrac > 0.5f
@@ -298,6 +313,7 @@ public partial class MazingWalkController : BasePlayerController
 
             Position += positionAdd;
             WishVelocity += wishVelocityAdd;
+            Velocity += velocityAdd;
 
             // Fricion is handled before we add in any base velocity. That way, if we are on a conveyor,
             //  we don't slow when standing still, relative to the conveyor.
@@ -390,7 +406,6 @@ public partial class MazingWalkController : BasePlayerController
 
         if ( SinceVault > VaultTime )
         {
-            IsVaulting = false;
             Velocity = Vector3.Zero;
             ((ModelEntity)Pawn).EnableAllCollisions = true;
 
@@ -574,11 +589,8 @@ public partial class MazingWalkController : BasePlayerController
                 game.CellToPosition(targetRow + 0.75f, targetCol + 0.75f),
                 Color.White, 1f);
         }
-
-        IsVaulting = true;
+        
         SinceVault = 0f;
-
-        ((ModelEntity)Pawn).EnableAllCollisions = false;
 
         VaultOrigin = Position;
         VaultTarget = game.CellToPosition( targetRow + 0.5f, targetCol + 0.5f );
