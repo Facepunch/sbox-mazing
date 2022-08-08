@@ -4,7 +4,6 @@ namespace Mazing;
 
 public partial class MazingPlayer : Player
 {
-	/// </summary>
 	public ClothingContainer Clothing = new();
 
 	/// <summary>

@@ -120,7 +120,7 @@ public partial class MazingGame : Sandbox.Game
 		}
 
 		// Create a pawn for this client to play with
-		var mazingPlayer = new MazingPlayer();
+		var mazingPlayer = new MazingPlayer( client );
 		client.Pawn = mazingPlayer;
 
 		// Spawn in a random grid cell
