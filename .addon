@@ -22,6 +22,11 @@
     "PerMapRanking": false,
     "LeaderboardType": "None",
     "ProjectTemplate": null,
-    "GameCategory": "None"
+    "GameCategory": "None",
+    "Compiler": {
+      "RootNamespace": "Mazing",
+      "DefineConstants": "SANDBOX;ADDON;DEBUG",
+      "NoWarn": "1701;1702;1591;"
+    }
   }
 }

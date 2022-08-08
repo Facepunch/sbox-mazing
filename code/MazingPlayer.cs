@@ -1,4 +1,5 @@
-﻿using Sandbox;
+﻿using System.Linq;
+using Sandbox;
 
 namespace Mazing;
 
@@ -94,9 +95,11 @@ public partial class MazingPlayer : Player
 		//}
 
 		if (Input.Released(InputButton.Jump))
-		{
-			
-		}
+        {
+            var hatch = Entity.All.OfType<Hatch>().First();
+
+			hatch.Open();
+        }
 	}
 
 	void SimulateAnimation(PawnController controller)
@@ -141,8 +144,8 @@ public partial class MazingPlayer : Player
 
 	public override void StartTouch(Entity other)
 	{
-
 		base.StartTouch(other);
+
 	}
 
 	public override float FootstepVolume()

@@ -60,6 +60,10 @@ public partial class MazingGame : Sandbox.Game
 		const float innerWallHeight = 96f;
         const float wallModelHeight = 256f;
 
+        var hatch = new Hatch();
+
+		_mazeGeometry.Add( hatch );
+
 		for (var row = 0; row <= _currentMaze.Rows; row++)
 		{
 			for (var col = 0; col <= _currentMaze.Cols; col++)
