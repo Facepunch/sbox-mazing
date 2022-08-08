@@ -1,155 +1,144 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Sandbox;
 
 namespace Mazing;
 
-public partial class MazingPlayer : Player
+partial class MazingPlayer : Sandbox.Player
 {
-	public ClothingContainer Clothing = new();
+    public ClothingContainer Clothing { get; } = new();
 
-	/// <summary>
-	/// Default init
-	/// </summary>
-	public MazingPlayer()
-	{
-		
-	}
+    [Net]
+    public bool HasExited { get; set; }
 
-	/// <summary>
-	/// Initialize using this client
-	/// </summary>
-	public MazingPlayer(Client cl) : this()
-	{
-		// Load clothing from client data
-		Clothing.LoadFromClient(cl);
-	}
+    [Net]
+    public Key HeldKey { get; set; }
 
-	public override void Respawn()
-	{
-		SetModel("models/citizen/citizen.vmdl");
+    public MazingPlayer()
+    {
 
-		Controller = new MazingWalkController();
+    }
 
-		EnableAllCollisions = true;
-		EnableDrawing = true;
-		EnableHideInFirstPerson = true;
-		EnableShadowInFirstPerson = true;
+    public MazingPlayer( Client cl )
+    {
+        Clothing.LoadFromClient(cl);
+    }
 
-		Clothing.DressEntity(this);
+    public override void Respawn()
+    {
+        SetModel("models/citizen/citizen.vmdl");
 
-		CameraMode = new MazingCamera();
+        Controller = new MazingWalkController();
+        Animator = new MazingPlayerAnimator();
+        CameraMode = new MazingCamera();
 
-		base.Respawn();
-	}
+        Clothing.DressEntity(this);
 
-	public override void OnKilled()
-	{
-		base.OnKilled();
+        EnableAllCollisions = true;
+        EnableDrawing = true;
+        EnableHideInFirstPerson = true;
+        EnableShadowInFirstPerson = true;
 
-		Controller = null;
+        base.Respawn();
+    }
 
-		EnableAllCollisions = false;
-		EnableDrawing = false;
+    public override void OnKilled()
+    {
+        base.OnKilled();
 
-		CameraMode = new SpectateRagdollCamera();
+        Controller = null;
 
-		foreach (var child in Children)
-		{
-			child.EnableDrawing = false;
-		}
-	}
+        EnableAllCollisions = false;
+        EnableDrawing = false;
+    }
+    
+    public override void Simulate( Client cl )
+    {
+        base.Simulate(cl);
 
-	public override void Simulate(Client cl)
-	{
-		base.Simulate(cl);
+        if (!IsServer)
+            return;
+        
+    }
 
-		if (Input.ActiveChild != null)
-		{
-			ActiveChild = Input.ActiveChild;
-		}
+    [Event.Tick.Server]
+    public void ServerTick()
+    {
+        CheckForKeyPickup();
+        CheckForLockOpen();
+        CheckExited();
+    }
 
-		if (LifeState != LifeState.Alive)
-			return;
-
-		var controller = GetActiveController();
-		if (controller != null)
-		{
-			EnableSolidCollisions = !controller.HasTag("noclip");
-
-			SimulateAnimation(controller);
-		}
-
-		TickPlayerUse();
-		SimulateActiveChild(cl, ActiveChild);
-
-		//if (Input.Pressed(InputButton.View))
-		//{
-		//	if (CameraMode is MazingCamera)
-		//	{
-		//		CameraMode = new FirstPersonCamera();
-		//	}
-		//	else
-		//	{
-		//		CameraMode = new MazingCamera();
-		//	}
-		//}
-
-		if (Input.Released(InputButton.Jump))
+    private void CheckForKeyPickup()
+    {
+        if ( HeldKey != null || HasExited )
         {
-            var hatch = Entity.All.OfType<Hatch>().First();
-
-			hatch.Open();
+            return;
         }
-	}
 
-	void SimulateAnimation(PawnController controller)
-	{
-		if (controller == null)
-			return;
+        var keys = Entity.All.OfType<Key>();
 
-		// where should we be rotated to
-		var turnSpeed = 0.02f;
-		var idealRotation = Rotation.LookAt(Controller.WishVelocity.WithZ(0), Vector3.Up);
-		Rotation = Rotation.Slerp(Rotation, idealRotation, Controller.WishVelocity.Length * Time.Delta * turnSpeed);
-		// Rotation = Rotation.Clamp(idealRotation, 45.0f, out var shuffle); // lock facing to within 45 degrees of look direction
+        foreach (var key in keys)
+        {
+            if ( key.IsHeld )
+            {
+                continue;
+            }
 
-		CitizenAnimationHelper animHelper = new CitizenAnimationHelper(this);
+            var diff = key.Position.WithZ(0) - Position.WithZ(0);
 
-		animHelper.WithWishVelocity(controller.WishVelocity);
-		animHelper.WithVelocity(controller.Velocity);
-		animHelper.WithLookAt(EyePosition + Rotation.Forward * 100.0f, 1.0f, 1.0f, 0.5f);
-		animHelper.AimAngle = Rotation;
-		animHelper.FootShuffle = 0f;
-		animHelper.DuckLevel = MathX.Lerp(animHelper.DuckLevel, controller.HasTag("ducked") ? 1 : 0, Time.Delta * 10.0f);
-		animHelper.IsGrounded = GroundEntity != null;
-		animHelper.IsSitting = controller.HasTag("sitting");
-		animHelper.IsNoclipping = controller.HasTag("noclip");
-		animHelper.IsClimbing = controller.HasTag("climbing");
-		animHelper.IsSwimming = WaterLevel >= 0.5f;
-		animHelper.IsWeaponLowered = false;
+            if (diff.LengthSquared < 20f * 20f)
+            {
+                HeldKey = key;
+                key.IsHeld = true;
 
-		if (controller.HasEvent("jump")) animHelper.TriggerJump();
-		//if (ActiveChild != lastWeapon) animHelper.TriggerDeploy();
+                key.Parent = this;
+                key.LocalPosition = Vector3.Up * 64f;
 
-		if (ActiveChild is BaseCarriable carry)
-		{
-			carry.SimulateAnimator(animHelper);
-		}
-		else
-		{
-            animHelper.HoldType = CitizenAnimationHelper.HoldTypes.None;
-			animHelper.AimBodyWeight = 0.5f;
-		}
-	}
+                break;
+            }
+        }
+    }
 
-	public override void StartTouch(Entity other)
-	{
-		base.StartTouch(other);
+    private void CheckForLockOpen()
+    {
+        if ( HeldKey == null || HasExited )
+        {
+            return;
+        }
 
-	}
+        var hatches = Entity.All.OfType<Hatch>();
 
-	public override float FootstepVolume()
-	{
-		return Velocity.WithZ(0).Length.LerpInverse(0.0f, 200.0f) * 5.0f;
-	}
+        foreach ( var hatch in hatches )
+        {
+            if ( hatch.IsOpen )
+            {
+                continue;
+            }
+
+            var diff = hatch.Position.WithZ(0) - Position.WithZ(0);
+
+            if (diff.LengthSquared < 20f * 20f)
+            {
+                HeldKey.Delete();
+                HeldKey = null;
+
+                hatch.Open();
+                break;
+            }
+        }
+    }
+
+    private void CheckExited()
+    {
+        if ( HasExited )
+        {
+            return;
+        }
+
+        if ( Position.z < -128f )
+        {
+            HasExited = true;
+        }
+    }
 }

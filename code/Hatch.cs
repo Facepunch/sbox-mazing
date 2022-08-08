@@ -18,7 +18,7 @@ internal partial class Hatch : AnimatedEntity
 
         SetModel( "models/hatch.vmdl" );
 
-        Rotation = Rotation.FromYaw( 180 );
+        Rotation = Rotation.FromYaw( 270 );
 
         PlaybackRate = 0f;
         CurrentSequence.Time = 0f;

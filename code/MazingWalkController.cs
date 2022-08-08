@@ -1,12 +1,11 @@
-﻿using Sandbox;
+﻿using System;
+using Sandbox;
 
 namespace Mazing;
 
 public partial class MazingWalkController : BasePlayerController
 {
-    [Net] public float SprintSpeed { get; set; } = 150.0f;
-    [Net] public float WalkSpeed { get; set; } = 64.0f;
-    [Net] public float DefaultSpeed { get; set; } = 96.0f;
+    [Net] public float DefaultSpeed { get; set; } = 190.0f;
     [Net] public float Acceleration { get; set; } = 10.0f;
     [Net] public float AirAcceleration { get; set; } = 50.0f;
     [Net] public float FallSoundZ { get; set; } = -30.0f;
@@ -24,16 +23,27 @@ public partial class MazingWalkController : BasePlayerController
     [Net] public float EyeHeight { get; set; } = 64.0f;
     [Net] public float Gravity { get; set; } = 800.0f;
     [Net] public float AirControl { get; set; } = 30.0f;
+    [Net] public bool AutoJump { get; set; } = false;
+    [Net] public float VaultTime { get; set; } = 0.6f;
+    [Net] public float VaultHeight { get; set; } = 192f;
+    [Net] public float VaultCooldown { get; set; } = 3.5f;
 
-    public Duck Duck;
+    [Net]
+    public bool IsVaulting { get; set; }
+
+    [Net]
+    public Vector3 VaultOrigin { get; set; }
+
+    [Net]
+    public Vector3 VaultTarget { get; set; }
+
+    [Net]
+    public TimeSince SinceVault { get; set; }
+
     public Unstuck Unstuck;
-
-    public new MazingPlayer Pawn => base.Pawn as MazingPlayer;
-
-
+    
     public MazingWalkController()
     {
-        Duck = new Duck(this);
         Unstuck = new Unstuck(this);
     }
 
@@ -48,8 +58,7 @@ public partial class MazingWalkController : BasePlayerController
 
         return new BBox(mins, maxs);
     }
-
-
+    
     // Duck body height 32
     // Eye Height 64
     // Duck Eye Height 28
@@ -57,7 +66,7 @@ public partial class MazingWalkController : BasePlayerController
     protected Vector3 mins;
     protected Vector3 maxs;
 
-    public virtual void SetBBox(Vector3 mins, Vector3 maxs)
+    public virtual void SetBBox( Vector3 mins, Vector3 maxs )
     {
         if (this.mins == mins && this.maxs == maxs)
             return;
@@ -75,18 +84,44 @@ public partial class MazingWalkController : BasePlayerController
 
         var mins = new Vector3(-girth, -girth, 0) * Pawn.Scale;
         var maxs = new Vector3(+girth, +girth, BodyHeight) * Pawn.Scale;
-
-        Duck.UpdateBBox(ref mins, ref maxs, Pawn.Scale);
-
+        
         SetBBox(mins, maxs);
     }
 
     protected float SurfaceFriction;
 
+    private void UpdateEyeRotation()
+    {
+        if ( IsVaulting )
+        {
+            return;
+        }
+
+        var moveDir = new Vector3( -Input.Left, Input.Forward, 0f );
+
+        if ( moveDir.LengthSquared <= 0.125f )
+        {
+            return;
+        }
+
+        if ( Math.Abs( moveDir.x ) > Math.Abs( moveDir.y ) )
+        {
+            moveDir.y = 0f;
+        }
+        else
+        {
+            moveDir.x = 0f;
+        }
+
+        EyeRotation = Rotation.LookAt(moveDir, Vector3.Up);
+    }
+
 
     public override void FrameSimulate()
     {
         base.FrameSimulate();
+
+        UpdateEyeRotation();
     }
 
     public override void Simulate()
@@ -95,6 +130,7 @@ public partial class MazingWalkController : BasePlayerController
         UpdateBBox();
 
         EyeLocalPosition += TraceOffset;
+        UpdateEyeRotation();
 
         RestoreGroundPos();
 
@@ -117,9 +153,6 @@ public partial class MazingWalkController : BasePlayerController
 
         // player->UpdateStepSound( player->m_pSurfaceData, mv->GetAbsOrigin(), mv->m_vecVelocity )
 
-
-        // RunLadderMode
-
         //
         // Start Gravity
         //
@@ -128,78 +161,133 @@ public partial class MazingWalkController : BasePlayerController
 
         BaseVelocity = BaseVelocity.WithZ(0);
 
-
         /*
-            if (player->m_flWaterJumpTime)
-	        {
-		        WaterJump();
-		        TryPlayerMove();
-		        // See if we are still in water?
-		        CheckWater();
-		        return;
-	        }
+         if (player->m_flWaterJumpTime)
+            {
+                WaterJump();
+                TryPlayerMove();
+                // See if we are still in water?
+                CheckWater();
+                return;
+            }
         */
 
-        // if ( underwater ) do underwater movement
-
-        if (Input.Pressed(InputButton.Jump))
+        if ( Pawn is MazingPlayer player && player.HasExited )
         {
-            CheckJumpButton();
+            AirMove();
+            CategorizePosition( false );
         }
-
-        // Fricion is handled before we add in any base velocity. That way, if we are on a conveyor,
-        //  we don't slow when standing still, relative to the conveyor.
-        bool bStartOnGround = GroundEntity != null;
-        //bool bDropSound = false;
-        if (bStartOnGround)
+        else if ( IsVaulting )
         {
-            //if ( Velocity.z < FallSoundZ ) bDropSound = true;
-
-            Velocity = Velocity.WithZ(0);
-            //player->m_Local.m_flFallVelocity = 0.0f;
-
-            if (GroundEntity != null)
-            {
-                ApplyFriction(GroundFriction * SurfaceFriction);
-            }
-        }
-
-        //
-        // Work out wish velocity.. just take input, rotate it to view, clamp to -1, 1
-        //
-        WishVelocity = new Vector3(-Input.Forward, Input.Left, 0);
-        var inSpeed = WishVelocity.Length.Clamp(0, 1);
-        WishVelocity *= Pawn.CameraMode.Rotation.Angles().WithPitch(0).ToRotation();
-
-        WishVelocity = WishVelocity.WithZ(0);
-        WishVelocity = WishVelocity.Normal * inSpeed;
-        WishVelocity *= GetWishSpeed();
-
-        Duck.PreTick();
-
-        bool bStayOnGround = false;
-        if (GroundEntity != null)
-        {
-            bStayOnGround = true;
-            WalkMove();
+            VaultMove();
         }
         else
         {
-            WishVelocity = 0f;
+            var game = MazingGame.Current;
+            var (rowF, colF) = game.PositionToCell( Position );
+            var (row, col) = (rowF.FloorToInt(), colF.FloorToInt());
 
-            AirMove();
+            if ( SinceVault < VaultCooldown )
+            {
+                DebugOverlay.Text($"Vault: {VaultCooldown - SinceVault}", Position + Vector3.Up * 128f, 0, Color.Green, 0f,
+                    maxDistance: float.MaxValue);
+            }
+
+            DebugOverlay.Box( game.CellToPosition( row, col ), game.CellToPosition( row + 1f, col + 1f ),
+                new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
+
+            WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
+
+            foreach ( var (dir, dRow, dCol) in MazeData.Directions )
+            {
+                if ( !game.CurrentMaze.GetWall( row, col, dir ) ) continue;
+
+                var mid = (game.CellToPosition( row + 0.5f, col + 0.5f ) +
+                           game.CellToPosition( row + dRow + 0.5f, col + dCol + 0.5f )) * 0.5f;
+                var diff = game.CellToPosition( row + dRow, col + dCol ) - game.CellToPosition( row, col );
+                var size = new Vector3( Math.Abs( diff.y ) + 6f, Math.Abs( diff.x ) + 6f, 0f );
+
+                var canVault = (dRow == 0 || row + dRow >= 0 && row + dRow < game.CurrentMaze.Rows)
+                               && (dCol == 0 || col + dCol >= 0 && col + dCol < game.CurrentMaze.Cols);
+
+                var playerDist = Vector3.Dot( mid - Position, diff.Normal ) - 24f;
+
+                if ( playerDist < 0f )
+                {
+                    Position += playerDist * diff.Normal;
+
+                    var moveDot = Vector3.Dot(WishVelocity, diff.Normal);
+                    if (moveDot > 0f)
+                    {
+                        WishVelocity -= moveDot * diff.Normal;
+                    }
+                }
+
+                if ( SinceVault > VaultCooldown && canVault && Vector3.Dot( EyeRotation.Forward, diff.Normal ) > 0.5f &&
+                     (AutoJump ? Input.Down( InputButton.Jump ) : Input.Pressed( InputButton.Jump )) )
+                {
+                    CheckVaultButton( row + dRow, col + dCol );
+                }
+
+                DebugOverlay.Box( mid - size * 0.5f, mid + size * 0.5f, canVault ? Color.Blue : Color.Red,
+                    depthTest: false );
+            }
+
+            // Fricion is handled before we add in any base velocity. That way, if we are on a conveyor,
+            //  we don't slow when standing still, relative to the conveyor.
+            bool bStartOnGround = GroundEntity != null;
+            //bool bDropSound = false;
+            if ( bStartOnGround )
+            {
+                //if ( Velocity.z < FallSoundZ ) bDropSound = true;
+
+                Velocity = Velocity.WithZ( 0 );
+                //player->m_Local.m_flFallVelocity = 0.0f;
+
+                if ( GroundEntity != null )
+                {
+                    ApplyFriction( GroundFriction * SurfaceFriction );
+                }
+            }
+
+            //
+            // Work out wish velocity.. just take input, rotate it to view, clamp to -1, 1
+            //
+
+            var inSpeed = WishVelocity.Length.Clamp( 0, 1 );
+
+            WishVelocity = WishVelocity.WithZ( 0 );
+
+            WishVelocity = WishVelocity.Normal * inSpeed;
+            WishVelocity *= GetWishSpeed();
+
+            bool bStayOnGround = false;
+            if ( GroundEntity != null )
+            {
+                bStayOnGround = true;
+                WalkMove();
+            }
+            else
+            {
+                WishVelocity = Vector3.Zero;
+                AirMove();
+            }
+
+            CategorizePosition( bStayOnGround );
         }
-
-        CategorizePosition(bStayOnGround);
 
         // FinishGravity
         Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
-
-
+        
         if (GroundEntity != null)
         {
             Velocity = Velocity.WithZ(0);
         }
+
+        // CheckFalling(); // fall damage etc
+
+        // Land Sound
+        // Swim Sounds
 
         SaveGroundPos();
 
@@ -218,17 +306,29 @@ public partial class MazingWalkController : BasePlayerController
             DebugOverlay.ScreenText($" SurfaceFriction: {SurfaceFriction}", lineOffset + 4);
             DebugOverlay.ScreenText($"    WishVelocity: {WishVelocity}", lineOffset + 5);
         }
+
     }
 
     public virtual float GetWishSpeed()
     {
-        var ws = Duck.GetWishSpeed();
-        if (ws >= 0) return ws;
-
-        if (Input.Down(InputButton.Run)) return SprintSpeed;
-        if (Input.Down(InputButton.Walk)) return WalkSpeed;
-
         return DefaultSpeed;
+    }
+
+    public void VaultMove()
+    {
+        var groundPos = Vector3.Lerp( VaultOrigin, VaultTarget, SinceVault / VaultTime );
+        var height = Math.Clamp( 1f - MathF.Pow( 2f * SinceVault / VaultTime - 1f, 2f ), 0f, 1f );
+
+        Position = Vector3.Up * height * VaultHeight + groundPos + Vector3.Up;
+
+        if ( SinceVault > VaultTime )
+        {
+            IsVaulting = false;
+            Velocity = Vector3.Zero;
+            ((ModelEntity)Pawn).EnableAllCollisions = true;
+
+            CategorizePosition( false );
+        }
     }
 
     public virtual void WalkMove()
@@ -301,6 +401,7 @@ public partial class MazingWalkController : BasePlayerController
     public virtual void Move()
     {
         MoveHelper mover = new MoveHelper(Position, Velocity);
+        
         mover.Trace = mover.Trace.Size(mins, maxs).Ignore(Pawn);
         mover.MaxStandableAngle = GroundAngle;
 
@@ -313,7 +414,7 @@ public partial class MazingWalkController : BasePlayerController
     /// <summary>
     /// Add our wish direction and speed onto our velocity
     /// </summary>
-    public virtual void Accelerate(Vector3 wishdir, float wishspeed, float speedLimit, float acceleration)
+    public virtual void Accelerate( Vector3 wishdir, float wishspeed, float speedLimit, float acceleration )
     {
         // This gets overridden because some games (CSPort) want to allow dead (observer) players
         // to be able to move around.
@@ -346,7 +447,7 @@ public partial class MazingWalkController : BasePlayerController
     /// <summary>
     /// Remove ground friction from velocity
     /// </summary>
-    public virtual void ApplyFriction(float frictionAmount = 1.0f)
+    public virtual void ApplyFriction( float frictionAmount = 1.0f )
     {
         // If we are in water jump cycle, don't apply friction
         //if ( player->m_flWaterJumpTime )
@@ -379,13 +480,38 @@ public partial class MazingWalkController : BasePlayerController
         // mv->m_outWishVel -= (1.f-newspeed) * mv->m_vecVelocity;
     }
 
-    public virtual void CheckJumpButton()
+    public virtual void CheckVaultButton( int targetRow, int targetCol )
     {
         //if ( !player->CanJump() )
         //    return false;
 
+
+        /*
+        if ( player->m_flWaterJumpTime )
+        {
+            player->m_flWaterJumpTime -= gpGlobals->frametime();
+            if ( player->m_flWaterJumpTime < 0 )
+                player->m_flWaterJumpTime = 0;
+
+            return false;
+        }*/
+        
         if (GroundEntity == null)
             return;
+
+        var game = MazingGame.Current;
+
+        DebugOverlay.Box( game.CellToPosition( targetRow + 0.25f, targetCol + 0.25f ),
+            game.CellToPosition( targetRow + 0.75f, targetCol + 0.75f ),
+            Color.White, 1f );
+
+        IsVaulting = true;
+        SinceVault = 0f;
+
+        ((ModelEntity)Pawn).EnableAllCollisions = false;
+
+        VaultOrigin = Position;
+        VaultTarget = game.CellToPosition( targetRow + 0.5f, targetCol + 0.5f );
 
         /*
         if ( player->m_Local.m_bDucking && (player->GetFlags() & FL_DUCKING) )
@@ -413,10 +539,7 @@ public partial class MazingWalkController : BasePlayerController
         float flMul = 268.3281572999747f * 1.2f;
 
         float startz = Velocity.z;
-
-        if (Duck.IsActive)
-            flMul *= 0.8f;
-
+        
         Velocity = Velocity.WithZ(startz + flMul * flGroundFactor);
 
         Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
@@ -444,8 +567,8 @@ public partial class MazingWalkController : BasePlayerController
 
         Velocity -= BaseVelocity;
     }
-
-    public virtual void CategorizePosition(bool bStayOnGround)
+    
+    public virtual void CategorizePosition( bool bStayOnGround )
     {
         SurfaceFriction = 1.0f;
 
@@ -509,7 +632,7 @@ public partial class MazingWalkController : BasePlayerController
     /// <summary>
     /// We have a new ground entity
     /// </summary>
-    public virtual void UpdateGroundEntity(TraceResult tr)
+    public virtual void UpdateGroundEntity( TraceResult tr )
     {
         GroundNormal = tr.Normal;
 
@@ -551,7 +674,7 @@ public partial class MazingWalkController : BasePlayerController
     /// liftFeet will move the start position up by this amount, while keeping the top of the bbox at the same
     /// position. This is good when tracing down because you won't be tracing through the ceiling above.
     /// </summary>
-    public override TraceResult TraceBBox(Vector3 start, Vector3 end, float liftFeet = 0.0f)
+    public override TraceResult TraceBBox( Vector3 start, Vector3 end, float liftFeet = 0.0f )
     {
         return TraceBBox(start, end, mins, maxs, liftFeet);
     }
@@ -599,5 +722,4 @@ public partial class MazingWalkController : BasePlayerController
 
         //GroundTransform = GroundEntity.Transform.ToLocal( new Transform( Pos, Rot ) );
     }
-
 }

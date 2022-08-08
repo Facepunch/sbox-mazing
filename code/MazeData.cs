@@ -26,13 +26,13 @@ public enum MazeTransform
 	Transpose = 4
 }
 
-public class MazeData
+public partial class MazeData : BaseNetworkable, INetworkSerializer
 {
-	public int Rows { get; }
-	public int Cols { get; }
+	public int Rows { get; private set; }
+	public int Cols { get; private set; }
 
-	private readonly bool[] _vertWalls;
-	private readonly bool[] _horzWalls;
+	private bool[] _vertWalls;
+	private bool[] _horzWalls;
 
 	private static Regex PartNameRegex = new Regex( @"^(?<cols>[0-9]+)x(?<rows>[0-9]+)_" );
 
@@ -186,6 +186,11 @@ public class MazeData
 		}
 	}
 
+    public MazeData()
+    {
+
+    }
+
 	public MazeData( int rows, int cols )
 	{
 		Rows = rows;
@@ -323,5 +328,23 @@ public class MazeData
 			
 			Log.Info( string.Join( "   ", Enumerable.Range( 0, Cols + 1 ).Select( col => GetWall( row, col, Direction.West ) ? "|" : " " ) ) );
 		}
+	}
+
+    public void Read( ref NetRead read )
+    {
+        Rows = read.Read<int>();
+        Cols = read.Read<int>();
+
+        _horzWalls = read.ReadUnmanagedArray( _horzWalls );
+        _vertWalls = read.ReadUnmanagedArray( _vertWalls );
+	}
+
+    public void Write( NetWrite write )
+    {
+        write.Write( Rows );
+		write.Write( Cols );
+
+		write.WriteUnmanagedArray( _horzWalls );
+        write.WriteUnmanagedArray( _vertWalls );
 	}
 }

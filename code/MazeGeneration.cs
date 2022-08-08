@@ -9,12 +9,16 @@ namespace Mazing;
 
 public static class MazeGenerator
 {
-	public static MazeData Generate( int seed )
+	public static MazeData Generate( int seed, int size )
 	{
 		var rand = new Random( seed );
 
-		const int size = 24;
 		const int stride = 4;
+
+        if ( size <= 0 || size % stride != 0 )
+        {
+            throw new ArgumentException( $"Size must be a multiple of {stride}." );
+        }
 
 		var parts = MazeData.LoadAll().ToList();
 		var maze = new MazeData( size, size );
