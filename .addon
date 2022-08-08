@@ -1,0 +1,27 @@
+{
+  "Title": "Mazing",
+  "Type": "game",
+  "Org": "ryleigh",
+  "Ident": "mazing",
+  "Schema": 1,
+  "HasAssets": true,
+  "AssetsPath": "",
+  "ResourcePaths": [],
+  "HasCode": true,
+  "CodePath": "/code/",
+  "RootNamespace": "Mazing",
+  "Metadata": {
+    "MaxPlayers": 64,
+    "MinPlayers": 1,
+    "GameNetworkType": "Multiplayer",
+    "MapSelect": "Official",
+    "MapList": [
+      "ziks.mazingmap"
+    ],
+    "RankType": "None",
+    "PerMapRanking": false,
+    "LeaderboardType": "None",
+    "ProjectTemplate": null,
+    "GameCategory": "None"
+  }
+}

@@ -1,0 +1,6 @@
+.vs/
+.editorconfig
+*.blend1
+obj/
+launchSettings.json
+*.csproj
