@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Sandbox;
 
 namespace Mazing;
@@ -97,23 +98,23 @@ public partial class MazingWalkController : BasePlayerController
             return;
         }
 
-        var moveDir = new Vector3( -Input.Left, Input.Forward, 0f );
-
-        if ( moveDir.LengthSquared <= 0.125f )
+        if (WishVelocity.LengthSquared <= 0.125f )
         {
             return;
         }
 
-        if ( Math.Abs( moveDir.x ) > Math.Abs( moveDir.y ) )
+        var dir = WishVelocity;
+
+        if ( Math.Abs(dir.x ) > Math.Abs(dir.y ) )
         {
-            moveDir.y = 0f;
+            dir.y = 0f;
         }
         else
         {
-            moveDir.x = 0f;
+            dir.x = 0f;
         }
 
-        EyeRotation = Rotation.LookAt(moveDir, Vector3.Up);
+        EyeRotation = Rotation.LookAt(dir, Vector3.Up );
     }
 
 
@@ -130,7 +131,6 @@ public partial class MazingWalkController : BasePlayerController
         UpdateBBox();
 
         EyeLocalPosition += TraceOffset;
-        UpdateEyeRotation();
 
         RestoreGroundPos();
 
@@ -193,45 +193,111 @@ public partial class MazingWalkController : BasePlayerController
                     maxDistance: float.MaxValue);
             }
 
-            DebugOverlay.Box( game.CellToPosition( row, col ), game.CellToPosition( row + 1f, col + 1f ),
-                new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
+            if ( Debug )
+            {
+                DebugOverlay.Box( game.CellToPosition( row, col ), game.CellToPosition( row + 1f, col + 1f ),
+                    new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
+            }
 
             WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
 
+            var wishVelocityAdd = Vector3.Zero;
+            var positionAdd = Vector3.Zero;
+
+            var rowFrac = rowF - row;
+            var colFrac = colF - col;
+
             foreach ( var (dir, dRow, dCol) in MazeData.Directions )
             {
-                if ( !game.CurrentMaze.GetWall( row, col, dir ) ) continue;
+                var directWall = game.CurrentMaze.GetWall( row, col, dir );
 
-                var mid = (game.CellToPosition( row + 0.5f, col + 0.5f ) +
-                           game.CellToPosition( row + dRow + 0.5f, col + dCol + 0.5f )) * 0.5f;
-                var diff = game.CellToPosition( row + dRow, col + dCol ) - game.CellToPosition( row, col );
-                var size = new Vector3( Math.Abs( diff.y ) + 6f, Math.Abs( diff.x ) + 6f, 0f );
+                bool endWall = false;
 
-                var canVault = (dRow == 0 || row + dRow >= 0 && row + dRow < game.CurrentMaze.Rows)
-                               && (dCol == 0 || col + dCol >= 0 && col + dCol < game.CurrentMaze.Cols);
-
-                var playerDist = Vector3.Dot( mid - Position, diff.Normal ) - 24f;
-
-                if ( playerDist < 0f )
+                if ( dRow != 0 && Math.Abs(colFrac - 0.5f) > 0.2f )
                 {
-                    Position += playerDist * diff.Normal;
-
-                    var moveDot = Vector3.Dot(WishVelocity, diff.Normal);
-                    if (moveDot > 0f)
+                    if ( colFrac > 0.5f )
                     {
-                        WishVelocity -= moveDot * diff.Normal;
+                        endWall = game.CurrentMaze.GetWall( row + dRow, col + dCol, Direction.East ) || game.CurrentMaze.GetWall( row, col + 1, dir );
+                    }
+                    else
+                    {
+                        endWall = game.CurrentMaze.GetWall( row + dRow, col + dCol, Direction.West ) || game.CurrentMaze.GetWall(row, col - 1, dir);
+                    }
+                }
+                else if ( dCol != 0 && Math.Abs( rowFrac - 0.5f ) > 0.2f )
+                {
+                    if ( rowFrac > 0.5f )
+                    {
+                        endWall = game.CurrentMaze.GetWall( row + dRow, col + dCol, Direction.South ) || game.CurrentMaze.GetWall(row + 1, col, dir);
+                    }
+                    else
+                    {
+                        endWall = game.CurrentMaze.GetWall( row + dRow, col + dCol, Direction.North ) || game.CurrentMaze.GetWall(row - 1, col, dir);
                     }
                 }
 
-                if ( SinceVault > VaultCooldown && canVault && Vector3.Dot( EyeRotation.Forward, diff.Normal ) > 0.5f &&
-                     (AutoJump ? Input.Down( InputButton.Jump ) : Input.Pressed( InputButton.Jump )) )
+                if ( !directWall && !endWall )
                 {
-                    CheckVaultButton( row + dRow, col + dCol );
+                    continue;
                 }
 
-                DebugOverlay.Box( mid - size * 0.5f, mid + size * 0.5f, canVault ? Color.Blue : Color.Red,
-                    depthTest: false );
+                var mid = (game.CellToPosition(row + 0.5f, col + 0.5f) +
+                           game.CellToPosition(row + dRow + 0.5f, col + dCol + 0.5f)) * 0.5f;
+                var diff = game.CellToPosition(row + dRow, col + dCol) - game.CellToPosition(row, col);
+                var normal = diff.Normal;
+                var size = new Vector3(Math.Abs(diff.y) + 6f, Math.Abs(diff.x) + 6f, 0f);
+
+                var canVault = directWall && (dRow == 0 || row + dRow >= 0 && row + dRow < game.CurrentMaze.Rows)
+                               && (dCol == 0 || col + dCol >= 0 && col + dCol < game.CurrentMaze.Cols);
+
+                var playerDist = Vector3.Dot(mid - Position, normal) - 24f;
+
+                var moveDot = Vector3.Dot(WishVelocity, normal);
+
+                if ( playerDist < 0f )
+                {
+                    positionAdd += playerDist * normal;
+
+                    var velDot = Vector3.Dot(Velocity, normal);
+
+                    if ( directWall && velDot > 0f )
+                    {
+                        Velocity -= velDot * normal;
+                    }
+                }
+
+                if ( moveDot > 0f &&
+                     (Math.Abs( Vector3.Dot( WishVelocity, new Vector3( normal.y, -normal.x ) ) ) > 0.5f ||
+                      Vector3.Dot( normal, EyeRotation.Forward ) > 0.5f) )
+                {
+                    wishVelocityAdd -= moveDot * normal * Math.Clamp( 1f - playerDist, 0f, 1f );
+                }
+
+                if ( !directWall && moveDot > 0f )
+                {
+                    var perp = dRow != 0 ? colFrac > 0.5f
+                            ? new Vector3( -1f, 0f )
+                            : new Vector3( 1f, 0f )
+                        : rowFrac > 0.5f ? new Vector3( 0f, -1f ) : new Vector3( 0f, 1f );
+
+                    wishVelocityAdd += perp;
+                }
+
+                if (SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f &&
+                    (AutoJump ? Input.Down(InputButton.Jump) : Input.Pressed(InputButton.Jump)))
+                {
+                    CheckVaultButton(row + dRow, col + dCol);
+                }
+
+                if ( Debug )
+                {
+                    DebugOverlay.Box( mid - size * 0.5f, mid + size * 0.5f, canVault ? Color.Blue : Color.Red,
+                        depthTest: false );
+                }
             }
+
+            Position += positionAdd;
+            WishVelocity += wishVelocityAdd;
 
             // Fricion is handled before we add in any base velocity. That way, if we are on a conveyor,
             //  we don't slow when standing still, relative to the conveyor.
@@ -257,6 +323,7 @@ public partial class MazingWalkController : BasePlayerController
             var inSpeed = WishVelocity.Length.Clamp( 0, 1 );
 
             WishVelocity = WishVelocity.WithZ( 0 );
+            UpdateEyeRotation();
 
             WishVelocity = WishVelocity.Normal * inSpeed;
             WishVelocity *= GetWishSpeed();
@@ -501,9 +568,12 @@ public partial class MazingWalkController : BasePlayerController
 
         var game = MazingGame.Current;
 
-        DebugOverlay.Box( game.CellToPosition( targetRow + 0.25f, targetCol + 0.25f ),
-            game.CellToPosition( targetRow + 0.75f, targetCol + 0.75f ),
-            Color.White, 1f );
+        if ( Debug )
+        {
+            DebugOverlay.Box(game.CellToPosition(targetRow + 0.25f, targetCol + 0.25f),
+                game.CellToPosition(targetRow + 0.75f, targetCol + 0.75f),
+                Color.White, 1f);
+        }
 
         IsVaulting = true;
         SinceVault = 0f;
