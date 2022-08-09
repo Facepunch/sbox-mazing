@@ -62,6 +62,8 @@ abstract partial class Enemy : AnimatedEntity
             DefaultSpeed = MoveSpeed
         };
 
+        Tags.Add( "enemy" );
+
         Animator = new MazingPlayerAnimator();
 
         EnableAllCollisions = true;
@@ -123,6 +125,15 @@ abstract partial class Enemy : AnimatedEntity
 
         Controller?.Simulate( default, this, null );
         Animator?.Simulate( default, this, null );
+
+        var closestPlayer = Entity.All.OfType<MazingPlayer>()
+            .Where( x => x.IsAliveInMaze && (x.Position - Position).LengthSquared < 32f * 32f )
+            .MinBy( x => (x.Position - Position).LengthSquared );
+
+        if ( closestPlayer != null )
+        {
+            closestPlayer.Kill();
+        }
     }
 
     public bool CanWalkInDirection( Vector3 dir )

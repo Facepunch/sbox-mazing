@@ -666,6 +666,26 @@ public partial class MazingWalkController : BasePlayerController
         return TraceBBox(start, end, mins, maxs, liftFeet);
     }
 
+    public override TraceResult TraceBBox( Vector3 start, Vector3 end, Vector3 mins, Vector3 maxs, float liftFeet = 0.0f )
+    {
+        if (liftFeet > 0)
+        {
+            start += Vector3.Up * liftFeet;
+            maxs = maxs.WithZ(maxs.z - liftFeet);
+        }
+
+        var kindTag = Pawn is MazingPlayer ? "player" : "enemy";
+
+        var tr = Trace.Ray(start + TraceOffset, end + TraceOffset)
+            .Size(mins, maxs)
+            .WithAnyTags("solid", "playerclip", "passbullets", kindTag)
+            .Ignore(Pawn)
+            .Run();
+
+        tr.EndPosition -= TraceOffset;
+        return tr;
+    }
+
     /// <summary>
     /// Try to keep a walking player on the ground when running down slopes etc
     /// </summary>

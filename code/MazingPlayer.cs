@@ -19,6 +19,11 @@ partial class MazingPlayer : Sandbox.Player
     public bool HasExited { get; set; }
 
     [Net]
+    public bool IsAlive { get; set; }
+
+    public bool IsAliveInMaze => IsAlive && !HasExited;
+
+    [Net]
     public Key HeldKey { get; set; }
 
     [Net]
@@ -44,22 +49,36 @@ partial class MazingPlayer : Sandbox.Player
 
         Clothing.DressEntity(this);
 
+        ClientRespawn();
+
         EnableAllCollisions = true;
         EnableDrawing = true;
         EnableHideInFirstPerson = true;
         EnableShadowInFirstPerson = true;
 
+        IsAlive = true;
+
         base.Respawn();
     }
 
-    public override void OnKilled()
+    public void Kill()
     {
-        base.OnKilled();
+        IsAlive = false;
 
-        Controller = null;
+        DropHeldItem();
+        ClientKill();
+    }
 
-        EnableAllCollisions = false;
-        EnableDrawing = false;
+    [ClientRpc]
+    private void ClientRespawn()
+    {
+        SetMaterialOverride("");
+    }
+
+    [ClientRpc]
+    private void ClientKill()
+    {
+        SetMaterialOverride( "materials/ghost.vmat" );
     }
     
     public override void Simulate( Client cl )
@@ -91,6 +110,11 @@ partial class MazingPlayer : Sandbox.Player
             return;
         }
 
+        DropHeldItem();
+    }
+
+    private void DropHeldItem()
+    {
         LastItemDrop = 0f;
 
         if (HeldKey != null)
@@ -99,15 +123,15 @@ partial class MazingPlayer : Sandbox.Player
 
             HeldKey.IsHeld = false;
             HeldKey.Parent = null;
-            HeldKey.Position = game.GetCellCenter( HeldKey.Position )
-                .WithZ( HeldKey.Position.z );
+            HeldKey.Position = game.GetCellCenter(HeldKey.Position)
+                .WithZ(HeldKey.Position.z);
             HeldKey = null;
         }
     }
 
     private void CheckForKeyPickup()
     {
-        if ( HeldKey != null || HasExited || LastItemDrop < 0.6f )
+        if ( HeldKey != null || !IsAliveInMaze || LastItemDrop < 0.6f )
         {
             return;
         }
@@ -138,7 +162,7 @@ partial class MazingPlayer : Sandbox.Player
 
     private void CheckForLockOpen()
     {
-        if ( HeldKey == null || HasExited )
+        if ( HeldKey == null || !IsAliveInMaze )
         {
             return;
         }
@@ -167,7 +191,7 @@ partial class MazingPlayer : Sandbox.Player
 
     private void CheckExited()
     {
-        if ( HasExited )
+        if ( !IsAliveInMaze )
         {
             return;
         }

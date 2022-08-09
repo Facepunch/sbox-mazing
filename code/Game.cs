@@ -218,9 +218,16 @@ public partial class MazingGame : Sandbox.Game
     {
         var allExited = true;
         var anyPlayers = false;
+        var anyDeadPlayers = false;
 
         foreach ( var player in Entity.All.OfType<MazingPlayer>() )
         {
+            if ( !player.IsAlive )
+            {
+                anyDeadPlayers = true;
+                continue;
+            }
+
             anyPlayers = true;
 
             if ( !player.HasExited )
@@ -235,6 +242,24 @@ public partial class MazingGame : Sandbox.Game
             ++LevelIndex;
 			GenerateMaze();
             ResetPlayers();
+        }
+        else if ( !anyPlayers && anyDeadPlayers )
+        {
+            LevelIndex = 0;
+
+            ClearEnemies();
+            GenerateMaze();
+            ResetPlayers();
+        }
+    }
+
+    private void ClearEnemies()
+    {
+        var enemies = Entity.All.OfType<Enemy>().ToArray();
+
+        foreach ( var enemy in enemies )
+        {
+            enemy.Delete();
         }
     }
 

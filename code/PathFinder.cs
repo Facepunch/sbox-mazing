@@ -88,7 +88,7 @@ internal class PathFinder
 
         foreach ( var player in Entity.All.OfType<MazingPlayer>() )
         {
-            if ( player.HasExited ) continue;
+            if ( !player.IsAliveInMaze) continue;
 
             AddCost( player.GetCellIndex(), PlayerCost );
         }
