@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[EnemySpawn(FirstLevel = 2, SpawnPeriod = 2)]
+[EnemySpawn(FirstLevel = 2, SpawnPeriod = 4)]
 partial class Seeker : Enemy
 {
     public override float MoveSpeed => 100f;
@@ -16,19 +16,22 @@ partial class Seeker : Enemy
     {
         base.Spawn();
 
-        new ModelEntity("models/citizen_clothes/hat/hat_beret.black.vmdl", this);
-
-        SetBodyGroup(1, 0);
+        new ModelEntity( "models/citizen_clothes/hat/hat_beret.black.vmdl", this );
     }
 
     protected override void OnReachTarget()
     {
-        var cell = CurrentCellIndex;
+        var player = Entity.All.OfType<MazingPlayer>()
+            .Where( x => !x.HasExited )
+            .MinBy( x => (x.Position - Position).LengthSquared );
 
-        var direction = MazeData.Directions.Where(x => CanWalkInDirection(x.Direction))
-            .OrderBy(x => Rand.Float() - GetSinceLastVisited(cell.Row + x.DeltaRow, cell.Col + x.DeltaCol))
-            .FirstOrDefault();
-
-        TargetCell = (TargetCell.Row + direction.DeltaRow, TargetCell.Col + direction.DeltaCol);
+        if ( player == null )
+        {
+            TargetCell = GetRandomNeighborCell();
+        }
+        else
+        {
+            TargetCell = GetNextInPathTo( player.GetCellIndex() );
+        }
     }
 }

@@ -45,10 +45,6 @@ abstract partial class Enemy : AnimatedEntity
 
     public (int Row, int Col) TargetCell { get; set; }
 
-    public (float Row, float Col) CurrentCell => Game.PositionToCell( Position );
-    public (int Row, int Col) CurrentCellIndex => Game.PositionToCellIndex( Position );
-    public Direction FacingDirection => MazeData.GetDirection( EyeRotation.Forward );
-
     public MazingGame Game => MazingGame.Current;
     
     private TimeSince[,] _cellVisitTimes;
@@ -73,21 +69,21 @@ abstract partial class Enemy : AnimatedEntity
         EnableHideInFirstPerson = true;
         EnableShadowInFirstPerson = true;
 
-        TargetCell = CurrentCellIndex;
+        TargetCell = this.GetCellIndex();
     }
     
     [Event.Tick.Server]
     private void ServerTick()
     {
+        var cell = this.GetCellIndex();
+
         if (_lastMaze != Game.CurrentMaze)
         {
             _lastMaze = Game.CurrentMaze;
-            TargetCell = CurrentCellIndex;
+            TargetCell = cell;
 
             _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
         }
-
-        var cell = CurrentCellIndex;
 
         if ( !IsInBounds( cell.Row, cell.Col ) )
         {
@@ -109,6 +105,11 @@ abstract partial class Enemy : AnimatedEntity
 
             var dir = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f) - Position;
 
+            DebugOverlay.Box( Game.CellToPosition( TargetCell.Row, TargetCell.Col ),
+                Game.CellToPosition( TargetCell.Row + 1f, TargetCell.Col + 1f ),
+                Color.Green, depthTest: false );
+
+
             walkController.EnemyWishVelocity = dir;
         }
 
@@ -123,8 +124,7 @@ abstract partial class Enemy : AnimatedEntity
 
     public bool CanWalkInDirection( Direction direction )
     {
-        var cell = CurrentCellIndex;
-
+        var cell = this.GetCellIndex();
         return !Game.CurrentMaze.GetWall(cell.Row, cell.Col, direction );
     }
 
@@ -143,5 +143,40 @@ abstract partial class Enemy : AnimatedEntity
     protected virtual void OnReachTarget()
     {
 
+    }
+
+    protected (int Row, int Col) GetRandomNeighborCell()
+    {
+        var cell = this.GetCellIndex();
+        var dir = MazeData.Directions.Where( x => CanWalkInDirection( x.Direction ) )
+            .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell.Row + x.DeltaRow, cell.Col + x.DeltaCol ) )
+            .FirstOrDefault();
+
+        return (cell.Row + dir.DeltaRow, cell.Col + dir.DeltaCol);
+    }
+
+    protected (int Row, int Col) GetNextInPathTo( (int Row, int Col) cell )
+    {
+        return GetNextInPathTo( cell.Row, cell.Col );
+    }
+
+    private PathFinder _pathFinder;
+    private readonly List<(int Row, int Col)> _path = new List<(int Row, int Col)>();
+
+    protected (int Row, int Col) GetNextInPathTo( int row, int col )
+    {
+        var cell = this.GetCellIndex();
+
+        _pathFinder ??= new PathFinder();
+        _path.Clear();
+
+        _pathFinder.FindPath(cell, (row, col), _path);
+
+        if ( _path.Count < 2 )
+        {
+            return cell;
+        }
+
+        return _path.Skip( 1 ).First();
     }
 }

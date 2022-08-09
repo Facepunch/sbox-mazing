@@ -16,19 +16,11 @@ partial class Wanderer : Enemy
     {
         base.Spawn();
 
-        new ModelEntity("models/citizen_clothes/hat/hat_hardhat.vmdl", this);
-
-        SetBodyGroup( 1, 0 );
+        new ModelEntity( "models/citizen_clothes/hat/hat_hardhat.vmdl", this );
     }
 
     protected override void OnReachTarget()
     {
-        var cell = CurrentCellIndex;
-
-        var direction = MazeData.Directions.Where( x => CanWalkInDirection( x.Direction ) )
-            .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell.Row + x.DeltaRow, cell.Col + x.DeltaCol ) )
-            .FirstOrDefault();
-
-        TargetCell = (TargetCell.Row + direction.DeltaRow, TargetCell.Col + direction.DeltaCol);
+        TargetCell = GetRandomNeighborCell();
     }
 }

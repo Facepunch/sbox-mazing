@@ -90,11 +90,12 @@ public partial class MazingGame : Sandbox.Game
             TypeLibrary.Create<Enemy>( type );
         }
 
+        var enemyIndex = 0;
         foreach ( var enemy in Entity.All.OfType<Enemy>() )
         {
             var (enemyRow, enemyCol) = (Rand.Int(0, CurrentMaze.Rows - 1), Rand.Int(0, CurrentMaze.Cols - 1));
 
-            enemy.Position = CellToPosition( enemyRow + 0.5f, enemyCol + 0.5f ) + Vector3.Up * 64f;
+            enemy.Position = CellToPosition( enemyRow + 0.5f, enemyCol + 0.5f ) + Vector3.Up * (2048f + 256f * enemyIndex++);
         }
 
         int keyRow = 0, keyCol = 0;
@@ -208,7 +209,7 @@ public partial class MazingGame : Sandbox.Game
         // Spawn in a random grid cell
         var spawnCell = (row: Rand.Int(0, CurrentMaze.Rows - 1), col: Rand.Int(0, CurrentMaze.Cols - 1));
 
-        player.Position = CellToPosition(spawnCell.row + 0.5f, spawnCell.col + 0.5f) + Vector3.Up * 2048f;
+        player.Position = CellToPosition(spawnCell.row + 0.5f, spawnCell.col + 0.5f) + Vector3.Up * 1024f;
         player.Respawn();
 	}
 
