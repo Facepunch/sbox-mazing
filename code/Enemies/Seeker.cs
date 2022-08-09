@@ -7,8 +7,8 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[EnemySpawn(FirstLevel = 1, SpawnPeriod = 2)]
-partial class Wanderer : Enemy
+[EnemySpawn(FirstLevel = 2, SpawnPeriod = 2)]
+partial class Seeker : Enemy
 {
     public override float MoveSpeed => 100f;
 
@@ -16,17 +16,17 @@ partial class Wanderer : Enemy
     {
         base.Spawn();
 
-        new ModelEntity("models/citizen_clothes/hat/hat_hardhat.vmdl", this);
+        new ModelEntity("models/citizen_clothes/hat/hat_beret.black.vmdl", this);
 
-        SetBodyGroup( 1, 0 );
+        SetBodyGroup(1, 0);
     }
 
     protected override void OnReachTarget()
     {
         var cell = CurrentCellIndex;
 
-        var direction = MazeData.Directions.Where( x => CanWalkInDirection( x.Direction ) )
-            .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell.Row + x.DeltaRow, cell.Col + x.DeltaCol ) )
+        var direction = MazeData.Directions.Where(x => CanWalkInDirection(x.Direction))
+            .OrderBy(x => Rand.Float() - GetSinceLastVisited(cell.Row + x.DeltaRow, cell.Col + x.DeltaCol))
             .FirstOrDefault();
 
         TargetCell = (TargetCell.Row + direction.DeltaRow, TargetCell.Col + direction.DeltaCol);

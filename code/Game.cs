@@ -78,20 +78,23 @@ public partial class MazingGame : Sandbox.Game
 
 		_mazeEntities.Add( hatch );
 
-        var enemyCount = (LevelIndex + 1) / 2;
+        var typesToSpawn = TypeLibrary.GetTypes<Enemy>()
+            .SelectMany( x =>
+                TypeLibrary.GetDescription( x ).GetAttributes<EnemySpawnAttribute>()
+                    .Where( y => y.ShouldSpawn( LevelIndex ) )
+                    .Select( y => x ) )
+            .ToArray();
 
-        for ( var i = 0; i < enemyCount; ++i )
+        foreach ( var type in typesToSpawn)
+        {
+            TypeLibrary.Create<Enemy>( type );
+        }
+
+        foreach ( var enemy in Entity.All.OfType<Enemy>() )
         {
             var (enemyRow, enemyCol) = (Rand.Int(0, CurrentMaze.Rows - 1), Rand.Int(0, CurrentMaze.Cols - 1));
 
-            var enemy = new Wanderer
-            {
-                Position = CellToPosition( enemyRow + 0.5f, enemyCol + 0.5f ) + Vector3.Up * 64f
-            };
-
-            enemy.Respawn();
-
-            _mazeEntities.Add(enemy);
+            enemy.Position = CellToPosition( enemyRow + 0.5f, enemyCol + 0.5f ) + Vector3.Up * 64f;
         }
 
         int keyRow = 0, keyCol = 0;
