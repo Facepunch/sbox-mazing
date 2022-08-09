@@ -146,6 +146,13 @@ public partial class MazingGame : Sandbox.Game
 
 	public Vector3 CellToPosition( float row, float col ) => new Vector3( (col - ExitCell.Col - 0.5f) * 48f, (row - ExitCell.Row - 0.5f) * 48f, 0f );
 
+    public Vector3 GetCellCenter( Vector3 position )
+    {
+        var (row, col) = PositionToCell( position );
+
+        return CellToPosition( row.FloorToInt() + 0.5f, col.FloorToInt() + 0.5f );
+    }
+
     public (float Row, float Col) PositionToCell( Vector3 pos ) =>
         (pos.y / 48f + ExitCell.Row + 0.5f, pos.x / 48f + ExitCell.Col + 0.5f);
 

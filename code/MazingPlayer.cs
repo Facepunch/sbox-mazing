@@ -88,8 +88,12 @@ partial class MazingPlayer : Sandbox.Player
 
         if (HeldKey != null)
         {
+            var game = MazingGame.Current;
+
             HeldKey.IsHeld = false;
             HeldKey.Parent = null;
+            HeldKey.Position = game.GetCellCenter( HeldKey.Position )
+                .WithZ( HeldKey.Position.z );
             HeldKey = null;
         }
     }
