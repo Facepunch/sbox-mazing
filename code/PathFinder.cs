@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Mazing.Enemies;
+using Sandbox;
 
 namespace Mazing;
 
@@ -13,10 +15,12 @@ internal class PathFinder
     private readonly Dictionary<(int Row, int Col), float> _gScore = new();
     private readonly Dictionary<(int Row, int Col), float> _fScore = new();
 
+    private readonly Dictionary<(int Row, int Col), float> _costs = new();
+
     public float ClosedHatchCost { get; set; } = 1f;
     public float OpenHatchCost { get; set; } = float.PositiveInfinity;
     public float PlayerCost { get; set; } = 10f;
-    public float EnemyCost { get; set; } = 10f;
+    public float EnemyCost { get; set; } = 100f;
 
     private static float Heuristic( (int Row, int Col) from, (int Row, int Col) to )
     {
@@ -42,6 +46,20 @@ internal class PathFinder
         outPath.Reverse( startIndex, outPath.Count - startIndex );
     }
 
+    private void AddCost( (int Row, int Col) cell, float cost )
+    {
+        if ( cost <= 0f ) return;
+
+        if ( _costs.TryGetValue( cell, out var oldCost ) )
+        {
+            _costs[cell] = oldCost + cost;
+        }
+        else
+        {
+            _costs[cell] = cost;
+        }
+    }
+
     public bool FindPath( (int Row, int Col) from, (int Row, int Col) to, List<(int Row, int Col)> outPath )
     {
         if ( from == to )
@@ -60,6 +78,25 @@ internal class PathFinder
 
         _fScore.Clear();
         _fScore.Add( from, Heuristic( from, to ) );
+
+        _costs.Clear();
+
+        foreach ( var hatch in Entity.All.OfType<Hatch>() )
+        {
+            AddCost( hatch.GetCellIndex(), hatch.IsOpen ? OpenHatchCost : ClosedHatchCost );
+        }
+
+        foreach ( var player in Entity.All.OfType<MazingPlayer>() )
+        {
+            if ( player.HasExited ) continue;
+
+            AddCost( player.GetCellIndex(), PlayerCost );
+        }
+
+        foreach ( var enemy in Entity.All.OfType<Enemy>() )
+        {
+            AddCost( enemy.GetCellIndex(), EnemyCost );
+        }
 
         var maze = MazingGame.Current.CurrentMaze;
 
@@ -81,6 +118,12 @@ internal class PathFinder
                 var next = (current.Row + dRow, current.Col + dCol);
 
                 var gScoreNext = _gScore[current] + 1f;
+
+                if ( _costs.TryGetValue( next, out var addCost ) )
+                {
+                    gScoreNext += addCost;
+                }
+
                 if ( !_gScore.TryGetValue( next, out var gScoreOld ) || gScoreNext < gScoreOld )
                 {
                     var fScoreNext = gScoreNext + Heuristic(next, to);

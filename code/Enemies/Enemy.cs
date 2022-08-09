@@ -98,6 +98,14 @@ abstract partial class Enemy : AnimatedEntity
         {
             OnReachTarget();
         }
+        else if ( Math.Abs( TargetCell.Row - cell.Row ) + Math.Abs( TargetCell.Col - cell.Col ) > 1 )
+        {
+            OnReachTarget();
+        }
+        else if ( !CanWalkInDirection( targetPos - Position ) )
+        {
+            OnReachTarget();
+        }
         
         if ( Controller is MazingWalkController walkController )
         {
