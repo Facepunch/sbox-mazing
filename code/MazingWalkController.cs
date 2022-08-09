@@ -26,6 +26,10 @@ public partial class MazingWalkController : BasePlayerController
 
     public bool IsVaulting => SinceVault < VaultTime;
 
+    public bool IsPlayer => Pawn is Player;
+    
+    public Vector3 EnemyWishVelocity { get; set; }
+
     [Net, Predicted]
     public Vector3 VaultOrigin { get; set; }
 
@@ -137,7 +141,7 @@ public partial class MazingWalkController : BasePlayerController
         //
         Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
         Velocity += new Vector3(0, 0, BaseVelocity.z) * Time.Delta;
-
+        
         WishVelocity = default;
 
         BaseVelocity = BaseVelocity.WithZ(0);
@@ -169,7 +173,14 @@ public partial class MazingWalkController : BasePlayerController
                     new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
             }
 
-            WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
+            if ( IsPlayer )
+            {
+                WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
+            }
+            else
+            {
+                WishVelocity = EnemyWishVelocity;
+            }
 
             var wishVelocityAdd = Vector3.Zero;
             var velocityAdd = Vector3.Zero;
@@ -267,7 +278,7 @@ public partial class MazingWalkController : BasePlayerController
                     wishVelocityAdd += perp;
                 }
 
-                if (SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && Input.Down(InputButton.Jump))
+                if (SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && Input.Down(InputButton.Jump))
                 {
                     CheckVaultButton(row + dRow, col + dCol);
                 }

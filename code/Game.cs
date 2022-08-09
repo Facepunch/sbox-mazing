@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Mazing.Enemies;
 using Mazing.UI;
 
 //
@@ -32,7 +33,7 @@ public partial class MazingGame : Sandbox.Game
 	[Net]
 	public int LevelIndex { get; set; }
 
-	private readonly List<ModelEntity> _mazeGeometry = new List<ModelEntity>();
+	private readonly List<ModelEntity> _mazeEntities = new List<ModelEntity>();
 
 	public MazingGame()
 	{
@@ -52,12 +53,12 @@ public partial class MazingGame : Sandbox.Game
 	{
 		Host.AssertServer();
 
-		foreach ( var entity in _mazeGeometry )
+		foreach ( var entity in _mazeEntities )
 		{
 			entity.Delete();
 		}
 
-		_mazeGeometry.Clear();
+		_mazeEntities.Clear();
 
         var seed = Rand.Int(1, int.MaxValue - 1);
 
@@ -75,7 +76,23 @@ public partial class MazingGame : Sandbox.Game
 
         var hatch = new Hatch();
 
-		_mazeGeometry.Add( hatch );
+		_mazeEntities.Add( hatch );
+
+        var enemyCount = (LevelIndex + 1) / 2;
+
+        for ( var i = 0; i < enemyCount; ++i )
+        {
+            var (enemyRow, enemyCol) = (Rand.Int(0, CurrentMaze.Rows - 1), Rand.Int(0, CurrentMaze.Cols - 1));
+
+            var enemy = new Wanderer
+            {
+                Position = CellToPosition( enemyRow + 0.5f, enemyCol + 0.5f ) + Vector3.Up * 64f
+            };
+
+            enemy.Respawn();
+
+            _mazeEntities.Add(enemy);
+        }
 
         int keyRow = 0, keyCol = 0;
 
@@ -97,7 +114,7 @@ public partial class MazingGame : Sandbox.Game
             Position = CellToPosition( keyRow + 0.5f, keyCol + 0.5f ) + Vector3.Up * 64f
         };
 
-		_mazeGeometry.Add( key );
+		_mazeEntities.Add( key );
 
 		for (var row = 0; row <= CurrentMaze.Rows; row++)
 		{
@@ -107,7 +124,7 @@ public partial class MazingGame : Sandbox.Game
                 {
                     var height = col <= 0 || col >= CurrentMaze.Cols ? outerWallHeight : innerWallHeight;
 
-					_mazeGeometry.Add(new Wall
+					_mazeEntities.Add(new Wall
 					{
 						Position = CellToPosition(row + 1f, col) + Vector3.Up * (height - wallModelHeight)
 					});
@@ -117,7 +134,7 @@ public partial class MazingGame : Sandbox.Game
 				{
                     var height = row <= 0 || row >= CurrentMaze.Rows ? outerWallHeight : innerWallHeight;
 
-					_mazeGeometry.Add(new Wall
+					_mazeEntities.Add(new Wall
 					{
 						Position = CellToPosition(row, col) + Vector3.Up * (height - wallModelHeight),
 						Rotation = Rotation.FromYaw(90f)
@@ -135,7 +152,7 @@ public partial class MazingGame : Sandbox.Game
                     var height = row <= 0 || row >= CurrentMaze.Rows || col <= 0 || col >= CurrentMaze.Cols
                         ? outerWallHeight : innerWallHeight;
 
-					_mazeGeometry.Add(new Post
+					_mazeEntities.Add(new Post
 					{
 						Position = CellToPosition(row, col) + Vector3.Up * (height - wallModelHeight)
 					});
@@ -155,6 +172,12 @@ public partial class MazingGame : Sandbox.Game
 
     public (float Row, float Col) PositionToCell( Vector3 pos ) =>
         (pos.y / 48f + ExitCell.Row + 0.5f, pos.x / 48f + ExitCell.Col + 0.5f);
+
+    public (int Row, int Col) PositionToCellIndex( Vector3 pos )
+    {
+        var (row, col) = PositionToCell( pos );
+        return (row.FloorToInt(), col.FloorToInt());
+    }
 
 	/// <summary>
 	/// A client has joined the server. Make them a pawn to play with

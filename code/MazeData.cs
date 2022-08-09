@@ -283,6 +283,26 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 		(Direction.East, 0, 1), (Direction.South, 1, 0),
 	};
 
+    public static Direction GetDirection( int dRow, int dCol )
+    {
+        if (Math.Abs(dCol) > Math.Abs(dRow))
+        {
+            return dCol > 0 ? Direction.East : Direction.West;
+        }
+
+        return dRow > 0 ? Direction.North : Direction.South;
+    }
+
+	public static Direction GetDirection( Vector3 vec )
+    {
+        if (Math.Abs(vec.x) > Math.Abs(vec.y))
+        {
+            return vec.x > 0f ? Direction.East : Direction.West;
+        }
+
+        return vec.y < 0f ? Direction.North : Direction.South;
+    }
+
 	public int GetDistance( int aRow, int aCol, int bRow, int bCol )
 	{
 		var queue = new Queue<(int row, int col, int dist)>();
