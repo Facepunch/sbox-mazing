@@ -43,7 +43,7 @@ abstract partial class Enemy : AnimatedEntity
     public PawnController Controller { get; set; }
     public PawnAnimator Animator { get; set; }
 
-    public (int Row, int Col) TargetCell { get; set; }
+    public GridCoord TargetCell { get; set; }
 
     public MazingGame Game => MazingGame.Current;
     
@@ -77,6 +77,11 @@ abstract partial class Enemy : AnimatedEntity
     [Event.Tick.Server]
     private void ServerTick()
     {
+        OnServerTick();
+    }
+
+    protected virtual void OnServerTick()
+    {
         var cell = this.GetCellIndex();
 
         if (_lastMaze != Game.CurrentMaze)
@@ -87,50 +92,50 @@ abstract partial class Enemy : AnimatedEntity
             _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
         }
 
-        if ( !IsInBounds( cell.Row, cell.Col ) )
+        if (!IsInBounds(cell))
         {
             return;
         }
-        
+
         _cellVisitTimes[cell.Row, cell.Col] = 0f;
 
-        var targetPos = Game.CellToPosition( TargetCell.Row + 0.5f, TargetCell.Col + 0.5f );
+        var targetPos = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f);
 
-        if ( (Position - targetPos).WithZ( 0f ).LengthSquared <= 4f * 4f )
+        if ((Position - targetPos).WithZ(0f).LengthSquared <= 4f * 4f)
         {
             OnReachTarget();
         }
-        else if ( Math.Abs( TargetCell.Row - cell.Row ) + Math.Abs( TargetCell.Col - cell.Col ) > 1 )
+        else if (Math.Abs(TargetCell.Row - cell.Row) + Math.Abs(TargetCell.Col - cell.Col) > 1)
         {
             OnReachTarget();
         }
-        else if ( !CanWalkInDirection( targetPos - Position ) )
+        else if (!CanWalkInDirection(targetPos - Position))
         {
             OnReachTarget();
         }
-        
-        if ( Controller is MazingWalkController walkController )
+
+        if (Controller is MazingWalkController walkController)
         {
             walkController.DefaultSpeed = MoveSpeed;
 
             var dir = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f) - Position;
 
-            DebugOverlay.Box( Game.CellToPosition( TargetCell.Row, TargetCell.Col ),
-                Game.CellToPosition( TargetCell.Row + 1f, TargetCell.Col + 1f ),
-                Color.Green, depthTest: false );
+            DebugOverlay.Box(Game.CellToPosition(TargetCell.Row, TargetCell.Col),
+                Game.CellToPosition(TargetCell.Row + 1f, TargetCell.Col + 1f),
+                Color.Green, depthTest: false);
 
 
             walkController.EnemyWishVelocity = dir;
         }
 
-        Controller?.Simulate( default, this, null );
-        Animator?.Simulate( default, this, null );
+        Controller?.Simulate(default, this, null);
+        Animator?.Simulate(default, this, null);
 
         var closestPlayer = Entity.All.OfType<MazingPlayer>()
-            .Where( x => x.IsAliveInMaze && (x.Position - Position).LengthSquared < 32f * 32f )
-            .MinBy( x => (x.Position - Position).LengthSquared );
+            .Where(x => x.IsAliveInMaze && (x.Position - Position).LengthSquared < 32f * 32f)
+            .MinBy(x => (x.Position - Position).LengthSquared);
 
-        if ( closestPlayer != null )
+        if (closestPlayer != null)
         {
             closestPlayer.Kill();
         }
@@ -143,20 +148,19 @@ abstract partial class Enemy : AnimatedEntity
 
     public bool CanWalkInDirection( Direction direction )
     {
-        var cell = this.GetCellIndex();
-        return !Game.CurrentMaze.GetWall(cell.Row, cell.Col, direction );
+        return !Game.CurrentMaze.GetWall(this.GetCellIndex(), direction );
     }
 
-    public bool IsInBounds( int row, int col )
+    public bool IsInBounds( GridCoord coord )
     {
         var maze = Game.CurrentMaze;
 
-        return row >= 0 && row < maze.Rows && col >= 0 && col < maze.Cols;
+        return coord.Row >= 0 && coord.Row < maze.Rows && coord.Col >= 0 && coord.Col < maze.Cols;
     }
 
-    public TimeSince GetSinceLastVisited( int row, int col )
+    public TimeSince GetSinceLastVisited( GridCoord coord )
     {
-        return IsInBounds( row, col ) ? _cellVisitTimes[row, col] : default;
+        return IsInBounds(coord) ? _cellVisitTimes[coord.Row, coord.Col] : default;
     }
 
     protected virtual void OnReachTarget()
@@ -164,32 +168,27 @@ abstract partial class Enemy : AnimatedEntity
 
     }
 
-    protected (int Row, int Col) GetRandomNeighborCell()
+    protected GridCoord GetRandomNeighborCell()
     {
         var cell = this.GetCellIndex();
         var dir = MazeData.Directions.Where( x => CanWalkInDirection( x.Direction ) )
-            .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell.Row + x.DeltaRow, cell.Col + x.DeltaCol ) )
+            .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell + x.Delta ) )
             .FirstOrDefault();
 
-        return (cell.Row + dir.DeltaRow, cell.Col + dir.DeltaCol);
+        return cell + dir.Delta;
     }
-
-    protected (int Row, int Col) GetNextInPathTo( (int Row, int Col) cell )
-    {
-        return GetNextInPathTo( cell.Row, cell.Col );
-    }
-
+    
     private PathFinder _pathFinder;
-    private readonly List<(int Row, int Col)> _path = new List<(int Row, int Col)>();
+    private readonly List<GridCoord> _path = new();
 
-    protected (int Row, int Col) GetNextInPathTo( int row, int col )
+    protected GridCoord GetNextInPathTo( GridCoord coord )
     {
         var cell = this.GetCellIndex();
 
         _pathFinder ??= new PathFinder();
         _path.Clear();
 
-        _pathFinder.FindPath(cell, (row, col), _path);
+        _pathFinder.FindPath(cell, coord, _path);
 
         if ( _path.Count < 2 )
         {

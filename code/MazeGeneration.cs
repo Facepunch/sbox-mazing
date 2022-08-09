@@ -57,15 +57,15 @@ public static class MazeGenerator
 			.SelectMany( x => Enumerable.Range( 0, size ).Select( y => (row: x, col: y) ) )
 			.ToHashSet();
 
-		var islands = new List<HashSet<(int row, int col)>>();
-		var queue = new Queue<(int row, int col)>();
+		var islands = new List<HashSet<GridCoord>>();
+		var queue = new Queue<GridCoord>();
 
 		while ( unvisited.Count > 0 )
 		{
 			var root = unvisited.First();
 			unvisited.Remove( root );
 
-			var island = new HashSet<(int row, int col)> { root };
+			var island = new HashSet<GridCoord> { root };
 
 			islands.Add( island );
 
@@ -75,14 +75,14 @@ public static class MazeGenerator
 			{
 				var next = queue.Dequeue();
 
-				foreach ( var (dir, dRow, dCol) in MazeData.Directions )
+				foreach ( var (dir, delta) in MazeData.Directions )
 				{
-					if ( maze.GetWall( next.row, next.col, dir ) )
+					if ( maze.GetWall( next, dir ) )
 					{
 						continue;
 					}
 
-					var neighbor = (next.row + dRow, next.col + dCol);
+					var neighbor = next + delta;
 
 					if ( island.Add( neighbor ) && unvisited.Remove( neighbor ) )
 					{
@@ -92,7 +92,7 @@ public static class MazeGenerator
 			}
 		}
 
-		var possibleBridges = new List<(int row, int col, Direction dir, int nRow, int nCol)>();
+		var possibleBridges = new List<(GridCoord From, Direction Dir, GridCoord To)>();
 
 		while ( islands.Count > 1 )
 		{
@@ -103,18 +103,18 @@ public static class MazeGenerator
 
 			possibleBridges.Clear();
 
-			foreach ( var (row, col) in smallest )
+			foreach ( var coord in smallest )
 			{
-				foreach ( var (dir, dRow, dCol) in MazeData.Directions )
+				foreach ( var (dir, delta) in MazeData.Directions )
 				{
-					if ( !maze.GetWall( row, col, dir ) )
+					if ( !maze.GetWall(coord, dir ) )
 					{
 						continue;
 					}
 
-					var neighbor = (row: row + dRow, col: col + dCol);
+					var neighbor = coord + delta;
 
-					if ( neighbor.row < 0 || neighbor.row >= size || neighbor.col < 0 || neighbor.col >= size )
+					if ( neighbor.Row < 0 || neighbor.Row >= size || neighbor.Col < 0 || neighbor.Col >= size )
 					{
 						continue;
 					}
@@ -124,7 +124,7 @@ public static class MazeGenerator
 						continue;
 					}
 
-					possibleBridges.Add( (row, col, dir, neighbor.row, neighbor.col) );
+					possibleBridges.Add( (coord, dir, neighbor) );
 				}
 			}
 
@@ -136,9 +136,9 @@ public static class MazeGenerator
 
 			var bridge = possibleBridges[rand.Next( possibleBridges.Count )];
 
-			maze.SetWall( bridge.row, bridge.col, bridge.dir, false );
+			maze.SetWall( bridge.From, bridge.Dir, false );
 
-			var neighborIsland = islands.First( x => x.Contains( (bridge.nRow, bridge.nCol) ) );
+			var neighborIsland = islands.First( x => x.Contains( bridge.To ) );
 
 			foreach ( var item in smallest )
 			{
@@ -147,20 +147,20 @@ public static class MazeGenerator
 		}
 
 		var extraConnectivityCount = rand.Next( size / 2, size );
-		var allWalls = new List<(int row, int col, Direction dir, int nRow, int nCol)>();
+		var allWalls = new List<(GridCoord From, Direction dir, GridCoord To)>();
 
 		for ( var row = 0; row < size; row++ )
 		{
 			for ( var col = 0; col < size; col++ )
 			{
-				if ( col > 0 && maze.GetWall( row, col, Direction.West ) )
+				if ( col > 0 && maze.GetWall( (row, col), Direction.West ) )
 				{
-					allWalls.Add( (row, col, Direction.West, row, col - 1) );
+					allWalls.Add( ((row, col), Direction.West, (row, col - 1)) );
 				}
 
-				if ( row > 0 && maze.GetWall( row, col, Direction.North ) )
+				if ( row > 0 && maze.GetWall( (row, col), Direction.North ) )
 				{
-					allWalls.Add( (row, col, Direction.North, row - 1, col) );
+					allWalls.Add( ((row, col), Direction.North, (row - 1, col)) );
 				}
 			}
 		}
@@ -179,14 +179,14 @@ public static class MazeGenerator
 			var next = allWalls[^1];
 			allWalls.RemoveAt( allWalls.Count - 1 );
 
-			var dist = maze.GetDistance( next.row, next.col, next.nRow, next.nCol );
+			var dist = maze.GetDistance( next.From, next.To );
 
 			if ( dist < minCycleLength )
 			{
 				continue;
 			}
 
-			maze.SetWall( next.row, next.col, next.dir, false );
+			maze.SetWall( next.From, next.dir, false );
 		}
 
 		return maze;

@@ -159,7 +159,7 @@ public partial class MazingWalkController : BasePlayerController
         {
             var game = MazingGame.Current;
             var (rowF, colF) = game.PositionToCell( Position );
-            var (row, col) = (rowF.FloorToInt(), colF.FloorToInt());
+            var cell = new GridCoord(rowF.FloorToInt(), colF.FloorToInt());
 
             if ( SinceVault < VaultCooldown )
             {
@@ -169,7 +169,7 @@ public partial class MazingWalkController : BasePlayerController
 
             if ( Debug )
             {
-                DebugOverlay.Box( game.CellToPosition( row, col ), game.CellToPosition( row + 1f, col + 1f ),
+                DebugOverlay.Box( game.CellToPosition(cell), game.CellToPosition( cell.Row + 1f, cell.Col + 1f ),
                     new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
             }
 
@@ -186,35 +186,35 @@ public partial class MazingWalkController : BasePlayerController
             var velocityAdd = Vector3.Zero;
             var positionAdd = Vector3.Zero;
 
-            var rowFrac = rowF - row;
-            var colFrac = colF - col;
+            var rowFrac = rowF - cell.Row;
+            var colFrac = colF - cell.Col;
 
-            foreach ( var (dir, dRow, dCol) in MazeData.Directions )
+            foreach ( var (dir, delta) in MazeData.Directions )
             {
-                var directWall = game.CurrentMaze.GetWall( row, col, dir );
+                var directWall = game.CurrentMaze.GetWall( cell, dir );
 
                 bool endWall = false;
 
-                if ( dRow != 0 && Math.Abs(colFrac - 0.5f) > 0.2f )
+                if (delta.Row != 0 && Math.Abs(colFrac - 0.5f) > 0.2f )
                 {
                     if ( colFrac > 0.5f )
                     {
-                        endWall = game.CurrentMaze.GetWall( row + dRow, col + dCol, Direction.East ) || game.CurrentMaze.GetWall( row, col + 1, dir );
+                        endWall = game.CurrentMaze.GetWall( cell + delta, Direction.East ) || game.CurrentMaze.GetWall( cell + (0, 1), dir );
                     }
                     else
                     {
-                        endWall = game.CurrentMaze.GetWall( row + dRow, col + dCol, Direction.West ) || game.CurrentMaze.GetWall(row, col - 1, dir);
+                        endWall = game.CurrentMaze.GetWall( cell + delta, Direction.West ) || game.CurrentMaze.GetWall( cell - (0, 1), dir );
                     }
                 }
-                else if ( dCol != 0 && Math.Abs( rowFrac - 0.5f ) > 0.2f )
+                else if (delta.Col != 0 && Math.Abs( rowFrac - 0.5f ) > 0.2f )
                 {
                     if ( rowFrac > 0.5f )
                     {
-                        endWall = game.CurrentMaze.GetWall( row + dRow, col + dCol, Direction.South ) || game.CurrentMaze.GetWall(row + 1, col, dir);
+                        endWall = game.CurrentMaze.GetWall( cell + delta, Direction.South ) || game.CurrentMaze.GetWall( cell + (1, 0), dir );
                     }
                     else
                     {
-                        endWall = game.CurrentMaze.GetWall( row + dRow, col + dCol, Direction.North ) || game.CurrentMaze.GetWall(row - 1, col, dir);
+                        endWall = game.CurrentMaze.GetWall( cell + delta, Direction.North ) || game.CurrentMaze.GetWall( cell - (1, 0), dir );
                     }
                 }
 
@@ -223,14 +223,13 @@ public partial class MazingWalkController : BasePlayerController
                     continue;
                 }
 
-                var mid = (game.CellToPosition(row + 0.5f, col + 0.5f) +
-                           game.CellToPosition(row + dRow + 0.5f, col + dCol + 0.5f)) * 0.5f;
-                var diff = game.CellToPosition(row + dRow, col + dCol) - game.CellToPosition(row, col);
+                var mid = (game.CellToPosition(cell.Row + 0.5f, cell.Col + 0.5f) + game.CellToPosition(cell.Row + delta.Row + 0.5f, cell.Col + delta.Col + 0.5f)) * 0.5f;
+                var diff = game.CellToPosition(cell + delta) - game.CellToPosition(cell);
                 var normal = diff.Normal;
                 var size = new Vector3(Math.Abs(diff.y) + 6f, Math.Abs(diff.x) + 6f, 0f);
 
-                var canVault = directWall && (dRow == 0 || row + dRow >= 0 && row + dRow < game.CurrentMaze.Rows)
-                               && (dCol == 0 || col + dCol >= 0 && col + dCol < game.CurrentMaze.Cols);
+                var canVault = directWall && (delta.Row == 0 || cell.Row + delta.Row >= 0 && cell.Row + delta.Row < game.CurrentMaze.Rows)
+                               && (delta.Col == 0 || cell.Col + delta.Col >= 0 && cell.Col + delta.Col < game.CurrentMaze.Cols);
 
                 var playerDist = Vector3.Dot(mid - Position, normal) - 24f;
 
@@ -270,7 +269,7 @@ public partial class MazingWalkController : BasePlayerController
                 //
                 if ( !directWall && moveDot > 0f )
                 {
-                    var perp = dRow != 0 ? colFrac > 0.5f
+                    var perp = delta.Row != 0 ? colFrac > 0.5f
                             ? new Vector3( -1f, 0f )
                             : new Vector3( 1f, 0f )
                         : rowFrac > 0.5f ? new Vector3( 0f, -1f ) : new Vector3( 0f, 1f );
@@ -280,7 +279,7 @@ public partial class MazingWalkController : BasePlayerController
 
                 if (SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && Input.Down(InputButton.Jump))
                 {
-                    CheckVaultButton(row + dRow, col + dCol);
+                    CheckVaultButton( cell + delta );
                 }
 
                 if ( Debug )
@@ -520,7 +519,7 @@ public partial class MazingWalkController : BasePlayerController
         }
     }
 
-    public virtual void CheckVaultButton( int targetRow, int targetCol )
+    public virtual void CheckVaultButton( GridCoord target )
     {
         if (GroundEntity == null)
             return;
@@ -529,15 +528,15 @@ public partial class MazingWalkController : BasePlayerController
 
         if ( Debug )
         {
-            DebugOverlay.Box(game.CellToPosition(targetRow + 0.25f, targetCol + 0.25f),
-                game.CellToPosition(targetRow + 0.75f, targetCol + 0.75f),
+            DebugOverlay.Box(game.CellToPosition(target.Row + 0.25f, target.Col + 0.25f),
+                game.CellToPosition(target.Row + 0.75f, target.Col + 0.75f),
                 Color.White, 1f);
         }
         
         SinceVault = 0f;
 
         VaultOrigin = Position;
-        VaultTarget = game.CellToPosition( targetRow + 0.5f, targetCol + 0.5f );
+        VaultTarget = game.CellToPosition( target.Row + 0.5f, target.Col + 0.5f );
 
         Velocity = Vector2.Zero;
 

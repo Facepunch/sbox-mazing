@@ -7,7 +7,7 @@ namespace Mazing;
 public static class EntityExtensions
 {
     public static (float Row, float Col) GetCell(this Entity entity) => MazingGame.Current.PositionToCell(entity.Position);
-    public static (int Row, int Col) GetCellIndex(this Entity entity) => MazingGame.Current.PositionToCellIndex(entity.Position);
+    public static GridCoord GetCellIndex(this Entity entity) => MazingGame.Current.PositionToCellIndex(entity.Position);
     public static Direction GetFacingDirection(this Entity entity) => MazeData.GetDirection(entity.EyeRotation.Forward);
 }
 

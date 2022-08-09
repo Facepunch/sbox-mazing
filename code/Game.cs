@@ -124,7 +124,7 @@ public partial class MazingGame : Sandbox.Game
 		{
 			for (var col = 0; col <= CurrentMaze.Cols; col++)
 			{
-				if (row < CurrentMaze.Rows && CurrentMaze.GetWall(row, col, Direction.West))
+				if (row < CurrentMaze.Rows && CurrentMaze.GetWall((row, col), Direction.West))
                 {
                     var height = col <= 0 || col >= CurrentMaze.Cols ? outerWallHeight : innerWallHeight;
 
@@ -134,7 +134,7 @@ public partial class MazingGame : Sandbox.Game
 					});
 				}
 
-				if (col < CurrentMaze.Cols && CurrentMaze.GetWall(row, col, Direction.North))
+				if (col < CurrentMaze.Cols && CurrentMaze.GetWall((row, col), Direction.North))
 				{
                     var height = row <= 0 || row >= CurrentMaze.Rows ? outerWallHeight : innerWallHeight;
 
@@ -145,11 +145,11 @@ public partial class MazingGame : Sandbox.Game
 					});
 				}
 
-				var north = CurrentMaze.GetWall(row - 1, col, Direction.West);
-				var south = CurrentMaze.GetWall(row, col, Direction.West);
+				var north = CurrentMaze.GetWall((row - 1, col), Direction.West);
+				var south = CurrentMaze.GetWall((row, col), Direction.West);
 
-				var west = CurrentMaze.GetWall(row, col - 1, Direction.North);
-				var east = CurrentMaze.GetWall(row, col, Direction.North);
+				var west = CurrentMaze.GetWall((row, col - 1), Direction.North);
+				var east = CurrentMaze.GetWall((row, col), Direction.North);
 
 				if (north != south || west != east || north && west)
 				{
@@ -166,6 +166,7 @@ public partial class MazingGame : Sandbox.Game
 	}
 
 	public Vector3 CellToPosition( float row, float col ) => new Vector3( (col - ExitCell.Col - 0.5f) * 48f, (row - ExitCell.Row - 0.5f) * 48f, 0f );
+    public Vector3 CellToPosition( GridCoord coord ) => new Vector3((coord.Col - ExitCell.Col - 0.5f) * 48f, (coord.Row - ExitCell.Row - 0.5f) * 48f, 0f);
 
     public Vector3 GetCellCenter( Vector3 position )
     {
@@ -177,10 +178,18 @@ public partial class MazingGame : Sandbox.Game
     public (float Row, float Col) PositionToCell( Vector3 pos ) =>
         (pos.y / 48f + ExitCell.Row + 0.5f, pos.x / 48f + ExitCell.Col + 0.5f);
 
-    public (int Row, int Col) PositionToCellIndex( Vector3 pos )
+    public GridCoord PositionToCellIndex( Vector3 pos )
     {
         var (row, col) = PositionToCell( pos );
-        return (row.FloorToInt(), col.FloorToInt());
+        return new GridCoord( row.FloorToInt(), col.FloorToInt() );
+    }
+
+    public bool IsPlayerInCell( GridCoord coord )
+    {
+        // TODO: optimize
+
+        return Entity.All.OfType<MazingPlayer>()
+            .Any( x => x.GetCellIndex() == coord );
     }
 
 	/// <summary>

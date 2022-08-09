@@ -10,19 +10,19 @@ namespace Mazing;
 
 internal class PathFinder
 {
-    private readonly PriorityQueue<(int Row, int Col), float> _openSet = new();
-    private readonly Dictionary<(int Row, int Col), (int Row, int Col)> _cameFrom = new();
-    private readonly Dictionary<(int Row, int Col), float> _gScore = new();
-    private readonly Dictionary<(int Row, int Col), float> _fScore = new();
+    private readonly PriorityQueue<GridCoord, float> _openSet = new();
+    private readonly Dictionary<GridCoord, GridCoord> _cameFrom = new();
+    private readonly Dictionary<GridCoord, float> _gScore = new();
+    private readonly Dictionary<GridCoord, float> _fScore = new();
 
-    private readonly Dictionary<(int Row, int Col), float> _costs = new();
+    private readonly Dictionary<GridCoord, float> _costs = new();
 
     public float ClosedHatchCost { get; set; } = 1f;
     public float OpenHatchCost { get; set; } = float.PositiveInfinity;
     public float PlayerCost { get; set; } = 10f;
     public float EnemyCost { get; set; } = 100f;
 
-    private static float Heuristic( (int Row, int Col) from, (int Row, int Col) to )
+    private static float Heuristic( GridCoord from, GridCoord to )
     {
         var dRow = to.Row - from.Row;
         var dCol = to.Col - from.Col;
@@ -30,7 +30,7 @@ internal class PathFinder
         return Math.Abs( dRow ) + Math.Abs( dCol );
     }
 
-    private void ReconstructPath( (int Row, int Col) from, (int Row, int Col) to, List<(int Row, int Col)> outPath )
+    private void ReconstructPath( GridCoord from, GridCoord to, List<GridCoord> outPath )
     {
         var next = to;
         var startIndex = outPath.Count;
@@ -46,7 +46,7 @@ internal class PathFinder
         outPath.Reverse( startIndex, outPath.Count - startIndex );
     }
 
-    private void AddCost( (int Row, int Col) cell, float cost )
+    private void AddCost( GridCoord cell, float cost )
     {
         if ( cost <= 0f ) return;
 
@@ -60,7 +60,7 @@ internal class PathFinder
         }
     }
 
-    public bool FindPath( (int Row, int Col) from, (int Row, int Col) to, List<(int Row, int Col)> outPath )
+    public bool FindPath( GridCoord from, GridCoord to, List<GridCoord> outPath )
     {
         if ( from == to )
         {
@@ -108,14 +108,14 @@ internal class PathFinder
                 return true;
             }
 
-            foreach ( var (dir, dRow, dCol) in MazeData.Directions )
+            foreach ( var (dir, delta) in MazeData.Directions )
             {
-                if ( maze.GetWall( current.Row, current.Col, dir ) )
+                if ( maze.GetWall( current, dir ) )
                 {
                     continue;
                 }
 
-                var next = (current.Row + dRow, current.Col + dCol);
+                var next = current + delta;
 
                 var gScoreNext = _gScore[current] + 1f;
 

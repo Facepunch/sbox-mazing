@@ -26,6 +26,73 @@ public enum MazeTransform
 	Transpose = 4
 }
 
+public readonly struct GridCoord : IEquatable<GridCoord>
+{
+    public static bool operator ==( GridCoord a, GridCoord b )
+    {
+        return a.Row == b.Row && a.Col == b.Col;
+    }
+
+    public static bool operator !=( GridCoord a, GridCoord b )
+    {
+        return a.Row != b.Row || a.Col != b.Col;
+    }
+
+    public static implicit operator GridCoord( (int Row, int Col) tuple )
+    {
+        return new GridCoord( tuple.Row, tuple.Col );
+	}
+
+    public static implicit operator (int Row, int Col)( GridCoord coord )
+    {
+        return (coord.Row, coord.Col);
+    }
+
+    public static GridCoord operator +( GridCoord a, GridCoord b )
+    {
+        return new GridCoord( a.Row + b.Row, a.Col + b.Col );
+	}
+
+    public static GridCoord operator -( GridCoord a, GridCoord b )
+    {
+        return new GridCoord(a.Row - b.Row, a.Col - b.Col);
+    }
+
+    public static GridCoord operator +( GridCoord coord, Direction dir )
+    {
+        return coord + MazeData.Directions[(int)dir].Delta;
+	}
+
+    public static GridCoord operator -( GridCoord coord, Direction dir )
+    {
+        return coord - MazeData.Directions[(int)dir].Delta;
+    }
+
+	public readonly int Row;
+    public readonly int Col;
+
+    public GridCoord( int row, int col )
+    {
+        Row = row;
+        Col = col;
+    }
+
+    public bool Equals( GridCoord other )
+    {
+        return Row == other.Row && Col == other.Col;
+    }
+
+    public override bool Equals( object obj )
+    {
+        return obj is GridCoord other && Equals( other );
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine( Row, Col );
+    }
+}
+
 public partial class MazeData : BaseNetworkable, INetworkSerializer
 {
 	public int Rows { get; private set; }
@@ -95,7 +162,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 
 			for ( var col = 0; col < cols; ++col )
 			{
-				part.SetWall( row, col, Direction.North, horzWallsMatch.Groups[1].Captures[col].Value.Contains( '-' ) );
+				part.SetWall( (row, col), Direction.North, horzWallsMatch.Groups[1].Captures[col].Value.Contains( '-' ) );
 			}
 
 			if ( row >= rows )
@@ -121,7 +188,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 
 			for ( var col = 0; col <= cols; ++col )
 			{
-				part.SetWall( row, col, Direction.West, line[col * 4] == '|' );
+				part.SetWall( (row, col), Direction.West, line[col * 4] == '|' );
 			}
 		}
 
@@ -173,14 +240,14 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 					relNorth = relNorth == Direction.North ? Direction.West : Direction.East;
 				}
 
-				if ( src.GetWall( srcRow + row, srcCol + col, Direction.West ) )
+				if ( src.GetWall( (srcRow + row, srcCol + col), Direction.West ) )
 				{
-					dst.SetWall( dstRow + relRow, dstCol + relCol, relWest, true );
+					dst.SetWall( (dstRow + relRow, dstCol + relCol), relWest, true );
 				}
 
-				if ( src.GetWall( srcRow + row, srcCol + col, Direction.North ) )
+				if ( src.GetWall( (srcRow + row, srcCol + col), Direction.North ) )
 				{
-					dst.SetWall( dstRow + relRow, dstCol + relCol, relNorth, true );
+					dst.SetWall( (dstRow + relRow, dstCol + relCol), relNorth, true );
 				}
 			}
 		}
@@ -204,84 +271,101 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 	{
 		for ( var i = 0; i < Cols; i++ )
 		{
-			SetWall( 0, i, Direction.North, isSolid );
-			SetWall( Rows - 1, i, Direction.South, isSolid );
+			SetWall( (0, i), Direction.North, isSolid );
+			SetWall( (Rows - 1, i), Direction.South, isSolid );
 		}
 
 		for ( var i = 0; i < Rows; i++ )
 		{
-			SetWall( i, 0, Direction.West, isSolid );
-			SetWall( i, Cols - 1, Direction.East, isSolid );
+			SetWall( (i, 0), Direction.West, isSolid );
+			SetWall( (i, Cols - 1), Direction.East, isSolid );
 		}
 	}
 
-	private static void ForceNorthOrWest( ref int row, ref int col, ref Direction dir )
+	private static void ForceNorthOrWest( ref GridCoord coord, ref Direction dir )
 	{
 		switch ( dir )
 		{
 			case Direction.South:
 				dir = Direction.North;
-				row += 1;
+                coord += (1, 0);
 				break;
 			case Direction.East:
 				dir = Direction.West;
-				col += 1;
+                coord += (0, 1);
 				break;
 		}
 	}
 	
-	public bool GetWall( int row, int col, Direction dir )
+	public bool GetWall( GridCoord coord, Direction dir )
 	{
-		ForceNorthOrWest( ref row, ref col, ref dir );
+		ForceNorthOrWest( ref coord, ref dir );
 
 		switch ( dir )
 		{
 			case Direction.North:
-				if ( row < 0 || row > Rows || col < 0 || col >= Cols ) return false;
+				if (coord.Row < 0 || coord.Row > Rows || coord.Col < 0 || coord.Col >= Cols ) return false;
 
-				return _horzWalls[Cols * row + col];
+				return _horzWalls[Cols * coord.Row + coord.Col];
 
 			case Direction.West:
-				if ( col < 0 || col > Cols || row < 0 || row >= Rows ) return false;
+				if (coord.Col < 0 || coord.Col > Cols || coord.Row < 0 || coord.Row >= Rows ) return false;
 
-				return _vertWalls[Rows * col + row];
+				return _vertWalls[Rows * coord.Col + coord.Row];
 
 			default:
 				return false;
 		}
 	}
 
-	public void SetWall( int row, int col, Direction dir, bool isSolid )
+	public void SetWall( GridCoord coord, Direction dir, bool isSolid )
 	{
-		ForceNorthOrWest( ref row, ref col, ref dir );
+		ForceNorthOrWest( ref coord, ref dir );
 
 		switch ( dir )
 		{
 			case Direction.North:
-				if ( row < 0 || row > Rows || col < 0 || col >= Cols )
+                if (coord.Row < 0 || coord.Row > Rows || coord.Col < 0 || coord.Col >= Cols)
 				{
 					throw new IndexOutOfRangeException();
 				}
 
-				_horzWalls[Cols * row + col] = isSolid;
+				_horzWalls[Cols * coord.Row + coord.Col] = isSolid;
 				break;
 
 			case Direction.West:
-				if ( col < 0 || col > Cols || row < 0 || row >= Rows )
+                if (coord.Col < 0 || coord.Col > Cols || coord.Row < 0 || coord.Row >= Rows)
 				{
 					throw new IndexOutOfRangeException();
 				}
 
-				_vertWalls[Rows * col + row] = isSolid;
+				_vertWalls[Rows * coord.Col + coord.Row] = isSolid;
 				break;
 		}
 	}
 
-	public static (Direction Direction, int DeltaRow, int DeltaCol)[] Directions { get; } = new[]
-	{
-		(Direction.West, 0, -1), (Direction.North, -1, 0),
-		(Direction.East, 0, 1), (Direction.South, 1, 0),
-	};
+    public GridCoord RayCast( GridCoord from, Direction direction )
+    {
+        var dir = Directions[(int)direction];
+
+        while ( true )
+        {
+            if ( GetWall( from, direction ) )
+            {
+                return from;
+            }
+
+            from += dir.Delta;
+        }
+    }
+
+    public static (Direction Direction, GridCoord Delta)[] Directions { get; } = new[]
+    {
+        (Direction.North, new GridCoord( -1, 0 )),
+        (Direction.East, new GridCoord( 0, 1 )),
+        (Direction.South, new GridCoord( 1, 0 )),
+        (Direction.West, new GridCoord( 0, -1 ))
+    };
 
     public static Direction GetDirection( int dRow, int dCol )
     {
@@ -303,34 +387,34 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
         return vec.y < 0f ? Direction.North : Direction.South;
     }
 
-	public int GetDistance( int aRow, int aCol, int bRow, int bCol )
+	public int GetDistance( GridCoord a, GridCoord b )
 	{
-		var queue = new Queue<(int row, int col, int dist)>();
-		var visited = new HashSet<(int row, int col)> { (aRow, aCol) };
+		var queue = new Queue<(GridCoord Coord, int Dist)>();
+		var visited = new HashSet<GridCoord> { a };
 
-		queue.Enqueue( (aRow, aCol, 0) );
+		queue.Enqueue( (a, 0) );
 
 		while ( queue.Count > 0 )
 		{
 			var next = queue.Dequeue();
 
-			if ( next.row == bRow && next.col == bCol )
+			if ( next.Coord == b )
 			{
-				return next.dist;
+				return next.Dist;
 			}
 
-			foreach ( var (dir, dRow, dCol) in Directions )
+			foreach ( var (dir, delta) in Directions )
 			{
-				if ( GetWall( next.row, next.col, dir ) )
+				if ( GetWall( next.Coord, dir ) )
 				{
 					continue;
 				}
 
-				var neighbor = (row: next.row + dRow, col: next.col + dCol);
+				var neighbor = next.Coord + delta;
 
 				if ( visited.Add( neighbor ) )
 				{
-					queue.Enqueue( (neighbor.row, neighbor.col, next.dist + 1) );
+					queue.Enqueue( (neighbor, next.Dist + 1) );
 				}
 			}
 		}
@@ -342,11 +426,11 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 	{
 		for ( var row = 0; row <= Rows; ++row )
 		{
-			Log.Info( $"+{string.Join( "+", Enumerable.Range( 0, Cols ).Select( col => GetWall( row, col, Direction.North ) ? "---" : "   " ) )}+" );
+			Log.Info( $"+{string.Join( "+", Enumerable.Range( 0, Cols ).Select( col => GetWall( (row, col), Direction.North ) ? "---" : "   " ) )}+" );
 
 			if ( row >= Rows ) break;
 			
-			Log.Info( string.Join( "   ", Enumerable.Range( 0, Cols + 1 ).Select( col => GetWall( row, col, Direction.West ) ? "|" : " " ) ) );
+			Log.Info( string.Join( "   ", Enumerable.Range( 0, Cols + 1 ).Select( col => GetWall( (row, col), Direction.West ) ? "|" : " " ) ) );
 		}
 	}
 
