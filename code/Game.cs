@@ -274,6 +274,11 @@ public partial class MazingGame : Sandbox.Game
 		client.Pawn = mazingPlayer;
 
         RespawnPlayer( mazingPlayer );
+
+        if ( LevelIndex > 0 )
+        {
+            mazingPlayer.Kill( Vector3.Up, false );
+        }
     }
 
     private void RespawnPlayer( MazingPlayer player )

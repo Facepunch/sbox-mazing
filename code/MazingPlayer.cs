@@ -97,7 +97,7 @@ partial class MazingPlayer : Sandbox.Player
         _ragdoll = null;
     }
 
-    public void Kill( Vector3 damageDir )
+    public void Kill( Vector3 damageDir, bool ragdoll = true )
     {
         if ( !IsServer || !IsAlive )
         {
@@ -118,23 +118,29 @@ partial class MazingPlayer : Sandbox.Player
         Tags.Remove( "player" );
         Tags.Add( "ghost" );
 
-        _ragdoll = new ModelEntity();
+        if ( ragdoll )
+        {
+            _ragdoll = new ModelEntity();
 
-        _ragdoll.SetModel( "models/citizen/citizen.vmdl" );
-        _ragdoll.Position = Position;
-        _ragdoll.Rotation = Rotation;
-        _ragdoll.SetupPhysicsFromModel( PhysicsMotionType.Dynamic, false );
-        _ragdoll.PhysicsGroup.Velocity = damageDir.Normal * 100f;
-        _ragdoll.Tags.Add( "ragdoll" );
+            _ragdoll.SetModel("models/citizen/citizen.vmdl");
+            _ragdoll.Position = Position;
+            _ragdoll.Rotation = Rotation;
+            _ragdoll.SetupPhysicsFromModel(PhysicsMotionType.Dynamic, false);
+            _ragdoll.PhysicsGroup.Velocity = damageDir.Normal * 100f;
+            _ragdoll.Tags.Add("ragdoll");
+        }
 
         foreach ( var child in Children.ToArray() )
         {
             if ( child is ModelEntity e && e.Tags.Has( "clothes" ) )
             {
-                var clothing = new ModelEntity();
-                clothing.CopyFrom( e );
-                clothing.SetParent( _ragdoll, true );
-                clothing.RenderColor = RenderColor;
+                if ( _ragdoll != null )
+                {
+                    var clothing = new ModelEntity();
+                    clothing.CopyFrom(e);
+                    clothing.SetParent(_ragdoll, true);
+                    clothing.RenderColor = RenderColor;
+                }
 
                 e.RenderColor = new Color(1f, 1f, 1f, 0.25f);
             }
