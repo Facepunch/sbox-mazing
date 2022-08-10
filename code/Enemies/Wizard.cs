@@ -39,10 +39,10 @@ internal partial class Wizard : Enemy
     {
         base.OnDestroy();
 
-        _spawnParticles?.Destroy();
+        _spawnParticles?.Destroy( true );
         _spawnParticles = null;
 
-        _popParticles?.Destroy();
+        _popParticles?.Destroy( true );
         _popParticles = null;
     }
 
@@ -52,11 +52,22 @@ internal partial class Wizard : Enemy
     {
         base.OnLevelChange();
 
+        Log.Info( "OnLevelChange" );
+
         _spawnParticles?.Destroy();
         _spawnParticles = null;
 
         _popParticles?.Destroy();
         _popParticles = null;
+
+        _teleportTimer = -Rand.Float( 0f, TELEPORT_DELAY ) + TELEPORT_DISAPPEAR_TIME;
+        IsTeleporting = true;
+
+        _teleportCell = this.GetCellIndex();
+        _spawnParticles = Particles.Create("particles/wizard_spawn.vpcf", Game.CellCenterToPosition(_teleportCell));
+
+        Position = new Vector3(-666f, -666f, -666f);
+        EnableDrawing = false;
     }
 
     protected override void OnServerTick()
@@ -74,6 +85,8 @@ internal partial class Wizard : Enemy
             {
                 Position = Game.CellCenterToPosition(_teleportCell);
                 TargetCell = _teleportCell;
+
+                EnableDrawing = true;
 
                 var cell = this.GetCellIndex();
                 var totalDist = 0;
@@ -128,18 +141,16 @@ internal partial class Wizard : Enemy
             if (_teleportTimer >= TELEPORT_DELAY)
             {
                 IsTeleporting = true;
-
-                if (_spawnParticles != null)
-                {
-                    _spawnParticles.Destroy();
-                    _spawnParticles = null;
-                }
+                
+                _spawnParticles?.Destroy();
+                _spawnParticles = null;
 
                 _popParticles?.Destroy();
                 _popParticles = Particles.Create("particles/wizard_spawn_end.vpcf", Position);
 
                 _teleportCell = Game.GetRandomEmptyCell();
-                Position = new Vector3(0f, 0f, -666f);
+                Position = new Vector3(-666f, -666f, -666f);
+                EnableDrawing = false;
 
                 _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
 

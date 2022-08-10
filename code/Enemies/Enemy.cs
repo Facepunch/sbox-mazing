@@ -51,7 +51,7 @@ abstract partial class Enemy : AnimatedEntity
     
     private TimeSince[,] _cellVisitTimes;
     
-    private MazeData _lastMaze;
+    private int _lastLevelIndex;
 
     public TimeSince LastAttack { get; private set; }
 
@@ -95,9 +95,16 @@ abstract partial class Enemy : AnimatedEntity
     {
         var cell = this.GetCellIndex();
 
-        if (_lastMaze != Game.CurrentMaze)
+        if ( _lastLevelIndex > Game.LevelIndex )
         {
-            _lastMaze = Game.CurrentMaze;
+            Delete();
+            return;
+        }
+
+        if (_lastLevelIndex < Game.LevelIndex || _cellVisitTimes == null)
+        {
+            _lastLevelIndex = Game.LevelIndex;
+
             TargetCell = cell;
 
             AwakeTime = -2.5f - Rand.Float(0.5f);
