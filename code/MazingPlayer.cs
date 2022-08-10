@@ -29,6 +29,10 @@ partial class MazingPlayer : Sandbox.Player
     [Net]
     public TimeSince LastItemDrop { get; set; }
 
+    [Net]
+    public float VaultCooldown { get; set; } = 3.5f;
+
+    private Particles _sweatParticles;
     private ModelEntity _ragdoll;
 
     public MazingGame Game => MazingGame.Current;
@@ -55,7 +59,11 @@ partial class MazingPlayer : Sandbox.Player
 
         RenderColor = Color.White;
 
-        Controller = new MazingWalkController();
+        Controller = new MazingWalkController
+        {
+            VaultCooldown = VaultCooldown
+        };
+
         Animator = new MazingPlayerAnimator();
         CameraMode = new MazingCamera();
 
@@ -67,6 +75,9 @@ partial class MazingPlayer : Sandbox.Player
         EnableShadowInFirstPerson = true;
 
         IsAlive = true;
+
+        _sweatParticles?.Destroy();
+        _sweatParticles = null;
 
         base.Respawn();
     }
@@ -88,7 +99,12 @@ partial class MazingPlayer : Sandbox.Player
 
         IsAlive = false;
 
+        _sweatParticles?.Destroy();
+        _sweatParticles = null;
+
         DropHeldItem();
+
+        ((MazingWalkController)Controller).VaultCooldown = 0f;
 
         Tags.Remove( "player" );
         Tags.Add( "ghost" );
@@ -149,20 +165,31 @@ partial class MazingPlayer : Sandbox.Player
 
     private void CheckForVault()
     {
-        if ( !(Controller?.HasEvent( "jump" ) ?? false) ) return;
-
-        Log.Info("Vault event!");
-
         if (!IsServer)
         {
             return;
         }
 
-        if (HeldKey != null)
+        if ( Controller?.HasEvent( "vault" ) ?? false )
         {
-            var dropCell = this.GetCellIndex() + (GridCoord) this.GetFacingDirection() * 2;
-            if (Game.IsInMaze(dropCell))
-                ThrowItem(dropCell);
+            if (HeldKey != null)
+            {
+                var dropCell = this.GetCellIndex() + (GridCoord)this.GetFacingDirection() * 2;
+                if (Game.IsInMaze(dropCell))
+                    ThrowItem(dropCell);
+            }
+        }
+
+        if ( (Controller?.HasEvent( "vault_end" ) ?? false) && IsAlive )
+        {
+            _sweatParticles?.Destroy();
+            _sweatParticles = Particles.Create("particles/sweat_drops.vpcf", this, "hat");
+        }
+
+        if ( Controller?.HasEvent( "vault_reset" ) ?? false )
+        {
+            _sweatParticles?.Destroy();
+            _sweatParticles = null;
         }
 
         //DropHeldItem();

@@ -24,7 +24,7 @@ public partial class MazingWalkController : BasePlayerController
     [Net] public float VaultHeight { get; set; } = 192f;
     [Net] public float VaultCooldown { get; set; } = 3.5f;
 
-    public bool IsVaulting => SinceVault < VaultTime;
+    public bool IsVaulting => SinceVault <= VaultTime;
 
     public bool IsPlayer => Pawn is Player;
     
@@ -38,6 +38,9 @@ public partial class MazingWalkController : BasePlayerController
 
     [Net]
     public TimeSince SinceVault { get; set; }
+
+    private bool _wasVaulting;
+    private bool _wasVaultCooldown;
 
     public Unstuck Unstuck;
     
@@ -146,6 +149,13 @@ public partial class MazingWalkController : BasePlayerController
 
         BaseVelocity = BaseVelocity.WithZ(0);
 
+        if ( !IsVaulting && _wasVaulting )
+        {
+            AddEvent( "vault_end" );
+        }
+
+        _wasVaulting = IsVaulting;
+
         if ( Pawn is MazingPlayer player && player.HasExited )
         {
             AirMove();
@@ -161,14 +171,22 @@ public partial class MazingWalkController : BasePlayerController
             var (rowF, colF) = game.PositionToCell( Position );
             var cell = new GridCoord(rowF.FloorToInt(), colF.FloorToInt());
 
-            if ( SinceVault < VaultCooldown )
+            var vaultOnCooldown = SinceVault < VaultCooldown;
+
+            if ( !vaultOnCooldown && _wasVaultCooldown )
             {
-                DebugOverlay.Text($"Vault: {VaultCooldown - SinceVault}", Position + Vector3.Up * 128f, 0, Color.Green, 0f,
-                    maxDistance: float.MaxValue);
+                AddEvent( "vault_reset" );
             }
 
             if ( Debug )
             {
+                if ( SinceVault < VaultCooldown )
+                {
+                    DebugOverlay.Text( $"Vault: {VaultCooldown - SinceVault}", Position + Vector3.Up * 128f, 0,
+                        Color.Green, 0f,
+                        maxDistance: float.MaxValue );
+                }
+
                 DebugOverlay.Box( game.CellToPosition(cell), game.CellToPosition( cell.Row + 1f, cell.Col + 1f ),
                     new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
             }
@@ -277,7 +295,7 @@ public partial class MazingWalkController : BasePlayerController
                     wishVelocityAdd += perp;
                 }
 
-                if (SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && Input.Down(InputButton.Jump))
+                if (!IsVaulting && SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && Input.Down(InputButton.Jump))
                 {
                     CheckVaultButton( cell + delta );
                 }
@@ -375,14 +393,6 @@ public partial class MazingWalkController : BasePlayerController
         var height = Math.Clamp( 1f - MathF.Pow( 2f * SinceVault / VaultTime - 1f, 2f ), 0f, 1f );
 
         Position = Vector3.Up * height * VaultHeight + groundPos + Vector3.Up;
-
-        if ( SinceVault > VaultTime )
-        {
-            Velocity = Vector3.Zero;
-            ((ModelEntity)Pawn).EnableAllCollisions = true;
-
-            CategorizePosition( false );
-        }
     }
 
     public virtual void WalkMove()
@@ -534,6 +544,7 @@ public partial class MazingWalkController : BasePlayerController
         }
         
         SinceVault = 0f;
+        _wasVaultCooldown = true;
 
         VaultOrigin = Position;
         VaultTarget = game.CellToPosition( target.Row + 0.5f, target.Col + 0.5f );
@@ -549,7 +560,7 @@ public partial class MazingWalkController : BasePlayerController
         Velocity = Velocity.WithZ(startz + flMul * flGroundFactor);
         Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
 
-        AddEvent("jump");
+        AddEvent("vault");
     }
 
     public virtual void AirMove()

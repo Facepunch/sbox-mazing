@@ -9,3 +9,5 @@ launchSettings.json
 *.vmat_c
 
 *.vmdl_c
+
+*.vpcf_c

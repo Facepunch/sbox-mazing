@@ -135,7 +135,7 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 	{
 		// DebugOverlay.Text( Pos + Vector3.Up * 100, name, 5.0f );
 
-		if (name == "jump")
+		if (name == "vault")
 		{
 			Trigger("b_jump");
 		}
