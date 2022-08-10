@@ -2,7 +2,7 @@
 
 namespace Mazing.Enemies;
 
-//[EnemySpawn(FirstLevel = 5, SpawnPeriod = 3)]
+[EnemySpawn(FirstLevel = 0)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;
@@ -10,11 +10,11 @@ internal partial class Wizard : Enemy
     public bool IsTeleporting { get; set; } = false;
     private GridCoord _teleportCell;
 
-    private float _teleportTimer;
+    private TimeSince _teleportTimer;
     private const float TELEPORT_DELAY = 4f;
     private const float TELEPORT_DISAPPEAR_TIME = 1.5f;
 
-    private PointLightEntity _light;
+    private Particles _spawnParticles;
 
     public override void Spawn()
     {
@@ -25,7 +25,7 @@ internal partial class Wizard : Enemy
         //new ModelEntity("models/citizen_clothes/gloves/long_white_gloves/Models/long_white_gloves.vmdl", this);
         RenderColor = new Color(0.7f, 0f, 0.7f);
 
-        _teleportTimer = TELEPORT_DELAY;
+        _teleportTimer = 0f;
     }
 
 
@@ -33,8 +33,8 @@ internal partial class Wizard : Enemy
     {
         base.OnDestroy();
 
-        _light?.Delete();
-        _light = null;
+        _spawnParticles?.Destroy();
+        _spawnParticles = null;
     }
 
     protected override void OnServerTick()
@@ -43,46 +43,39 @@ internal partial class Wizard : Enemy
 
         if (IsTeleporting)
         {
-            _teleportTimer -= Time.Delta;
-            if (_teleportTimer <= 0f)
+            if (_teleportTimer >= TELEPORT_DELAY)
             {
-                if (_light != null)
+                if (_spawnParticles != null)
                 {
-                    _light.Delete();
-                    _light = null;
+                    _spawnParticles.Destroy();
+                    _spawnParticles = null;
                 }
 
                 Position = Game.CellCenterToPosition(_teleportCell);
                 TargetCell = _teleportCell;
 
                 IsTeleporting = false;
-                _teleportTimer = TELEPORT_DELAY;
+                _teleportTimer = 0f;
             }
         }
         else
         {
-            _teleportTimer -= Time.Delta;
-            if (_teleportTimer <= 0f)
+            if (_teleportTimer >= TELEPORT_DISAPPEAR_TIME)
             {
                 IsTeleporting = true;
 
-                if (_light != null)
+                if (_spawnParticles != null)
                 {
-                    _light.Delete();
-                    _light = null;
+                    _spawnParticles.Destroy();
+                    _spawnParticles = null;
                 }
 
                 _teleportCell = Game.GetRandomCell();
                 Position = new Vector3(-666f, -666f, -666f);
 
-                _light = new PointLightEntity
-                {
-                    Position = Game.CellCenterToPosition(_teleportCell),
-                    Color = Color.FromRgb(0x880088),
-                    Range = 128f
-                };
+                _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
 
-                _teleportTimer = TELEPORT_DISAPPEAR_TIME;
+                _teleportTimer = 0f;
             }
         }
 

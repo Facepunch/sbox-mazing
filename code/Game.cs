@@ -96,7 +96,7 @@ public partial class MazingGame : Sandbox.Game
         }
 
         var enemies = Entity.All.OfType<Enemy>().ToArray();
-        var generated = MazeGenerator.Generate(seed, 8 + (LevelIndex / 4) * 4, MaxPlayers, enemies.Length, LevelIndex * 4 + 4);
+        var generated = MazeGenerator.Generate(seed, 8 + (LevelIndex / 4) * 4, MaxPlayers, enemies.Length, LevelIndex + 1);
 
         CurrentMaze = generated.MazeData;
         CurrentMaze.WriteNetworkData();
