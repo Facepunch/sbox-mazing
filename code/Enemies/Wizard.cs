@@ -15,6 +15,7 @@ internal partial class Wizard : Enemy
     private const float TELEPORT_DISAPPEAR_TIME = 1.5f;
 
     private Particles _spawnParticles;
+    private Particles _popParticles;
 
     public override void Spawn()
     {
@@ -35,6 +36,9 @@ internal partial class Wizard : Enemy
 
         _spawnParticles?.Destroy();
         _spawnParticles = null;
+
+        _popParticles?.Destroy();
+        _popParticles = null;
     }
 
     protected override void OnServerTick()
@@ -50,13 +54,12 @@ internal partial class Wizard : Enemy
 
                 IsTeleporting = false;
                 _teleportTimer = 0f;
+                
+                _spawnParticles?.Destroy();
+                _spawnParticles = null;
 
-                if (_spawnParticles != null)
-                {
-                    _spawnParticles.SetPosition(1, Position + Vector3.Up * 32f);
-                    _spawnParticles.Destroy();
-                    _spawnParticles = null;
-                }
+                _popParticles?.Destroy();
+                _popParticles = Particles.Create("particles/wizard_spawn_end.vpcf", Position);
             }
         }
         else
@@ -71,11 +74,13 @@ internal partial class Wizard : Enemy
                     _spawnParticles = null;
                 }
 
+                _popParticles?.Destroy();
+                _popParticles = Particles.Create("particles/wizard_spawn_end.vpcf", Position);
+
                 _teleportCell = Game.GetRandomCell();
                 Position = new Vector3(0f, 0f, -666f);
 
                 _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
-                _spawnParticles.SetPosition(1, Vector3.Forward * -4096f);
 
                 _teleportTimer = 0f;
             }
