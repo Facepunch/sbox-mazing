@@ -54,9 +54,9 @@ public static class MazeGenerator
             new[] { coins[Rand.Int( coins.Length - 1 )] } );
     }
 
-	public static GeneratedMaze Generate( int seed, int size, int playerCount, int enemyCount, int coinCount )
+	public static GeneratedMaze Generate( int seed, int rows, int cols, int playerCount, int enemyCount, int coinCount )
 	{
-        if ( playerCount + enemyCount + coinCount + 2 > size * size )
+        if ( playerCount + enemyCount + coinCount + 2 > rows * cols)
         {
             throw new ArgumentException( "Maze is too small to fit that many players, enemies, coins, an exit and a key." );
         }
@@ -65,13 +65,13 @@ public static class MazeGenerator
 
 		const int stride = 4;
 
-        if ( size <= 0 || size % stride != 0 )
+        if ( rows <= 0 || rows % stride != 0 || cols <= 0 || cols % stride != 0 )
         {
             throw new ArgumentException( $"Size must be a multiple of {stride}." );
         }
 
 		var parts = MazeData.LoadAll().ToList();
-		var maze = new MazeData( size, size );
+		var maze = new MazeData( rows, cols );
 
 		var bigParts = parts
 			.Where( x => x.Rows >= 8 || x.Cols >= 8 )
@@ -86,26 +86,26 @@ public static class MazeGenerator
 			.Select( _ => smallParts[rand.Next( smallParts.Length )] )
 			.ToArray();
 
-		var occupied = new bool[size, size];
+		var occupied = new bool[rows, cols];
 		var totalCoverage = 0;
 
-		while ( totalCoverage < size * size / 2 )
+		while ( totalCoverage < rows * cols / 2 )
 		{
 			var placed = PlaceRandom( rand, maze, bigParts, occupied, stride );
 			if ( placed == null ) break;
 			totalCoverage += placed.Rows * placed.Cols;
 		}
 
-		while ( totalCoverage < size * size )
+		while ( totalCoverage < rows * cols)
 		{
 			var placed = PlaceRandom( rand, maze, smallParts, occupied, stride );
 			if ( placed == null ) break;
 			totalCoverage += placed.Rows * placed.Cols;
 		}
 
-		var unvisited = Enumerable.Range( 0, size )
-			.SelectMany( x => Enumerable.Range( 0, size ).Select( y => (row: x, col: y) ) )
-			.ToHashSet();
+        var unvisited = Enumerable.Range( 0, rows )
+            .SelectMany( x => Enumerable.Range( 0, cols ).Select( y => (row: x, col: y) ) )
+            .ToHashSet();
 
 		var islands = new List<HashSet<GridCoord>>();
 		var queue = new Queue<GridCoord>();
@@ -146,8 +146,8 @@ public static class MazeGenerator
 		var enemies = new List<GridCoord>();
         var coins = new List<GridCoord>();
 
-        var available = new Queue<GridCoord>( Enumerable.Range( 0, size )
-            .SelectMany( row => Enumerable.Range( 0, size ).Select( col => new GridCoord( row, col ) ) )
+        var available = new Queue<GridCoord>( Enumerable.Range( 0, rows )
+            .SelectMany( row => Enumerable.Range( 0, cols ).Select( col => new GridCoord( row, col ) ) )
             .OrderBy( x => rand.NextSingle() ) );
 
         var exit = available.Dequeue();
@@ -190,7 +190,7 @@ public static class MazeGenerator
 
 					var neighbor = coord + delta;
 
-					if ( neighbor.Row < 0 || neighbor.Row >= size || neighbor.Col < 0 || neighbor.Col >= size )
+					if ( neighbor.Row < 0 || neighbor.Row >= rows || neighbor.Col < 0 || neighbor.Col >= cols )
 					{
 						continue;
 					}
@@ -222,12 +222,14 @@ public static class MazeGenerator
 			}
 		}
 
+        var size = MathF.Sqrt( rows * cols ).FloorToInt();
+
 		var extraConnectivityCount = rand.Next( size / 2, size );
 		var allWalls = new List<(GridCoord From, Direction dir, GridCoord To)>();
 
-		for ( var row = 0; row < size; row++ )
+		for ( var row = 0; row < rows; row++ )
 		{
-			for ( var col = 0; col < size; col++ )
+			for ( var col = 0; col < cols; col++ )
 			{
 				if ( col > 0 && maze.GetWall( (row, col), Direction.West ) )
 				{

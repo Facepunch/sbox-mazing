@@ -95,10 +95,20 @@ public partial class MazingGame : Sandbox.Game
             TypeLibrary.Create<Enemy>(type);
         }
 
+        var (rows, cols) = LevelIndex switch
+        {
+            < 4 => (8, 8),
+            < 8 => (8, 12),
+            < 16 => (12, 12),
+            < 32 => (16, 12),
+            < 64 => (16, 16),
+            _ => (20, 16)
+        };
+
         var enemies = Entity.All.OfType<Enemy>().Where( x => x.IsValid && !x.IsDeleting ).ToArray();
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
-            : MazeGenerator.Generate( seed, LevelIndex < 4 ? 8 : LevelIndex < 12 ? 12 : 16, MaxPlayers, enemies.Length,
+            : MazeGenerator.Generate( seed, rows, cols, MaxPlayers, enemies.Length,
                 LevelIndex + 1 );
 
         CurrentMaze = generated.MazeData;
