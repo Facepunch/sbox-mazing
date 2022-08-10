@@ -225,6 +225,14 @@ public partial class MazingGame : Sandbox.Game
         return new GridCoord(0, 0);
     }
 
+    public bool IsInMaze(GridCoord cell)
+    {
+        if (cell.Col < 0 || cell.Row < 0 || cell.Col >= CurrentMaze.Cols || cell.Row >= CurrentMaze.Rows)
+            return false;
+
+        return true;
+    }
+
     /// <summary>
     /// A client has joined the server. Make them a pawn to play with
     /// </summary>

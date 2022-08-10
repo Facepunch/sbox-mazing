@@ -102,7 +102,8 @@ partial class MazingPlayer : Sandbox.Player
 
         //var cell = Game.GetRandomCell();
         var cell = Game.GetCellInDirection(this.GetCellIndex(), this.GetFacingDirection(), dist: 2);
-        DebugOverlay.Box(Game.CellToPosition(cell), Game.CellToPosition(cell.Row + 1f, cell.Col + 1f), new Color(0.5f, 0.5f, 1f, 1f), depthTest: false);
+        var color = Game.IsInMaze(cell) ? Color.Cyan : Color.Red;
+        DebugOverlay.Box(Game.CellToPosition(cell), Game.CellToPosition(cell.Row + 1f, cell.Col + 1f), color, depthTest: false);
     }
 
     private void CheckForVault()
@@ -114,6 +115,13 @@ partial class MazingPlayer : Sandbox.Player
         if (!IsServer)
         {
             return;
+        }
+
+        if (HeldKey != null)
+        {
+            var dropCell = Game.GetCellInDirection(this.GetCellIndex(), this.GetFacingDirection(), dist: 2);
+            if (Game.IsInMaze(dropCell))
+                ThrowItem(dropCell);
         }
 
         //DropHeldItem();
@@ -131,6 +139,17 @@ partial class MazingPlayer : Sandbox.Player
             HeldKey.Parent = null;
             HeldKey.Position = game.GetCellCenter(HeldKey.Position)
                 .WithZ(HeldKey.Position.z);
+            HeldKey = null;
+        }
+    }
+
+    private void ThrowItem(GridCoord cell)
+    {
+        if (HeldKey != null)
+        {
+            HeldKey.IsHeld = false;
+            HeldKey.Parent = null;
+            HeldKey.Position = Game.CellCenterToPosition(cell).WithZ(HeldKey.Position.z);
             HeldKey = null;
         }
     }
