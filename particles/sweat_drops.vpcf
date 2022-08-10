@@ -240,10 +240,6 @@
 			}
 		},
 		{
-			_class = "C_INIT_InheritVelocity"
-			m_bDisableOperator = true
-		},
-		{
 			_class = "C_INIT_VelocityRandom"
 			m_LocalCoordinateSystemSpeedMin = 
 			{
@@ -656,8 +652,8 @@
 		},
 		{
 			_class = "C_OP_BasicMovement"
-			m_Gravity = [ 0.0, 0.0, -300.0 ]
-			m_fDrag = 0.2
+			m_Gravity = [ 0.0, 0.0, -600.0 ]
+			m_fDrag = 0.1
 		},
 		{
 			_class = "C_OP_InterpolateRadius"
