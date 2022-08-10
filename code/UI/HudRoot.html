@@ -2,13 +2,17 @@
 
 <root>
     <div class="overlay"></div>
-    <div class="score level-num">
-        <text @text="LevelNumber"></text>
+    <div class="score left">
+        <div class="held-coins">
+            <div class="icon"></div><text @text="HeldCoins"></text>
+        </div>
+        <div class="total-coins">
+            <div class="icon"></div><text @text="TotalCoins"></text>
+        </div>
     </div>
-    <div class="score held-coins">
-        <text @text="HeldCoins"></text>
-    </div>
-    <div class="score total-coins">
-        <text @text="TotalCoins"></text>
+    <div class="score right">
+        <div class="level-num">
+            <text class="icon">Floor</text><text @text="LevelNumber"></text>
+        </div>
     </div>
 </root>

@@ -24,26 +24,50 @@
 
 .score {
     position: absolute;
+    display: flex;
 
-    right: 4vh;
     bottom: 2vh;
 
-    font-size: 10vh;
-    color: white;
+    font-size: 6vh;
+    color: rgba(255, 255, 255, 0.75);
     text-shadow: 2px 2px 4px black;
+
+    flex-direction: column;
 }
 
-.level-number {
+.score.left {
+    left: 4vh;
+}
+.score.right {
     right: 4vh;
-    bottom: 2vh;
 }
 
-.held-coins {
-    left: 4vh;
-    bottom: 12vh;
+.score > div {
+    margin: 1vh;
 }
 
-.total-coins {
-    left: 4vh;
-    bottom: 2vh;
+div.icon {
+    width: 8vh;
+    height: 8vh;
+
+    background-size: 100% 100%;
+    opacity: 0.75;
+
+    margin: -1vh 1vh 0 0;
+}
+
+text.icon {
+    margin-right: 2vh;
+}
+
+.held-coins .icon {
+    background-image: url(ui/money_bag.png);
+}
+
+.total-coins .icon {
+    background-image: url(ui/bank.png);
+}
+
+.level-num .icon {
+
 }
