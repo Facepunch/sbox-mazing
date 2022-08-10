@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,11 +17,11 @@ public partial class Wall : ModelEntity
 
 		SetModel( "models/wall.vmdl" );
 
-		//UsePhysicsCollision = true;
+		UsePhysicsCollision = true;
 
 		EnableDrawing = true;
 		EnableSolidCollisions = true;
-		//EnableAllCollisions = true;
+		EnableAllCollisions = true;
 	}
 }
 
@@ -35,11 +35,11 @@ public partial class Post : ModelEntity
 
         SetModel( "models/post.vmdl" );
 
-		//UsePhysicsCollision = true;
+		UsePhysicsCollision = true;
 
 		EnableDrawing = true;
 		EnableSolidCollisions = true;
-		//EnableAllCollisions = true;
+		EnableAllCollisions = true;
 	}
 }
 
