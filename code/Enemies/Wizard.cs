@@ -4,7 +4,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[EnemySpawn(FirstLevel = 3, SpawnPeriod = 4)]
+[EnemySpawn(FirstLevel = 4, SpawnPeriod = 4)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;
@@ -16,7 +16,7 @@ internal partial class Wizard : Enemy
 
     private TimeSince _teleportTimer;
     private const float TELEPORT_DELAY = 4f;
-    private const float TELEPORT_DISAPPEAR_TIME = 2f;
+    private const float TELEPORT_DISAPPEAR_TIME = 3f;
     private const float FIRE_BOLT_DELAY = 1f;
 
     private Particles _spawnParticles;
@@ -66,7 +66,6 @@ internal partial class Wizard : Enemy
         _teleportCell = this.GetCellIndex();
         _spawnParticles = Particles.Create("particles/wizard_spawn.vpcf", Game.CellCenterToPosition(_teleportCell));
 
-        Position = new Vector3(-666f, -666f, -666f);
         EnableDrawing = false;
     }
 
@@ -83,10 +82,8 @@ internal partial class Wizard : Enemy
         {
             if (_teleportTimer >= TELEPORT_DISAPPEAR_TIME)
             {
-                Position = Game.CellCenterToPosition(_teleportCell);
-                TargetCell = _teleportCell;
-
                 EnableDrawing = true;
+                EnableAllCollisions = true;
 
                 var cell = this.GetCellIndex();
                 var totalDist = 0;
@@ -131,6 +128,8 @@ internal partial class Wizard : Enemy
             {
                 FiredBolt = true;
 
+                Animator.Trigger("b_attack");
+
                 var bolt = new WizardBolt
                 {
                     Direction = this.GetFacingDirection(),
@@ -149,8 +148,12 @@ internal partial class Wizard : Enemy
                 _popParticles = Particles.Create("particles/wizard_spawn_end.vpcf", Position);
 
                 _teleportCell = Game.GetRandomEmptyCell();
-                Position = new Vector3(-666f, -666f, -666f);
+
                 EnableDrawing = false;
+                EnableAllCollisions = false;
+
+                Position = Game.CellCenterToPosition(_teleportCell);
+                TargetCell = _teleportCell;
 
                 _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
 
@@ -180,6 +183,8 @@ partial class WizardBolt : ModelEntity
     private PointLightEntity _light;
     private TimeSince _despawnTime;
 
+    private Particles _particles;
+
     public override void Spawn()
     {
         base.Spawn();
@@ -198,9 +203,19 @@ partial class WizardBolt : ModelEntity
                 Parent = this,
                 LocalPosition = default
             };
+
+            _particles = Particles.Create( "particles/wizard_bolt.vpcf", this );
         }
 
         EnableDrawing = true;
+    }
+
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+
+        _particles?.Destroy();
+        _particles = null;
     }
 
     [Event.Tick.Server]

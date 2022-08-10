@@ -95,8 +95,11 @@ public partial class MazingGame : Sandbox.Game
             TypeLibrary.Create<Enemy>(type);
         }
 
-        var enemies = Entity.All.OfType<Enemy>().ToArray();
-        var generated = MazeGenerator.Generate(seed, 8 + (LevelIndex / 4) * 4, MaxPlayers, enemies.Length, LevelIndex + 1);
+        var enemies = Entity.All.OfType<Enemy>().Where( x => x.IsValid && !x.IsDeleting ).ToArray();
+        var generated = LevelIndex == 0
+            ? MazeGenerator.GenerateLobby()
+            : MazeGenerator.Generate( seed, LevelIndex < 4 ? 8 : LevelIndex < 12 ? 12 : 16, MaxPlayers, enemies.Length,
+                LevelIndex + 1 );
 
         CurrentMaze = generated.MazeData;
         CurrentMaze.WriteNetworkData();
@@ -116,7 +119,7 @@ public partial class MazingGame : Sandbox.Game
 
         for ( var i = 0; i < enemies.Length; i++ )
         {
-            var enemyCell = generated.Enemies[i];
+            var enemyCell = generated.Enemies[i % generated.Enemies.Length];
 
             enemies[i].Position = CellToPosition(enemyCell.Row + 0.5f, enemyCell.Col + 0.5f);
         }
@@ -407,6 +410,7 @@ public partial class MazingGame : Sandbox.Game
 
         foreach ( var enemy in enemies )
         {
+            enemy.IsDeleting = true;
             enemy.Delete();
         }
     }

@@ -57,6 +57,8 @@ abstract partial class Enemy : AnimatedEntity
 
     public TimeSince AwakeTime { get; set; }
 
+    public bool IsDeleting { get; set; }
+
     public override void Spawn()
     {
         base.Spawn();
@@ -83,23 +85,13 @@ abstract partial class Enemy : AnimatedEntity
     [Event.Tick.Server]
     private void ServerTick()
     {
-        OnServerTick();
-    }
-
-    protected virtual void OnLevelChange()
-    {
-
-    }
-
-    protected virtual void OnServerTick()
-    {
-        var cell = this.GetCellIndex();
-
-        if ( _lastLevelIndex > Game.LevelIndex )
+        if (_lastLevelIndex > Game.LevelIndex)
         {
             Delete();
             return;
         }
+
+        var cell = this.GetCellIndex();
 
         if (_lastLevelIndex < Game.LevelIndex || _cellVisitTimes == null)
         {
@@ -120,6 +112,18 @@ abstract partial class Enemy : AnimatedEntity
         }
 
         _cellVisitTimes[cell.Row, cell.Col] = 0f;
+
+        OnServerTick();
+    }
+
+    protected virtual void OnLevelChange()
+    {
+
+    }
+
+    protected virtual void OnServerTick()
+    {
+        var cell = this.GetCellIndex();
 
         if ( AwakeTime > 0f )
         {
@@ -156,7 +160,7 @@ abstract partial class Enemy : AnimatedEntity
         Controller?.Simulate(default, this, null);
         Animator?.Simulate(default, this, null);
 
-        if ( LastAttack < 1f )
+        if ( LastAttack < 1f || !EnableDrawing )
         {
             return;
         }

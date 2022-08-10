@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Mazing;
+using Sandbox;
 
 namespace Mazing;
 
@@ -16,6 +17,43 @@ public record struct GeneratedMaze( MazeData MazeData,
 
 public static class MazeGenerator
 {
+    public static GeneratedMaze GenerateLobby()
+    {
+		var (maze, specialCells) = MazeData.Load( 8, 7, FileSystem.Mounted.OpenRead( "mazes/lobby.txt" ) );
+
+        var players = specialCells
+            .Where( x => x.Char == 'P' )
+            .Select( x => x.Coord )
+            .ToArray();
+
+        var enemies = specialCells
+            .Where(x => x.Char == 'W')
+            .Select(x => x.Coord)
+            .ToArray();
+
+        var exits = specialCells
+            .Where(x => x.Char == 'E')
+            .Select(x => x.Coord)
+            .ToArray();
+
+        var coins = specialCells
+            .Where(x => x.Char == 'C')
+            .Select(x => x.Coord)
+            .ToArray();
+
+        var keys = specialCells
+            .Where(x => x.Char == 'K')
+            .Select(x => x.Coord)
+            .ToArray();
+
+        return new GeneratedMaze( maze,
+            exits[Rand.Int( exits.Length - 1 )],
+            keys[Rand.Int( keys.Length - 1 )],
+            players,
+            new[] { enemies[Rand.Int( enemies.Length - 1 )] },
+            new[] { coins[Rand.Int( coins.Length - 1 )] } );
+    }
+
 	public static GeneratedMaze Generate( int seed, int size, int playerCount, int enemyCount, int coinCount )
 	{
         if ( playerCount + enemyCount + coinCount + 2 > size * size )

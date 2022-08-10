@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[EnemySpawn(FirstLevel = 1, SpawnPeriod = 4)]
+[EnemySpawn(FirstLevel = 2, SpawnPeriod = 4)]
 partial class Seeker : Enemy
 {
     public override float MoveSpeed => 84f;

@@ -106,8 +106,8 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 
 	private static Regex PartNameRegex = new Regex( @"^(?<cols>[0-9]+)x(?<rows>[0-9]+)_" );
 
-	private static Regex HorzWallRegex = new Regex( @"^\+([- ]{3}\+)+$" );
-	private static Regex VertWallRegex = new Regex( @"^[| ]([ ]{3}[| ])+$" );
+	private static Regex HorzWallRegex = new Regex( @"^[+ ]([- ]{3}[+ ])+$" );
+	private static Regex VertWallRegex = new Regex( @"^[| ]([ ][ A-Z0-9][ ][| ])+$" );
 
 	public static IEnumerable<MazeData> LoadAll()
 	{
@@ -120,6 +120,11 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 				continue;
 			}
 
+            if ( file.Contains( "_lobby" ) )
+            {
+                continue;
+            }
+
 			var rows = int.Parse( name.Groups["rows"].Value );
 			var cols = int.Parse( name.Groups["cols"].Value );
 
@@ -129,11 +134,11 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 				continue;
 			}
 
-			yield return Load( rows, cols, FileSystem.Mounted.OpenRead( $"mazes/{file}" ) );
+			yield return Load( rows, cols, FileSystem.Mounted.OpenRead( $"mazes/{file}" ) ).Maze;
 		}
 	}
 
-	public static MazeData Load( int rows, int cols, Stream stream )
+	public static (MazeData Maze, (GridCoord Coord, char Char)[] SpecialCells) Load( int rows, int cols, Stream stream )
 	{
 		using ( var reader = new StreamReader( stream ) )
 		{
@@ -141,9 +146,10 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 		}
 	}
 
-	public static MazeData Load( int rows, int cols, TextReader reader )
+	public static (MazeData Maze, (GridCoord Coord, char Char)[] SpecialCells) Load( int rows, int cols, TextReader reader )
 	{
 		var part = new MazeData( rows, cols );
+        var specialCells = new List<(GridCoord Coord, char Char)>();
 
 		for ( var row = 0; row <= rows; ++row )
 		{
@@ -192,11 +198,16 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 			for ( var col = 0; col <= cols; ++col )
 			{
 				part.SetWall( (row, col), Direction.West, line[col * 4] == '|' );
+
+                if ( row < rows && col < cols && !char.IsWhiteSpace( line[col * 4 + 2] ) )
+                {
+                    specialCells.Add( ((row, col), line[col * 4 + 2]) );
+                }
 			}
 		}
 
-		return part;
-	}
+        return (part, specialCells.ToArray());
+    }
 
 	public static void Copy( MazeData src, MazeTransform srcTransform,
 		MazeData dst, int dstRow, int dstCol )
