@@ -30,10 +30,12 @@ public partial class Wall : ModelEntity
 		SetModel( "models/wall.vmdl" );
 
         Tags.Add("wall");
-        Tags.Remove("solid");
+
+        UsePhysicsCollision = true;
 
 		EnableDrawing = true;
-	}
+        EnableSolidCollisions = true;
+    }
 }
 
 public partial class Post : ModelEntity
@@ -45,10 +47,12 @@ public partial class Post : ModelEntity
         SetModel( "models/post.vmdl" );
 
         Tags.Add("wall");
-        Tags.Remove( "solid" );
+        
+        UsePhysicsCollision = true;
 
-		EnableDrawing = true;
-	}
+        EnableDrawing = true;
+        EnableSolidCollisions = true;
+    }
 }
 
 public partial class Coin : AnimatedEntity
@@ -116,5 +120,24 @@ public partial class Key : ModelEntity
 
         LocalPosition = LocalPosition.WithZ( 0f ) + Vector3.Up * (MathF.Sin( Time.Now * MathF.PI * 0.5f ) * 16f + (IsHeld ? 96f : 32f));
         LocalRotation *= Rotation.FromRoll( Time.Delta * 180f ) * Rotation.FromYaw(Time.Delta * 80f);
+        
+        var hatches = Entity.All.OfType<Hatch>();
+
+        foreach (var hatch in hatches)
+        {
+            if (hatch.IsOpen)
+            {
+                continue;
+            }
+
+            var diff = hatch.Position.WithZ(0) - Position.WithZ(0);
+
+            if (diff.LengthSquared < 16f * 16f)
+            {
+                hatch.Open();
+                Delete();
+                return;
+            }
+        }
     }
 }

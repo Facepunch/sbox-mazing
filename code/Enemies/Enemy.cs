@@ -86,6 +86,11 @@ abstract partial class Enemy : AnimatedEntity
         OnServerTick();
     }
 
+    protected virtual void OnLevelChange()
+    {
+
+    }
+
     protected virtual void OnServerTick()
     {
         var cell = this.GetCellIndex();
@@ -98,6 +103,8 @@ abstract partial class Enemy : AnimatedEntity
             AwakeTime = -2.5f - Rand.Float(0.5f);
 
             _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
+
+            OnLevelChange();
         }
 
         if (!IsInBounds(cell))
@@ -191,6 +198,24 @@ abstract partial class Enemy : AnimatedEntity
         return IsInBounds(coord) ? _cellVisitTimes[coord.Row, coord.Col] : default;
     }
 
+    public float GetCost( GridCoord coord )
+    {
+        if ( coord != Game.ExitCell )
+        {
+            return 0f;
+        }
+
+        var hatch = Entity.All.OfType<Hatch>()
+            .FirstOrDefault();
+
+        if ( hatch == null || !hatch.IsOpen )
+        {
+            return 0f;
+        }
+
+        return float.PositiveInfinity;
+    }
+
     protected virtual void OnReachTarget()
     {
 
@@ -199,8 +224,9 @@ abstract partial class Enemy : AnimatedEntity
     protected GridCoord GetRandomNeighborCell()
     {
         var cell = this.GetCellIndex();
+
         var dir = MazeData.Directions.Where( x => CanWalkInDirection( x.Direction ) )
-            .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell + x.Delta ) )
+            .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell + x.Delta ) + GetCost( cell + x.Delta ) )
             .FirstOrDefault();
 
         return cell + dir.Delta;

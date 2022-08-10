@@ -709,10 +709,15 @@ public partial class MazingWalkController : BasePlayerController
             {
                 trace = trace.WithAnyTags( "player" );
             }
+            else if ( !player.IsAlive )
+            {
+                trace = trace.WithAnyTags( "exit" );
+            }
         }
         else if ( Pawn is Enemy )
         {
             trace = trace.WithAnyTags( "enemy" );
+            trace = trace.WithAnyTags( "exit" );
         }
 
         var tr = trace.Run();

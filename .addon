@@ -39,7 +39,8 @@
         "player": "Unset",
         "ghost": "Unset",
         "enemy": "Unset",
-        "exited": "Unset"
+        "exited": "Unset",
+        "exit": "Unset"
       },
       "Pairs": [
         {
@@ -201,6 +202,31 @@
           "a": "solid",
           "b": "exited",
           "r": "Collide"
+        },
+        {
+          "a": "enemy",
+          "b": "exit",
+          "r": "Collide"
+        },
+        {
+          "a": "exited",
+          "b": "exit",
+          "r": "Ignore"
+        },
+        {
+          "a": "ghost",
+          "b": "exit",
+          "r": "Collide"
+        },
+        {
+          "a": "player",
+          "b": "exit",
+          "r": "Ignore"
+        },
+        {
+          "a": "ragdoll",
+          "b": "exit",
+          "r": "Ignore"
         }
       ]
     }

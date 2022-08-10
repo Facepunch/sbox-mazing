@@ -1,4 +1,6 @@
-﻿using Sandbox;
+﻿using System;
+using System.Linq;
+using Sandbox;
 
 namespace Mazing.Enemies;
 
@@ -8,11 +10,14 @@ internal partial class Wizard : Enemy
     public override float MoveSpeed => 20f;
 
     public bool IsTeleporting { get; set; } = false;
+    public bool FiredBolt { get; set; }
+
     private GridCoord _teleportCell;
 
     private TimeSince _teleportTimer;
     private const float TELEPORT_DELAY = 4f;
-    private const float TELEPORT_DISAPPEAR_TIME = 1.5f;
+    private const float TELEPORT_DISAPPEAR_TIME = 2f;
+    private const float FIRE_BOLT_DELAY = 1f;
 
     private Particles _spawnParticles;
     private Particles _popParticles;
@@ -41,18 +46,63 @@ internal partial class Wizard : Enemy
         _popParticles = null;
     }
 
+    private readonly int[] _dirDistances = new int[4];
+
+    protected override void OnLevelChange()
+    {
+        base.OnLevelChange();
+
+        _spawnParticles?.Destroy();
+        _spawnParticles = null;
+
+        _popParticles?.Destroy();
+        _popParticles = null;
+    }
+
     protected override void OnServerTick()
     {
         base.OnServerTick();
 
+        if ( AwakeTime < 0f )
+        {
+            return;
+        }
+
         if (IsTeleporting)
         {
-            if (_teleportTimer >= TELEPORT_DELAY)
+            if (_teleportTimer >= TELEPORT_DISAPPEAR_TIME)
             {
                 Position = Game.CellCenterToPosition(_teleportCell);
                 TargetCell = _teleportCell;
 
+                var cell = this.GetCellIndex();
+                var totalDist = 0;
+
+                foreach ( var (dir, delta) in MazeData.Directions )
+                {
+                    var wallCell = Game.CurrentMaze.RayCast(cell, dir );
+                    var dist = (wallCell - cell).Distance;
+
+                    _dirDistances[(int)dir] = dist;
+                    totalDist += dist;
+                }
+
+                var targetVal = Rand.Int( 0, totalDist - 1 );
+
+                foreach ( var (dir, delta) in MazeData.Directions )
+                {
+                    targetVal -= _dirDistances[(int)dir];
+
+                    if ( targetVal < 0 )
+                    {
+                        EyeRotation = Rotation = Rotation.LookAt( delta.Normal, Vector3.Up );
+                        break;
+                    }
+                }
+                
                 IsTeleporting = false;
+                FiredBolt = false;
+
                 _teleportTimer = 0f;
                 
                 _spawnParticles?.Destroy();
@@ -64,7 +114,18 @@ internal partial class Wizard : Enemy
         }
         else
         {
-            if (_teleportTimer >= TELEPORT_DISAPPEAR_TIME)
+            if ( _teleportTimer >= FIRE_BOLT_DELAY && !FiredBolt )
+            {
+                FiredBolt = true;
+
+                var bolt = new WizardBolt
+                {
+                    Direction = this.GetFacingDirection(),
+                    Position = Position + Vector3.Up * 48f
+                };
+            }
+
+            if (_teleportTimer >= TELEPORT_DELAY)
             {
                 IsTeleporting = true;
 
@@ -77,7 +138,7 @@ internal partial class Wizard : Enemy
                 _popParticles?.Destroy();
                 _popParticles = Particles.Create("particles/wizard_spawn_end.vpcf", Position);
 
-                _teleportCell = Game.GetRandomCell();
+                _teleportCell = Game.GetRandomEmptyCell();
                 Position = new Vector3(0f, 0f, -666f);
 
                 _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
@@ -92,5 +153,85 @@ internal partial class Wizard : Enemy
     protected override void OnReachTarget()
     {
         
+    }
+}
+
+partial class WizardBolt : ModelEntity
+{
+    public float KillRange { get; } = 16f;
+
+    public float MoveSpeed { get; } = 160f;
+
+    [Net]
+    public Direction Direction { get; set; }
+
+    private bool _isDespawning;
+    private PointLightEntity _light;
+    private TimeSince _despawnTime;
+
+    public override void Spawn()
+    {
+        base.Spawn();
+
+        SetModel( "models/wizard_bolt.vmdl" );
+
+        Tags.Add( "projectile" );
+
+        if ( IsServer )
+        {
+            _light = new PointLightEntity
+            {
+                Color = new Color32( 190, 146, 255, 255 ),
+                Range = 128f,
+                Brightness = 1f,
+                Parent = this,
+                LocalPosition = default
+            };
+        }
+
+        EnableDrawing = true;
+    }
+
+    [Event.Tick.Server]
+    private void ServerTick()
+    {
+        if (_isDespawning)
+        {
+            _light.Brightness = Math.Max( 1f - _despawnTime * 4f, 0f );
+
+            if ( _despawnTime > 0.5f )
+            {
+                Delete();
+            }
+
+            return;
+        }
+
+        var game = MazingGame.Current;
+        var cell = this.GetCellIndex();
+
+        var dir = game.CellCenterToPosition( cell + Direction ) -
+                  game.CellCenterToPosition( cell );
+
+        Position += dir.Normal * Time.Delta * MoveSpeed;
+
+        foreach ( var player in Entity.All.OfType<MazingPlayer>().ToArray() )
+        {
+            if ( player.IsAliveInMaze && (player.Position - Position).WithZ( 0f ).LengthSquared <= KillRange * KillRange )
+            {
+                player.Kill( ((GridCoord)Direction).Normal);
+            }
+        }
+
+        if ( this.GetCellIndex() != cell )
+        {
+            if ( game.CurrentMaze.GetWall( cell, Direction ) )
+            {
+                RenderColor = Color.Transparent;
+
+                _isDespawning = true;
+                _despawnTime = 0f;
+            }
+        }
     }
 }

@@ -18,7 +18,7 @@ internal class PathFinder
     private readonly Dictionary<GridCoord, float> _costs = new();
 
     public float ClosedHatchCost { get; set; } = 1f;
-    public float OpenHatchCost { get; set; } = float.PositiveInfinity;
+    public float OpenHatchCost { get; set; } = 100f;
     public float PlayerCost { get; set; } = 10f;
     public float EnemyCost { get; set; } = 100f;
 
@@ -59,7 +59,7 @@ internal class PathFinder
             _costs[cell] = cost;
         }
     }
-
+    
     public bool FindPath( GridCoord from, GridCoord to, List<GridCoord> outPath )
     {
         if ( from == to )

@@ -157,7 +157,6 @@ partial class MazingPlayer : Sandbox.Player
     {
         CheckForVault();
         CheckForKeyPickup();
-        CheckForLockOpen();
         CheckExited();
 
         //var cell = Game.GetRandomCell();
@@ -267,35 +266,6 @@ partial class MazingPlayer : Sandbox.Player
                 key.Parent = this;
                 key.TargetPosition = Vector3.Up * 64f;
 
-                break;
-            }
-        }
-    }
-
-    private void CheckForLockOpen()
-    {
-        if ( HeldKey == null || !IsAliveInMaze )
-        {
-            return;
-        }
-
-        var hatches = Entity.All.OfType<Hatch>();
-
-        foreach ( var hatch in hatches )
-        {
-            if ( hatch.IsOpen )
-            {
-                continue;
-            }
-
-            var diff = hatch.Position.WithZ(0) - Position.WithZ(0);
-
-            if (diff.LengthSquared < 20f * 20f)
-            {
-                HeldKey.Delete();
-                HeldKey = null;
-
-                hatch.Open();
                 break;
             }
         }

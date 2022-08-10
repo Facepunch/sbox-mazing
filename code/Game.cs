@@ -233,8 +233,19 @@ public partial class MazingGame : Sandbox.Game
             .Any(x => x.GetCellIndex() == coord);
     }
 
-    public GridCoord GetRandomCell()
+    public GridCoord GetRandomEmptyCell()
     {
+        for ( var i = 0; i < 100; ++i )
+        {
+            var cell = new GridCoord( Rand.Int( 0, CurrentMaze.Rows - 1 ), Rand.Int( 0, CurrentMaze.Cols - 1 ) );
+
+            if ( cell != ExitCell )
+            {
+                return cell;
+            }
+        }
+
+        // Give up
         return new GridCoord(Rand.Int(0, CurrentMaze.Rows - 1), Rand.Int(0, CurrentMaze.Cols - 1));
     }
 

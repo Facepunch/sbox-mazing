@@ -26,8 +26,6 @@ internal partial class Hatch : AnimatedEntity
         UsePhysicsCollision = true;
 
         EnableDrawing = true;
-        EnableSolidCollisions = true;
-        EnableAllCollisions = true;
     }
     
     public void Open()
@@ -39,9 +37,10 @@ internal partial class Hatch : AnimatedEntity
 
         IsOpen = true;
 
+        Tags.Remove( "solid" );
+        Tags.Add( "exit" );
+
         PlaybackRate = 1f;
         CurrentSequence.Time = 0f;
-
-        EnableAllCollisions = false;
     }
 }

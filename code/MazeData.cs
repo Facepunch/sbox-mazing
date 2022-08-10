@@ -71,6 +71,9 @@ public readonly struct GridCoord : IEquatable<GridCoord>
 	public readonly int Row;
     public readonly int Col;
 
+    public int Distance => Math.Abs( Row ) + Math.Abs( Col );
+	public Vector3 Normal => new Vector3( Col, Row, 0f ).Normal;
+
     public GridCoord( int row, int col )
     {
         Row = row;
