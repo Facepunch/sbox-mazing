@@ -33,10 +33,14 @@ public partial class MazingGame : Sandbox.Game
 	[Net]
 	public int LevelIndex { get; set; }
 
-    [Net]
-    public TimeSince RestartCountdown { get; set; }
+    [Net] public TimeSince RestartCountdown { get; set; }
 
-	private readonly List<ModelEntity> _mazeEntities = new List<ModelEntity>();
+    [Net] public TimeSince NextLevelCountdown { get; set; }
+
+    public bool IsTransitioning => RestartCountdown > -1f && RestartCountdown < 0f ||
+                                   NextLevelCountdown > -1f && NextLevelCountdown < 0f;
+
+    private readonly List<ModelEntity> _mazeEntities = new List<ModelEntity>();
 
 	public MazingGame()
 	{
@@ -46,6 +50,7 @@ public partial class MazingGame : Sandbox.Game
         }
 
         RestartCountdown = float.PositiveInfinity;
+        NextLevelCountdown = float.PositiveInfinity;
     }
 
 	[ConCmd.Admin("maze_generate")]
@@ -266,11 +271,28 @@ public partial class MazingGame : Sandbox.Game
     {
         if ( !float.IsPositiveInfinity( RestartCountdown ) )
         {
-            if ( RestartCountdown > 3f )
+            if ( RestartCountdown > 0f )
             {
+                RestartCountdown = float.PositiveInfinity;
+
                 LevelIndex = 0;
 
                 ClearEnemies();
+                GenerateMaze();
+                ResetPlayers();
+            }
+
+            return;
+        }
+
+        if ( !float.IsPositiveInfinity( NextLevelCountdown ) )
+        {
+            if ( NextLevelCountdown > 0f )
+            {
+                NextLevelCountdown = float.PositiveInfinity;
+
+                ++LevelIndex;
+
                 GenerateMaze();
                 ResetPlayers();
             }
@@ -301,13 +323,11 @@ public partial class MazingGame : Sandbox.Game
 
         if ( anyPlayers && allExited )
         {
-            ++LevelIndex;
-			GenerateMaze();
-            ResetPlayers();
+            NextLevelCountdown = -1.5f;
         }
         else if ( !anyPlayers && anyDeadPlayers )
         {
-            RestartCountdown = 0;
+            RestartCountdown = -3f;
         }
     }
 
@@ -324,6 +344,7 @@ public partial class MazingGame : Sandbox.Game
     private void ResetPlayers()
     {
         RestartCountdown = float.PositiveInfinity;
+        NextLevelCountdown = float.PositiveInfinity;
 
         foreach ( var player in Entity.All.OfType<MazingPlayer>().ToArray() )
         {

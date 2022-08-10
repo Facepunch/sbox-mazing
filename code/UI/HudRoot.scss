@@ -1,4 +1,28 @@
-﻿.score {
+﻿HudRoot {
+    width: 100%;
+    height: 100%;
+}
+
+.overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    transition: background-color 0.5s linear 0.25s, backdrop-filter 1s linear;
+    backdrop-filter: saturate(100%);
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.overlay.ghost {
+    backdrop-filter: saturate(20%);
+}
+
+.overlay.transition {
+    background-color: rgba(0, 0, 0, 1.0);
+}
+
+.score {
     position: absolute;
 
     right: 4vh;
