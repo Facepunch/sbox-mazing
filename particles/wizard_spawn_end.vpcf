@@ -595,10 +595,6 @@
 	m_ForceGenerators = 
 	[
 		{
-			_class = "C_OP_TwistAroundAxis"
-			m_fForceAmount = 200.0
-		},
-		{
 			_class = "C_OP_AttractToControlPoint"
 			m_vecComponentScale = [ 20.0, 20.0, 10.0 ]
 			m_fForceAmount = 
