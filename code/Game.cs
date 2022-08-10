@@ -78,6 +78,7 @@ public partial class MazingGame : Sandbox.Game
         const float outerWallHeight = 128;
 		const float innerWallHeight = 96f;
         const float wallModelHeight = 256f;
+        const float borderHeight = outerWallHeight - 16f;
 
         var hatch = new Hatch();
 
@@ -168,7 +169,18 @@ public partial class MazingGame : Sandbox.Game
 				}
 			}
 		}
-	}
+
+        _mazeEntities.Add( new Border
+        {
+            Position = Vector3.Up * borderHeight + CellToPosition( CurrentMaze.Rows, 0f )
+        } );
+
+        _mazeEntities.Add( new Border
+        {
+            Position = Vector3.Up * borderHeight + CellToPosition( 0f, CurrentMaze.Cols ),
+            Rotation = Rotation.FromYaw( 180f )
+        } );
+    }
 
 	public Vector3 CellToPosition( float row, float col ) => new Vector3( (col - ExitCell.Col - 0.5f) * 48f, (row - ExitCell.Row - 0.5f) * 48f, 0f );
     public Vector3 CellToPosition( GridCoord coord ) => new Vector3((coord.Col - ExitCell.Col - 0.5f) * 48f, (coord.Row - ExitCell.Row - 0.5f) * 48f, 0f);

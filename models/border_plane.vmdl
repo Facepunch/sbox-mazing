@@ -1,0 +1,62 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:modeldoc29:version{3cec427c-1b0e-4d48-a90a-0436f33a6041} -->
+{
+	rootNode = 
+	{
+		_class = "RootNode"
+		children = 
+		[
+			{
+				_class = "RenderMeshList"
+				children = 
+				[
+					{
+						_class = "RenderPrimitivePlane"
+						name = "Border"
+						parent_bone = ""
+						material_name = "materials/dev/primary_black.vmat"
+						origin = [ -512.0, -4096.0, 0.0 ]
+						angles = [ 0.0, 0.0, 0.0 ]
+						max_u = 1.0
+						max_v = 1.0
+						width = 1024.0
+						height = 8192.0
+						segments_x = 1
+						segments_y = 1
+					},
+					{
+						_class = "RenderPrimitivePlane"
+						name = "Border1"
+						parent_bone = ""
+						material_name = "materials/dev/primary_black.vmat"
+						origin = [ 4096.0, 512.0, 0.0 ]
+						angles = [ 0.0, 0.0, 0.0 ]
+						max_u = 1.0
+						max_v = 1.0
+						width = 8192.0
+						height = 1024.0
+						segments_x = 1
+						segments_y = 1
+					},
+					{
+						_class = "RenderPrimitivePlane"
+						name = "Border2"
+						parent_bone = ""
+						material_name = "materials/dev/primary_black.vmat"
+						origin = [ -512.0, 512.0, 0.0 ]
+						angles = [ 0.0, 0.0, 0.0 ]
+						max_u = 1.0
+						max_v = 1.0
+						width = 1024.0
+						height = 1024.0
+						segments_x = 1
+						segments_y = 1
+					},
+				]
+			},
+		]
+		model_archetype = ""
+		primary_associated_entity = ""
+		anim_graph_name = ""
+		base_model_name = ""
+	}
+}
