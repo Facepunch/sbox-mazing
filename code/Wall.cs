@@ -32,11 +32,7 @@ public partial class Wall : ModelEntity
         Tags.Add("wall");
         Tags.Remove("solid");
 
-        UsePhysicsCollision = true;
-
 		EnableDrawing = true;
-		EnableSolidCollisions = true;
-		EnableAllCollisions = true;
 	}
 }
 
@@ -51,11 +47,7 @@ public partial class Post : ModelEntity
         Tags.Add("wall");
         Tags.Remove( "solid" );
 
-        UsePhysicsCollision = true;
-
 		EnableDrawing = true;
-		EnableSolidCollisions = true;
-		EnableAllCollisions = true;
 	}
 }
 
@@ -66,6 +58,8 @@ public partial class Coin : AnimatedEntity
         base.Spawn();
 
         SetModel("models/coin.vmdl");
+
+        Tags.Add( "coin" );
 
         EnableDrawing = true;
         EnableSolidCollisions = true;
@@ -86,6 +80,8 @@ public partial class Key : ModelEntity
         base.Spawn();
 
         SetModel("models/key.vmdl");
+
+        Tags.Add( "key" );
 
         if ( IsServer )
         {

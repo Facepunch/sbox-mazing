@@ -27,6 +27,9 @@ partial class MazingPlayer : Sandbox.Player
     public Key HeldKey { get; set; }
 
     [Net]
+    public int HeldCoins { get; set; }
+
+    [Net]
     public TimeSince LastItemDrop { get; set; }
 
     [Net]
@@ -77,6 +80,9 @@ partial class MazingPlayer : Sandbox.Player
 
         IsAlive = true;
 
+        HeldKey = null;
+        HeldCoins = 0;
+
         _sweatParticles?.Destroy();
         _sweatParticles = null;
 
@@ -99,6 +105,8 @@ partial class MazingPlayer : Sandbox.Player
         }
 
         IsAlive = false;
+
+        HeldCoins = 0;
 
         _sweatParticles?.Destroy();
         _sweatParticles = null;
@@ -143,7 +151,7 @@ partial class MazingPlayer : Sandbox.Player
             return;
         
     }
-
+    
     [Event.Tick.Server]
     public void ServerTick()
     {
@@ -215,7 +223,27 @@ partial class MazingPlayer : Sandbox.Player
 
     private void CheckForKeyPickup()
     {
-        if ( HeldKey != null || !IsAliveInMaze || LastItemDrop < 0.6f )
+        if ( !IsAliveInMaze )
+        {
+            return;
+        }
+        
+        var coins = Entity.All.OfType<Coin>().ToArray();
+
+        foreach (var coin in coins)
+        {
+            var diff = coin.Position.WithZ(0) - Position.WithZ(0);
+
+            if (diff.LengthSquared < 20f * 20f)
+            {
+                ++HeldCoins;
+
+                coin.Delete();
+                break;
+            }
+        }
+        
+        if ( HeldKey != null || LastItemDrop < 0.6f )
         {
             return;
         }
@@ -297,6 +325,9 @@ partial class MazingPlayer : Sandbox.Player
 
         HasExited = true;
         EnableAllCollisions = false;
+
+        Game.TotalCoins += HeldCoins;
+        HeldCoins = 0;
 
         Tags.Remove( "player" );
         Tags.Add( "exited" );

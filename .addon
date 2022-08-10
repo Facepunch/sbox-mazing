@@ -18,9 +18,9 @@
     "MapList": [
       "ziks.mazingmap"
     ],
-    "RankType": "None",
+    "RankType": "Best",
     "PerMapRanking": false,
-    "LeaderboardType": "None",
+    "LeaderboardType": "Descending",
     "ProjectTemplate": null,
     "GameCategory": "None",
     "Compiler": {

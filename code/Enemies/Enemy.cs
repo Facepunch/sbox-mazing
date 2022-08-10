@@ -55,6 +55,8 @@ abstract partial class Enemy : AnimatedEntity
 
     public TimeSince LastAttack { get; private set; }
 
+    public TimeSince AwakeTime { get; set; }
+
     public override void Spawn()
     {
         base.Spawn();
@@ -93,6 +95,8 @@ abstract partial class Enemy : AnimatedEntity
             _lastMaze = Game.CurrentMaze;
             TargetCell = cell;
 
+            AwakeTime = -2.5f - Rand.Float(0.5f);
+
             _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
         }
 
@@ -103,22 +107,25 @@ abstract partial class Enemy : AnimatedEntity
 
         _cellVisitTimes[cell.Row, cell.Col] = 0f;
 
-        var targetPos = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f);
+        if ( AwakeTime > 0f )
+        {
+            var targetPos = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f);
 
-        if ((Position - targetPos).WithZ(0f).LengthSquared <= 2f * 2f)
-        {
-            OnReachTarget();
-        }
-        else if (Math.Abs(TargetCell.Row - cell.Row) + Math.Abs(TargetCell.Col - cell.Col) > 1)
-        {
-            OnReachTarget();
-        }
-        else if (TargetCell != this.GetCellIndex() && !CanWalkInDirection(targetPos - Position))
-        {
-            OnReachTarget();
+            if ((Position - targetPos).WithZ(0f).LengthSquared <= 2f * 2f)
+            {
+                OnReachTarget();
+            }
+            else if (Math.Abs(TargetCell.Row - cell.Row) + Math.Abs(TargetCell.Col - cell.Col) > 1)
+            {
+                OnReachTarget();
+            }
+            else if (TargetCell != this.GetCellIndex() && !CanWalkInDirection(targetPos - Position))
+            {
+                OnReachTarget();
+            }
         }
 
-        if (Controller is MazingWalkController walkController)
+        if ( Controller is MazingWalkController walkController )
         {
             walkController.DefaultSpeed = MoveSpeed;
 
@@ -137,6 +144,12 @@ abstract partial class Enemy : AnimatedEntity
 
         if ( LastAttack < 1f )
         {
+            return;
+        }
+
+        if ( AwakeTime < 0f )
+        {
+            Animator?.SetAnimParameter( "holdtype", 0 );
             return;
         }
 

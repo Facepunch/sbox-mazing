@@ -634,6 +634,11 @@ public partial class MazingWalkController : BasePlayerController
             Position = pm.EndPosition;
         }
 
+        if ( Position.z < -512f )
+        {
+            Position = Position.WithZ( -512f );
+            Velocity = Velocity.WithZ( 0f );
+        }
     }
 
     /// <summary>

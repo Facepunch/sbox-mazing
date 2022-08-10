@@ -12,6 +12,8 @@ namespace Mazing.UI
     internal partial class HudRoot : RootPanel
     {
         public int LevelNumber => MazingGame.Current.LevelIndex + 1;
+        public int HeldCoins => (Local.Pawn as MazingPlayer)?.HeldCoins ?? 0;
+        public int TotalCoins => MazingGame.Current.TotalCoins;
 
         private Panel _overlay;
 

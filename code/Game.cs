@@ -35,6 +35,9 @@ public partial class MazingGame : Sandbox.Game
 	[Net]
 	public int LevelIndex { get; set; }
 
+    [Net]
+    public int TotalCoins { get; set; }
+
     [Net] public TimeSince RestartCountdown { get; set; }
 
     [Net] public TimeSince NextLevelCountdown { get; set; }
@@ -43,6 +46,8 @@ public partial class MazingGame : Sandbox.Game
                                    NextLevelCountdown > -1f && NextLevelCountdown < 0f;
 
     private readonly List<ModelEntity> _mazeEntities = new List<ModelEntity>();
+
+    private readonly Dictionary<(GridCoord Coord, Direction Dir), ModelEntity> _walls = new();
     private GridCoord[] _playerSpawns;
 
 	public MazingGame()
@@ -72,6 +77,7 @@ public partial class MazingGame : Sandbox.Game
 		}
 
 		_mazeEntities.Clear();
+        _walls.Clear();
 
         var seed = Rand.Int(1, int.MaxValue - 1);
 
@@ -112,7 +118,7 @@ public partial class MazingGame : Sandbox.Game
         {
             var enemyCell = generated.Enemies[i];
 
-            enemies[i].Position = CellToPosition(enemyCell.Row + 0.5f, enemyCell.Col + 0.5f) + Vector3.Up * (2048f + 256f * i);
+            enemies[i].Position = CellToPosition(enemyCell.Row + 0.5f, enemyCell.Col + 0.5f);
         }
 
         foreach ( var coinCell in generated.Coins )
@@ -137,23 +143,28 @@ public partial class MazingGame : Sandbox.Game
 				if (row < CurrentMaze.Rows && CurrentMaze.GetWall((row, col), Direction.West))
                 {
                     var height = col <= 0 || col >= CurrentMaze.Cols ? outerWallHeight : innerWallHeight;
+                    var wall = new Wall
+                    {
+                        Position = CellToPosition( row + 1f, col ) + Vector3.Up * (height - wallModelHeight)
+                    };
 
-					_mazeEntities.Add(new Wall
-					{
-						Position = CellToPosition(row + 1f, col) + Vector3.Up * (height - wallModelHeight)
-					});
-				}
+                    _mazeEntities.Add(wall);
+                    _walls.Add(((row, col), Direction.West), wall);
+
+                }
 
 				if (col < CurrentMaze.Cols && CurrentMaze.GetWall((row, col), Direction.North))
 				{
                     var height = row <= 0 || row >= CurrentMaze.Rows ? outerWallHeight : innerWallHeight;
-
-					_mazeEntities.Add(new Wall
-					{
-						Position = CellToPosition(row, col) + Vector3.Up * (height - wallModelHeight),
-						Rotation = Rotation.FromYaw(90f)
-					});
-				}
+                    var wall = new Wall
+                    {
+                        Position = CellToPosition( row, col ) + Vector3.Up * (height - wallModelHeight),
+                        Rotation = Rotation.FromYaw( 90f )
+                    };
+                    
+                    _mazeEntities.Add(wall);
+                    _walls.Add(((row, col), Direction.North), wall);
+                }
 
 				var north = CurrentMaze.GetWall((row - 1, col), Direction.West);
 				var south = CurrentMaze.GetWall((row, col), Direction.West);
@@ -277,6 +288,7 @@ public partial class MazingGame : Sandbox.Game
                 RestartCountdown = float.PositiveInfinity;
 
                 LevelIndex = 0;
+                TotalCoins = 0;
 
                 ClearEnemies();
                 GenerateMaze();
@@ -293,6 +305,13 @@ public partial class MazingGame : Sandbox.Game
                 NextLevelCountdown = float.PositiveInfinity;
 
                 ++LevelIndex;
+
+                foreach ( var player in Player.All.OfType<MazingPlayer>() )
+                {
+                    if ( player.Client == null ) continue;
+
+                    GameServices.SubmitScore( player.Client.PlayerId, TotalCoins );
+                }
 
                 GenerateMaze();
                 ResetPlayers();
@@ -330,6 +349,40 @@ public partial class MazingGame : Sandbox.Game
         {
             RestartCountdown = -3f;
         }
+    }
+
+    public void DestroyWall( GridCoord coord, Direction dir )
+    {
+        if ( !IsServer )
+        {
+            return;
+        }
+
+        if ( !CurrentMaze.GetWall( coord, dir ) )
+        {
+            return;
+        }
+
+        CurrentMaze.SetWall( coord, dir, false );
+
+        if ( dir == Direction.East )
+        {
+            dir = Direction.West;
+            coord += (0, 1);
+        }
+        else if ( dir == Direction.South )
+        {
+            dir = Direction.North;
+            coord += (1, 0);
+        }
+
+        if ( _walls.TryGetValue( (coord, dir), out var wall ) )
+        {
+            wall.Delete();
+            _walls.Remove( (coord, dir) );
+        }
+
+        CurrentMaze.WriteNetworkData();
     }
 
     private void ClearEnemies()
