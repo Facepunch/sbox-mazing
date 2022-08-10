@@ -206,6 +206,25 @@ public partial class MazingGame : Sandbox.Game
         return new GridCoord(Rand.Int(0, CurrentMaze.Cols - 1), Rand.Int(0, CurrentMaze.Rows - 1));
     }
 
+    public GridCoord GetCellInDirection(GridCoord cell, Direction dir, int dist = 1)
+    {
+        return cell + GetOffsetForDirection(dir, dist);
+    }
+
+    public GridCoord GetOffsetForDirection(Direction dir, int dist = 1)
+    {
+        if (dir == Direction.North)
+            return new GridCoord(-1 * dist, 0);
+        else if (dir == Direction.East)
+            return new GridCoord(0, 1 * dist);
+        else if (dir == Direction.South)
+            return new GridCoord(1 * dist, 0);
+        else if (dir == Direction.West)
+            return new GridCoord(0, -1 * dist);
+
+        return new GridCoord(0, 0);
+    }
+
     /// <summary>
     /// A client has joined the server. Make them a pawn to play with
     /// </summary>

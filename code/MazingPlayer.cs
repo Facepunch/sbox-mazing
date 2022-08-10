@@ -101,7 +101,8 @@ partial class MazingPlayer : Sandbox.Player
         CheckExited();
 
         //var cell = Game.GetRandomCell();
-        //DebugOverlay.Box(Game.CellToPosition(cell), Game.CellToPosition(cell.Row + 1f, cell.Col + 1f), new Color(0.5f, 0.5f, 1f, 1f), depthTest: false);
+        var cell = Game.GetCellInDirection(this.GetCellIndex(), this.GetFacingDirection(), dist: 2);
+        DebugOverlay.Box(Game.CellToPosition(cell), Game.CellToPosition(cell.Row + 1f, cell.Col + 1f), new Color(0.5f, 0.5f, 1f, 1f), depthTest: false);
     }
 
     private void CheckForVault()
@@ -115,7 +116,7 @@ partial class MazingPlayer : Sandbox.Player
             return;
         }
 
-        DropHeldItem();
+        //DropHeldItem();
     }
 
     private void DropHeldItem()
