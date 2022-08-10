@@ -52,6 +52,7 @@ partial class MazingPlayer : Sandbox.Player
         _ragdoll?.Delete();
         _ragdoll = null;
 
+        Tags.Remove( "exited" );
         Tags.Remove( "ghost" );
         Tags.Add( "player" );
 
@@ -274,14 +275,30 @@ partial class MazingPlayer : Sandbox.Player
 
     private void CheckExited()
     {
-        if ( !IsAliveInMaze )
+        if ( !IsAliveInMaze || Controller is MazingWalkController walkController && walkController.IsVaulting )
         {
             return;
         }
 
-        if ( Position.z < -128f )
+        var exitCell = Game.ExitCell;
+
+        if ( this.GetCellIndex() != exitCell )
         {
-            HasExited = true;
+            return;
         }
+
+        var hatch = Entity.All.OfType<Hatch>()
+            .FirstOrDefault();
+
+        if ( hatch == null || !hatch.IsOpen )
+        {
+            return;
+        }
+
+        HasExited = true;
+        EnableAllCollisions = false;
+
+        Tags.Remove( "player" );
+        Tags.Add( "exited" );
     }
 }

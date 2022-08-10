@@ -38,7 +38,7 @@ public sealed class EnemySpawnAttribute : Attribute
 
 abstract partial class Enemy : AnimatedEntity
 {
-    public float KillRange { get; } = 32f;
+    public float KillRange { get; } = 16f;
 
     public virtual float MoveSpeed => 100f;
 
@@ -105,7 +105,7 @@ abstract partial class Enemy : AnimatedEntity
 
         var targetPos = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f);
 
-        if ((Position - targetPos).WithZ(0f).LengthSquared <= 4f * 4f)
+        if ((Position - targetPos).WithZ(0f).LengthSquared <= 2f * 2f)
         {
             OnReachTarget();
         }
@@ -113,7 +113,7 @@ abstract partial class Enemy : AnimatedEntity
         {
             OnReachTarget();
         }
-        else if (!CanWalkInDirection(targetPos - Position))
+        else if (TargetCell != this.GetCellIndex() && !CanWalkInDirection(targetPos - Position))
         {
             OnReachTarget();
         }

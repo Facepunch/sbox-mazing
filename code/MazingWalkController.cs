@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Mazing.Enemies;
 using Sandbox;
 
 namespace Mazing;
@@ -155,13 +156,8 @@ public partial class MazingWalkController : BasePlayerController
         }
 
         _wasVaulting = IsVaulting;
-
-        if ( Pawn is MazingPlayer player && player.HasExited )
-        {
-            AirMove();
-            CategorizePosition( false );
-        }
-        else if ( IsVaulting )
+        
+        if ( IsVaulting )
         {
             VaultMove();
         }
@@ -191,9 +187,16 @@ public partial class MazingWalkController : BasePlayerController
                     new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
             }
 
-            if ( IsPlayer )
+            if ( Pawn is MazingPlayer player )
             {
-                WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
+                if ( player.HasExited )
+                {
+                    WishVelocity = game.CellCenterToPosition( game.ExitCell ) - player.Position;
+                }
+                else
+                {
+                    WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
+                }
             }
             else
             {
@@ -684,13 +687,30 @@ public partial class MazingWalkController : BasePlayerController
             maxs = maxs.WithZ(maxs.z - liftFeet);
         }
 
-        var kindTag = Pawn is MazingPlayer ? "player" : "enemy";
 
-        var tr = Trace.Ray(start + TraceOffset, end + TraceOffset)
-            .Size(mins, maxs)
-            .WithAnyTags("solid", "playerclip", "passbullets", kindTag)
-            .Ignore(Pawn)
-            .Run();
+        var trace = Trace.Ray( start + TraceOffset, end + TraceOffset )
+            .Size( mins, maxs )
+            .WithAnyTags( "playerclip", "passbullets" )
+            .Ignore( Pawn );
+
+        if ( !IsVaulting )
+        {
+            trace = trace.WithAnyTags( "solid" );
+        }
+
+        if ( Pawn is MazingPlayer player )
+        {
+            if ( player.IsAliveInMaze )
+            {
+                trace = trace.WithAnyTags( "player" );
+            }
+        }
+        else if ( Pawn is Enemy )
+        {
+            trace = trace.WithAnyTags( "enemy" );
+        }
+
+        var tr = trace.Run();
 
         tr.EndPosition -= TraceOffset;
         return tr;

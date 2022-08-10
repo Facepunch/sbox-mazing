@@ -13,9 +13,9 @@ public partial class Border : ModelEntity
     {
         base.Spawn();
 
-        Tags.Add( "border" );
-
         SetModel( "models/border_plane.vmdl" );
+
+        Tags.Add("border");
 
         EnableDrawing = true;
     }
@@ -27,11 +27,12 @@ public partial class Wall : ModelEntity
 	{
 		base.Spawn();
 
-        Tags.Add( "wall" );
-
 		SetModel( "models/wall.vmdl" );
 
-		UsePhysicsCollision = true;
+        Tags.Add("wall");
+        Tags.Remove("solid");
+
+        UsePhysicsCollision = true;
 
 		EnableDrawing = true;
 		EnableSolidCollisions = true;
@@ -45,11 +46,12 @@ public partial class Post : ModelEntity
 	{
 		base.Spawn();
 
-        Tags.Add( "wall" );
-
         SetModel( "models/post.vmdl" );
 
-		UsePhysicsCollision = true;
+        Tags.Add("wall");
+        Tags.Remove( "solid" );
+
+        UsePhysicsCollision = true;
 
 		EnableDrawing = true;
 		EnableSolidCollisions = true;
