@@ -13,6 +13,8 @@ public partial class Wall : ModelEntity
 	{
 		base.Spawn();
 
+        Tags.Add( "wall" );
+
 		SetModel( "models/wall.vmdl" );
 
 		//UsePhysicsCollision = true;
@@ -29,7 +31,9 @@ public partial class Post : ModelEntity
 	{
 		base.Spawn();
 
-		SetModel( "models/post.vmdl" );
+        Tags.Add( "wall" );
+
+        SetModel( "models/post.vmdl" );
 
 		//UsePhysicsCollision = true;
 

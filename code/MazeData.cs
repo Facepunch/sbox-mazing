@@ -36,9 +36,14 @@ public readonly struct GridCoord : IEquatable<GridCoord>
     public static bool operator !=( GridCoord a, GridCoord b )
     {
         return a.Row != b.Row || a.Col != b.Col;
-    }
+	}
 
-    public static implicit operator GridCoord( (int Row, int Col) tuple )
+    public static implicit operator GridCoord( Direction dir )
+    {
+        return MazeData.Directions[(int)dir].Delta;
+	}
+
+	public static implicit operator GridCoord( (int Row, int Col) tuple )
     {
         return new GridCoord( tuple.Row, tuple.Col );
 	}
@@ -58,14 +63,9 @@ public readonly struct GridCoord : IEquatable<GridCoord>
         return new GridCoord(a.Row - b.Row, a.Col - b.Col);
     }
 
-    public static GridCoord operator +( GridCoord coord, Direction dir )
+    public static GridCoord operator *( GridCoord a, int scale )
     {
-        return coord + MazeData.Directions[(int)dir].Delta;
-	}
-
-    public static GridCoord operator -( GridCoord coord, Direction dir )
-    {
-        return coord - MazeData.Directions[(int)dir].Delta;
+        return new GridCoord( a.Row * scale, a.Col * scale );
     }
 
 	public readonly int Row;

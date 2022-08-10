@@ -53,16 +53,18 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 
 		SetAnimParameter("duck", duck);
 
-		if (player != null && player.ActiveChild is BaseCarriable carry)
+        if ( player != null )
 		{
-			carry.SimulateAnimator(this);
+			if ( player.ActiveChild is BaseCarriable carry )
+            {
+                carry.SimulateAnimator(this);
+            }
+            else
+            {
+                SetAnimParameter("holdtype", 0);
+                SetAnimParameter("aim_body_weight", 0.5f);
+            }
 		}
-		else
-		{
-			SetAnimParameter("holdtype", 0);
-			SetAnimParameter("aim_body_weight", 0.5f);
-		}
-
 	}
 
 	public virtual void DoRotation( Rotation idealRotation )

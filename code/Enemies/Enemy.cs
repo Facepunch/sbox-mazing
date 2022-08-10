@@ -38,6 +38,8 @@ public sealed class EnemySpawnAttribute : Attribute
 
 abstract partial class Enemy : AnimatedEntity
 {
+    public float KillRange { get; } = 32f;
+
     public virtual float MoveSpeed => 100f;
 
     public PawnController Controller { get; set; }
@@ -50,6 +52,8 @@ abstract partial class Enemy : AnimatedEntity
     private TimeSince[,] _cellVisitTimes;
     
     private MazeData _lastMaze;
+
+    public TimeSince LastAttack { get; private set; }
 
     public override void Spawn()
     {
@@ -120,9 +124,9 @@ abstract partial class Enemy : AnimatedEntity
 
             var dir = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f) - Position;
 
-            DebugOverlay.Box(Game.CellToPosition(TargetCell.Row, TargetCell.Col),
-                Game.CellToPosition(TargetCell.Row + 1f, TargetCell.Col + 1f),
-                new Color(0f, 1f, 0f, 0.1f), depthTest: false);
+            //DebugOverlay.Box(Game.CellToPosition(TargetCell.Row, TargetCell.Col),
+            //    Game.CellToPosition(TargetCell.Row + 1f, TargetCell.Col + 1f),
+            //    new Color(0f, 1f, 0f, 0.1f), depthTest: false);
 
 
             walkController.EnemyWishVelocity = dir;
@@ -131,13 +135,24 @@ abstract partial class Enemy : AnimatedEntity
         Controller?.Simulate(default, this, null);
         Animator?.Simulate(default, this, null);
 
+        if ( LastAttack < 1f )
+        {
+            return;
+        }
+
+        Animator?.SetAnimParameter( "holdtype", 5 );
+
         var closestPlayer = Entity.All.OfType<MazingPlayer>()
-            .Where(x => x.IsAliveInMaze && (x.Position - Position).LengthSquared < 32f * 32f)
+            .Where(x => x.IsAliveInMaze && (x.Position - Position).LengthSquared < KillRange * KillRange)
             .MinBy(x => (x.Position - Position).LengthSquared);
 
-        if (closestPlayer != null)
+        if ( closestPlayer != null )
         {
-            closestPlayer.Kill();
+            LastAttack = 0f;
+
+            Animator?.Trigger( "b_attack" );
+
+            closestPlayer.Kill( (closestPlayer.Position - Position).WithZ( 0f ) );
         }
     }
 

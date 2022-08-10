@@ -33,6 +33,9 @@ public partial class MazingGame : Sandbox.Game
 	[Net]
 	public int LevelIndex { get; set; }
 
+    [Net]
+    public TimeSince RestartCountdown { get; set; }
+
 	private readonly List<ModelEntity> _mazeEntities = new List<ModelEntity>();
 
 	public MazingGame()
@@ -41,7 +44,9 @@ public partial class MazingGame : Sandbox.Game
         {
             new HudRoot();
         }
-	}
+
+        RestartCountdown = float.PositiveInfinity;
+    }
 
 	[ConCmd.Admin("maze_generate")]
 	public static void GenerateNewMaze()
@@ -191,7 +196,7 @@ public partial class MazingGame : Sandbox.Game
         // TODO: optimize
 
         return Entity.All.OfType<MazingPlayer>()
-            .Any( x => x.GetCellIndex() == coord );
+            .Any( x => x.IsAliveInMaze && x.GetCellIndex() == coord );
     }
 
     public bool IsEnemyInCell(GridCoord coord)
@@ -203,26 +208,7 @@ public partial class MazingGame : Sandbox.Game
 
     public GridCoord GetRandomCell()
     {
-        return new GridCoord(Rand.Int(0, CurrentMaze.Cols - 1), Rand.Int(0, CurrentMaze.Rows - 1));
-    }
-
-    public GridCoord GetCellInDirection(GridCoord cell, Direction dir, int dist = 1)
-    {
-        return cell + GetOffsetForDirection(dir, dist);
-    }
-
-    public GridCoord GetOffsetForDirection(Direction dir, int dist = 1)
-    {
-        if (dir == Direction.North)
-            return new GridCoord(-1 * dist, 0);
-        else if (dir == Direction.East)
-            return new GridCoord(0, 1 * dist);
-        else if (dir == Direction.South)
-            return new GridCoord(1 * dist, 0);
-        else if (dir == Direction.West)
-            return new GridCoord(0, -1 * dist);
-
-        return new GridCoord(0, 0);
+        return new GridCoord(Rand.Int(0, CurrentMaze.Rows - 1), Rand.Int(0, CurrentMaze.Cols - 1));
     }
 
     public bool IsInMaze(GridCoord cell)
@@ -266,6 +252,20 @@ public partial class MazingGame : Sandbox.Game
 	[Event.Tick.Server]
     public void ServerTick()
     {
+        if ( !float.IsPositiveInfinity( RestartCountdown ) )
+        {
+            if ( RestartCountdown > 3f )
+            {
+                LevelIndex = 0;
+
+                ClearEnemies();
+                GenerateMaze();
+                ResetPlayers();
+            }
+
+            return;
+        }
+
         var allExited = true;
         var anyPlayers = false;
         var anyDeadPlayers = false;
@@ -295,11 +295,7 @@ public partial class MazingGame : Sandbox.Game
         }
         else if ( !anyPlayers && anyDeadPlayers )
         {
-            LevelIndex = 0;
-
-            ClearEnemies();
-            GenerateMaze();
-            ResetPlayers();
+            RestartCountdown = 0;
         }
     }
 
@@ -315,6 +311,8 @@ public partial class MazingGame : Sandbox.Game
 
     private void ResetPlayers()
     {
+        RestartCountdown = float.PositiveInfinity;
+
         foreach ( var player in Entity.All.OfType<MazingPlayer>().ToArray() )
         {
             RespawnPlayer( player );

@@ -27,6 +27,146 @@
       "RootNamespace": "Mazing",
       "DefineConstants": "SANDBOX;ADDON;DEBUG",
       "NoWarn": "1701;1702;1591;"
+    },
+    "Collision": {
+      "Defaults": {
+        "solid": "Collide",
+        "trigger": "Trigger",
+        "ladder": "Ignore",
+        "water": "Trigger",
+        "wall": "Unset",
+        "ragdoll": "Unset",
+        "player": "Unset",
+        "ghost": "Unset",
+        "enemy": "Unset"
+      },
+      "Pairs": [
+        {
+          "a": "solid",
+          "b": "solid",
+          "r": "Collide"
+        },
+        {
+          "a": "trigger",
+          "b": "playerclip",
+          "r": "Ignore"
+        },
+        {
+          "a": "trigger",
+          "b": "solid",
+          "r": "Trigger"
+        },
+        {
+          "a": "solid",
+          "b": "trigger",
+          "r": "Collide"
+        },
+        {
+          "a": "playerclip",
+          "b": "solid",
+          "r": "Collide"
+        },
+        {
+          "a": "ragdoll",
+          "b": "ragdoll",
+          "r": "Collide"
+        },
+        {
+          "a": "player",
+          "b": "player",
+          "r": "Collide"
+        },
+        {
+          "a": "wall",
+          "b": "player",
+          "r": "Ignore"
+        },
+        {
+          "a": "wall",
+          "b": "ragdoll",
+          "r": "Collide"
+        },
+        {
+          "a": "solid",
+          "b": "player",
+          "r": "Collide"
+        },
+        {
+          "a": "solid",
+          "b": "ragdoll",
+          "r": "Collide"
+        },
+        {
+          "a": "solid",
+          "b": "wall",
+          "r": "Collide"
+        },
+        {
+          "a": "solid",
+          "b": "ghost",
+          "r": "Collide"
+        },
+        {
+          "a": "ragdoll",
+          "b": "player",
+          "r": "Ignore"
+        },
+        {
+          "a": "ghost",
+          "b": "ghost",
+          "r": "Ignore"
+        },
+        {
+          "a": "player",
+          "b": "ghost",
+          "r": "Ignore"
+        },
+        {
+          "a": "ragdoll",
+          "b": "ghost",
+          "r": "Ignore"
+        },
+        {
+          "a": "wall",
+          "b": "ghost",
+          "r": "Ignore"
+        },
+        {
+          "a": "enemy",
+          "b": "enemy",
+          "r": "Ignore"
+        },
+        {
+          "a": "ghost",
+          "b": "enemy",
+          "r": "Ignore"
+        },
+        {
+          "a": "player",
+          "b": "enemy",
+          "r": "Ignore"
+        },
+        {
+          "a": "ragdoll",
+          "b": "enemy",
+          "r": "Ignore"
+        },
+        {
+          "a": "wall",
+          "b": "enemy",
+          "r": "Ignore"
+        },
+        {
+          "a": "solid",
+          "b": "enemy",
+          "r": "Collide"
+        },
+        {
+          "a": "wall",
+          "b": "wall",
+          "r": "Collide"
+        }
+      ]
     }
   }
 }

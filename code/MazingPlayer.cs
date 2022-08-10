@@ -29,6 +29,8 @@ partial class MazingPlayer : Sandbox.Player
     [Net]
     public TimeSince LastItemDrop { get; set; }
 
+    private ModelEntity _ragdoll;
+
     public MazingGame Game => MazingGame.Current;
 
     public MazingPlayer()
@@ -43,15 +45,21 @@ partial class MazingPlayer : Sandbox.Player
 
     public override void Respawn()
     {
+        _ragdoll?.Delete();
+        _ragdoll = null;
+
+        Tags.Remove( "ghost" );
+        Tags.Add( "player" );
+
         SetModel("models/citizen/citizen.vmdl");
+
+        RenderColor = Color.White;
 
         Controller = new MazingWalkController();
         Animator = new MazingPlayerAnimator();
         CameraMode = new MazingCamera();
 
         Clothing.DressEntity(this);
-
-        ClientRespawn();
 
         EnableAllCollisions = true;
         EnableDrawing = true;
@@ -63,24 +71,51 @@ partial class MazingPlayer : Sandbox.Player
         base.Respawn();
     }
 
-    public void Kill()
+    protected override void OnDestroy()
     {
+        base.OnDestroy();
+
+        _ragdoll?.Delete();
+        _ragdoll = null;
+    }
+
+    public void Kill( Vector3 damageDir )
+    {
+        if ( !IsServer || !IsAlive )
+        {
+            return;
+        }
+
         IsAlive = false;
 
         DropHeldItem();
-        ClientKill();
-    }
 
-    [ClientRpc]
-    private void ClientRespawn()
-    {
-        SetMaterialOverride("");
-    }
+        Tags.Remove( "player" );
+        Tags.Add( "ghost" );
 
-    [ClientRpc]
-    private void ClientKill()
-    {
-        SetMaterialOverride( "materials/ghost.vmat" );
+        _ragdoll = new ModelEntity();
+
+        _ragdoll.SetModel( "models/citizen/citizen.vmdl" );
+        _ragdoll.Position = Position;
+        _ragdoll.Rotation = Rotation;
+        _ragdoll.SetupPhysicsFromModel( PhysicsMotionType.Dynamic, false );
+        _ragdoll.PhysicsGroup.Velocity = damageDir.Normal * 100f;
+        _ragdoll.Tags.Add( "ragdoll" );
+
+        foreach ( var child in Children.ToArray() )
+        {
+            if ( child is ModelEntity e && e.Tags.Has( "clothes" ) )
+            {
+                var clothing = new ModelEntity();
+                clothing.CopyFrom( e );
+                clothing.SetParent( _ragdoll, true );
+                clothing.RenderColor = RenderColor;
+
+                e.RenderColor = new Color(1f, 1f, 1f, 0.25f);
+            }
+        }
+
+        RenderColor = new Color( 1f, 1f, 1f, 0.25f );
     }
     
     public override void Simulate( Client cl )
@@ -106,6 +141,12 @@ partial class MazingPlayer : Sandbox.Player
         //DebugOverlay.Box(Game.CellToPosition(cell), Game.CellToPosition(cell.Row + 1f, cell.Col + 1f), color, depthTest: false);
     }
 
+    [Event.Tick.Client]
+    public void ClientTick()
+    {
+
+    }
+
     private void CheckForVault()
     {
         if ( !(Controller?.HasEvent( "jump" ) ?? false) ) return;
@@ -119,7 +160,7 @@ partial class MazingPlayer : Sandbox.Player
 
         if (HeldKey != null)
         {
-            var dropCell = Game.GetCellInDirection(this.GetCellIndex(), this.GetFacingDirection(), dist: 2);
+            var dropCell = this.GetCellIndex() + (GridCoord) this.GetFacingDirection() * 2;
             if (Game.IsInMaze(dropCell))
                 ThrowItem(dropCell);
         }
