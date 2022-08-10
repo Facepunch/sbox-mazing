@@ -29,6 +29,8 @@ partial class MazingPlayer : Sandbox.Player
     [Net]
     public TimeSince LastItemDrop { get; set; }
 
+    public MazingGame Game => MazingGame.Current;
+
     public MazingPlayer()
     {
 
@@ -97,6 +99,9 @@ partial class MazingPlayer : Sandbox.Player
         CheckForKeyPickup();
         CheckForLockOpen();
         CheckExited();
+
+        //var cell = Game.GetRandomCell();
+        //DebugOverlay.Box(Game.CellToPosition(cell), Game.CellToPosition(cell.Row + 1f, cell.Col + 1f), new Color(0.5f, 0.5f, 1f, 1f), depthTest: false);
     }
 
     private void CheckForVault()

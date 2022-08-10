@@ -194,10 +194,22 @@ public partial class MazingGame : Sandbox.Game
             .Any( x => x.GetCellIndex() == coord );
     }
 
-	/// <summary>
-	/// A client has joined the server. Make them a pawn to play with
-	/// </summary>
-	public override void ClientJoined( Client client )
+    public bool IsEnemyInCell(GridCoord coord)
+    {
+        // TODO: optimize
+        return Entity.All.OfType<Enemy>()
+            .Any(x => x.GetCellIndex() == coord);
+    }
+
+    public GridCoord GetRandomCell()
+    {
+        return new GridCoord(Rand.Int(0, CurrentMaze.Cols - 1), Rand.Int(0, CurrentMaze.Rows - 1));
+    }
+
+    /// <summary>
+    /// A client has joined the server. Make them a pawn to play with
+    /// </summary>
+    public override void ClientJoined( Client client )
 	{
 		base.ClientJoined( client );
 
