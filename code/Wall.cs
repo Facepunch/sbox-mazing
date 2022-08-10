@@ -62,6 +62,10 @@ public partial class Key : ModelEntity
     [Net]
     public bool IsHeld { get; set; }
 
+    public Vector3 TargetPosition { get; set; }
+
+    private bool _firstTick;
+
     public override void Spawn()
     {
         base.Spawn();
@@ -80,7 +84,9 @@ public partial class Key : ModelEntity
         }
 
         Scale = 0.25f;
-		
+
+        _firstTick = true;
+
         EnableDrawing = true;
         EnableSolidCollisions = true;
 	}
@@ -88,6 +94,14 @@ public partial class Key : ModelEntity
     [Event.Tick.Server]
     public void ServerTick()
     {
+        if ( _firstTick )
+        {
+            _firstTick = false;
+            TargetPosition = LocalPosition;
+        }
+
+        LocalPosition += (TargetPosition - LocalPosition).WithZ( 0f ) * 0.125f;
+
         LocalPosition = LocalPosition.WithZ( 0f ) + Vector3.Up * (MathF.Sin( Time.Now * MathF.PI * 0.5f ) * 16f + (IsHeld ? 96f : 64f));
         LocalRotation *= Rotation.FromRoll( Time.Delta * 180f ) * Rotation.FromYaw(Time.Delta * 80f);
     }

@@ -170,29 +170,19 @@ partial class MazingPlayer : Sandbox.Player
 
     private void DropHeldItem()
     {
-        LastItemDrop = 0f;
-
-        if (HeldKey != null)
-        {
-            var game = MazingGame.Current;
-
-            HeldKey.IsHeld = false;
-            HeldKey.Parent = null;
-            HeldKey.Position = game.GetCellCenter(HeldKey.Position)
-                .WithZ(HeldKey.Position.z);
-            HeldKey = null;
-        }
+        ThrowItem( this.GetCellIndex() );
     }
 
-    private void ThrowItem(GridCoord cell)
+    private void ThrowItem( GridCoord cell )
     {
-        if (HeldKey != null)
-        {
-            HeldKey.IsHeld = false;
-            HeldKey.Parent = null;
-            HeldKey.Position = Game.CellCenterToPosition(cell).WithZ(HeldKey.Position.z);
-            HeldKey = null;
-        }
+        if ( HeldKey == null ) return;
+
+        LastItemDrop = 0f;
+
+        HeldKey.IsHeld = false;
+        HeldKey.Parent = null;
+        HeldKey.TargetPosition = Game.CellCenterToPosition( cell );
+        HeldKey = null;
     }
 
     private void CheckForKeyPickup()
@@ -219,7 +209,7 @@ partial class MazingPlayer : Sandbox.Player
                 key.IsHeld = true;
 
                 key.Parent = this;
-                key.LocalPosition = Vector3.Up * 64f;
+                key.TargetPosition = Vector3.Up * 64f;
 
                 break;
             }
