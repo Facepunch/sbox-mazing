@@ -2,7 +2,7 @@
 
 namespace Mazing.Enemies;
 
-[EnemySpawn( FirstLevel = 1 )]
+[EnemySpawn( FirstLevel = 4, SpawnPeriod = 4 )]
 internal partial class Charger : Enemy
 {
     public override float MoveSpeed => IsCharging ? 160f : 85f;

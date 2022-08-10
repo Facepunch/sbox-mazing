@@ -2,7 +2,7 @@
 
 namespace Mazing.Enemies;
 
-[EnemySpawn(FirstLevel = 0)]
+[EnemySpawn(FirstLevel = 5, SpawnPeriod = 3)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;
@@ -26,6 +26,15 @@ internal partial class Wizard : Enemy
         RenderColor = new Color(0.7f, 0f, 0.7f);
 
         _teleportTimer = TELEPORT_DELAY;
+    }
+
+
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+
+        _light?.Delete();
+        _light = null;
     }
 
     protected override void OnServerTick()
