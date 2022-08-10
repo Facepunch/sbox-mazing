@@ -7,16 +7,20 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[EnemySpawn(FirstLevel = 2, SpawnPeriod = 4)]
+[EnemySpawn(FirstLevel = 0, SpawnPeriod = 1)]
 partial class Seeker : Enemy
 {
-    public override float MoveSpeed => 100f;
+    public override float MoveSpeed => 84f;
 
     public override void Spawn()
     {
         base.Spawn();
 
-        new ModelEntity( "models/citizen_clothes/hat/hat_beret.black.vmdl", this );
+        //SetModel("models/citizen_mannequin/mannequin.vmdl");
+        //new ModelEntity( "models/citizen_clothes/hat/hat_beret.black.vmdl", this );
+        new ModelEntity("models/citizen_clothes/gloves/tactical_gloves/Models/tactical_gloves.vmdl", this);
+        new ModelEntity("models/citizen_clothes/glasses/Stylish_Glasses/Models/stylish_glasses_black.vmdl", this);
+        RenderColor = Color.Black;
     }
 
     protected override void OnReachTarget()

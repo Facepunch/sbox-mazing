@@ -122,7 +122,7 @@ abstract partial class Enemy : AnimatedEntity
 
             DebugOverlay.Box(Game.CellToPosition(TargetCell.Row, TargetCell.Col),
                 Game.CellToPosition(TargetCell.Row + 1f, TargetCell.Col + 1f),
-                Color.Green, depthTest: false);
+                new Color(0f, 1f, 0f, 0.1f), depthTest: false);
 
 
             walkController.EnemyWishVelocity = dir;

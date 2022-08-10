@@ -35,13 +35,13 @@ internal partial class Charger : Enemy
             _lookTimer = LOOK_DELAY;
         }
 
-        if (IsCharging)
-            DebugOverlay.Text("Charging", EyePosition, 0f, float.MaxValue);
+        //if (IsCharging)
+        //    DebugOverlay.Text("Charging", EyePosition, 0f, float.MaxValue);
     }
 
     private void ScanForPlayer(Mazing.GridCoord curr, Mazing.GridCoord end, Direction dir)
     {
-        DebugOverlay.Line(EyePosition, Game.CellCenterToPosition(end), 0.05f, false);
+        //DebugOverlay.Line(EyePosition, Game.CellCenterToPosition(end), 0.05f, false);
 
         while (curr != end)
         {

@@ -55,7 +55,7 @@ public partial class Key : ModelEntity
             var light = new PointLightEntity
             {
                 Color = Color.FromRgb( 0xf2d873 ),
-                Range = 128f
+                Range = 64f
             };
 
             light.Parent = this;

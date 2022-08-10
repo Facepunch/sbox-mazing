@@ -101,9 +101,9 @@ partial class MazingPlayer : Sandbox.Player
         CheckExited();
 
         //var cell = Game.GetRandomCell();
-        var cell = Game.GetCellInDirection(this.GetCellIndex(), this.GetFacingDirection(), dist: 2);
-        var color = Game.IsInMaze(cell) ? Color.Cyan : Color.Red;
-        DebugOverlay.Box(Game.CellToPosition(cell), Game.CellToPosition(cell.Row + 1f, cell.Col + 1f), color, depthTest: false);
+        //var cell = Game.GetCellInDirection(this.GetCellIndex(), this.GetFacingDirection(), dist: 2);
+        //var color = Game.IsInMaze(cell) ? Color.Cyan : Color.Red;
+        //DebugOverlay.Box(Game.CellToPosition(cell), Game.CellToPosition(cell.Row + 1f, cell.Col + 1f), color, depthTest: false);
     }
 
     private void CheckForVault()
