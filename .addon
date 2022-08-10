@@ -7,7 +7,8 @@
   "HasAssets": true,
   "AssetsPath": "",
   "ResourcePaths": [
-    "/ui/*"
+    "/ui/*",
+    "/mazes/*"
   ],
   "HasCode": true,
   "CodePath": "/code/",
@@ -24,7 +25,7 @@
     "PerMapRanking": false,
     "LeaderboardType": "Descending",
     "ProjectTemplate": null,
-    "GameCategory": "None",
+    "GameCategory": "Parkour",
     "Compiler": {
       "RootNamespace": "Mazing",
       "DefineConstants": "SANDBOX;ADDON;DEBUG",
