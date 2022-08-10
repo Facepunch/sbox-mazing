@@ -45,17 +45,18 @@ internal partial class Wizard : Enemy
         {
             if (_teleportTimer >= TELEPORT_DELAY)
             {
-                if (_spawnParticles != null)
-                {
-                    _spawnParticles.Destroy();
-                    _spawnParticles = null;
-                }
-
                 Position = Game.CellCenterToPosition(_teleportCell);
                 TargetCell = _teleportCell;
 
                 IsTeleporting = false;
                 _teleportTimer = 0f;
+
+                if (_spawnParticles != null)
+                {
+                    _spawnParticles.SetPosition(1, Position + Vector3.Up * 32f);
+                    _spawnParticles.Destroy();
+                    _spawnParticles = null;
+                }
             }
         }
         else
@@ -71,9 +72,10 @@ internal partial class Wizard : Enemy
                 }
 
                 _teleportCell = Game.GetRandomCell();
-                Position = new Vector3(-666f, -666f, -666f);
+                Position = new Vector3(0f, 0f, -666f);
 
                 _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
+                _spawnParticles.SetPosition(1, Vector3.Forward * -4096f);
 
                 _teleportTimer = 0f;
             }
