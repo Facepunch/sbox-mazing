@@ -22,6 +22,8 @@ namespace Mazing;
 /// </summary>
 public partial class MazingGame : Sandbox.Game
 {
+    public const int MaxPlayers = 8;
+
 	public new static MazingGame Current => Game.Current as MazingGame;
 
 	[Net]
@@ -41,6 +43,7 @@ public partial class MazingGame : Sandbox.Game
                                    NextLevelCountdown > -1f && NextLevelCountdown < 0f;
 
     private readonly List<ModelEntity> _mazeEntities = new List<ModelEntity>();
+    private GridCoord[] _playerSpawns;
 
 	public MazingGame()
 	{
@@ -74,11 +77,27 @@ public partial class MazingGame : Sandbox.Game
 
 		Log.Info( $"Generating maze with seed {seed:x8} ");
 
-        CurrentMaze = MazeGenerator.Generate( seed,
-            8 + (LevelIndex / 4) * 4 );
-		CurrentMaze.WriteNetworkData();
+        var typesToSpawn = TypeLibrary.GetTypes<Enemy>()
+            .SelectMany(x =>
+                TypeLibrary.GetDescription(x).GetAttributes<EnemySpawnAttribute>()
+                    .Where(y => y.ShouldSpawn(LevelIndex))
+                    .Select(y => x))
+            .ToArray();
 
-        ExitCell = (Rand.Int(CurrentMaze.Rows - 1), Rand.Int(CurrentMaze.Cols - 1));
+        foreach (var type in typesToSpawn)
+        {
+            TypeLibrary.Create<Enemy>(type);
+        }
+
+        var enemies = Entity.All.OfType<Enemy>().ToArray();
+        var generated = MazeGenerator.Generate(seed, 8 + (LevelIndex / 4) * 4, MaxPlayers, enemies.Length, LevelIndex * 4 + 4);
+
+        CurrentMaze = generated.MazeData;
+        CurrentMaze.WriteNetworkData();
+
+        _playerSpawns = generated.Players;
+
+        ExitCell = generated.Exit;
 
         const float outerWallHeight = 128;
 		const float innerWallHeight = 96f;
@@ -89,44 +108,24 @@ public partial class MazingGame : Sandbox.Game
 
 		_mazeEntities.Add( hatch );
 
-        var typesToSpawn = TypeLibrary.GetTypes<Enemy>()
-            .SelectMany( x =>
-                TypeLibrary.GetDescription( x ).GetAttributes<EnemySpawnAttribute>()
-                    .Where( y => y.ShouldSpawn( LevelIndex ) )
-                    .Select( y => x ) )
-            .ToArray();
-
-        foreach ( var type in typesToSpawn)
+        for ( var i = 0; i < enemies.Length; i++ )
         {
-            TypeLibrary.Create<Enemy>( type );
+            var enemyCell = generated.Enemies[i];
+
+            enemies[i].Position = CellToPosition(enemyCell.Row + 0.5f, enemyCell.Col + 0.5f) + Vector3.Up * (2048f + 256f * i);
         }
 
-        var enemyIndex = 0;
-        foreach ( var enemy in Entity.All.OfType<Enemy>() )
+        foreach ( var coinCell in generated.Coins )
         {
-            var (enemyRow, enemyCol) = (Rand.Int(0, CurrentMaze.Rows - 1), Rand.Int(0, CurrentMaze.Cols - 1));
-
-            enemy.Position = CellToPosition( enemyRow + 0.5f, enemyCol + 0.5f ) + Vector3.Up * (2048f + 256f * enemyIndex++);
-        }
-
-        int keyRow = 0, keyCol = 0;
-
-        for ( var attempts = 0; attempts < 1000; ++attempts )
-        {
-            (keyRow, keyCol) = (Rand.Int( 0, CurrentMaze.Rows - 1 ), Rand.Int( 0, CurrentMaze.Cols - 1 ));
-            var (distRow, distCol) = (keyRow - ExitCell.Row, keyCol - ExitCell.Col);
-
-            if ( Math.Sqrt( distRow * distRow + distCol * distCol ) < CurrentMaze.Rows * 0.5f )
+            _mazeEntities.Add( new Coin
             {
-                continue;
-            }
-
-            break;
+                Position = CellToPosition( coinCell.Row + 0.5f, coinCell.Col + 0.5f )
+            } );
         }
 
         var key = new Key
         {
-            Position = CellToPosition( keyRow + 0.5f, keyCol + 0.5f ) + Vector3.Up * 64f
+            Position = CellToPosition( generated.Key.Row + 0.5f, generated.Key.Col + 0.5f ) + Vector3.Up * 64f
         };
 
 		_mazeEntities.Add( key );
@@ -259,10 +258,12 @@ public partial class MazingGame : Sandbox.Game
     {
         player.HasExited = false;
 
-        // Spawn in a random grid cell
-        var spawnCell = (row: Rand.Int(0, CurrentMaze.Rows - 1), col: Rand.Int(0, CurrentMaze.Cols - 1));
+        var index = Array.IndexOf( Entity.All.OfType<MazingPlayer>().ToArray(), player );
 
-        player.Position = CellToPosition(spawnCell.row + 0.5f, spawnCell.col + 0.5f) + Vector3.Up * 1024f;
+        // Spawn in a random grid cell
+        var spawnCell = _playerSpawns[index % _playerSpawns.Length];
+
+        player.Position = CellToPosition(spawnCell.Row + 0.5f, spawnCell.Col + 0.5f) + Vector3.Up * 1024f;
         player.Respawn();
 	}
 

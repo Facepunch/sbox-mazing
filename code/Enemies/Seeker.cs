@@ -20,7 +20,7 @@ partial class Seeker : Enemy
         //new ModelEntity( "models/citizen_clothes/hat/hat_beret.black.vmdl", this );
         new ModelEntity("models/citizen_clothes/gloves/tactical_gloves/Models/tactical_gloves.vmdl", this);
         new ModelEntity("models/citizen_clothes/glasses/Stylish_Glasses/Models/stylish_glasses_black.vmdl", this);
-        RenderColor = Color.Black;
+        RenderColor = Color.Green;
     }
 
     protected override void OnReachTarget()

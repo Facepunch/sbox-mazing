@@ -2,7 +2,7 @@
 
 namespace Mazing.Enemies;
 
-[EnemySpawn(FirstLevel = 5, SpawnPeriod = 3)]
+//[EnemySpawn(FirstLevel = 5, SpawnPeriod = 3)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;

@@ -11,7 +11,7 @@
   "CodePath": "/code/",
   "RootNamespace": "Mazing",
   "Metadata": {
-    "MaxPlayers": 64,
+    "MaxPlayers": 8,
     "MinPlayers": 1,
     "GameNetworkType": "Multiplayer",
     "MapSelect": "Official",

@@ -57,6 +57,19 @@ public partial class Post : ModelEntity
 	}
 }
 
+public partial class Coin : AnimatedEntity
+{
+    public override void Spawn()
+    {
+        base.Spawn();
+
+        SetModel("models/coin.vmdl");
+
+        EnableDrawing = true;
+        EnableSolidCollisions = true;
+    }
+}
+
 public partial class Key : ModelEntity
 {
     [Net]
@@ -77,7 +90,8 @@ public partial class Key : ModelEntity
             var light = new PointLightEntity
             {
                 Color = Color.FromRgb( 0xf2d873 ),
-                Range = 64f
+                Brightness = 1f,
+                Range = 128f
             };
 
             light.Parent = this;
@@ -102,7 +116,7 @@ public partial class Key : ModelEntity
 
         LocalPosition += (TargetPosition - LocalPosition).WithZ( 0f ) * 0.125f;
 
-        LocalPosition = LocalPosition.WithZ( 0f ) + Vector3.Up * (MathF.Sin( Time.Now * MathF.PI * 0.5f ) * 16f + (IsHeld ? 96f : 64f));
+        LocalPosition = LocalPosition.WithZ( 0f ) + Vector3.Up * (MathF.Sin( Time.Now * MathF.PI * 0.5f ) * 16f + (IsHeld ? 96f : 32f));
         LocalRotation *= Rotation.FromRoll( Time.Delta * 180f ) * Rotation.FromYaw(Time.Delta * 80f);
     }
 }

@@ -7,10 +7,22 @@ using Mazing;
 
 namespace Mazing;
 
+public record struct GeneratedMaze( MazeData MazeData,
+	GridCoord Exit,
+    GridCoord Key,
+	GridCoord[] Players,
+    GridCoord[] Enemies,
+    GridCoord[] Coins );
+
 public static class MazeGenerator
 {
-	public static MazeData Generate( int seed, int size )
+	public static GeneratedMaze Generate( int seed, int size, int playerCount, int enemyCount, int coinCount )
 	{
+        if ( playerCount + enemyCount + coinCount + 2 > size * size )
+        {
+            throw new ArgumentException( "Maze is too small to fit that many players, enemies, coins, an exit and a key." );
+        }
+
 		var rand = new Random( seed );
 
 		const int stride = 4;
@@ -91,6 +103,32 @@ public static class MazeGenerator
 				}
 			}
 		}
+
+        var players = new List<GridCoord>();
+		var enemies = new List<GridCoord>();
+        var coins = new List<GridCoord>();
+
+        var available = new Queue<GridCoord>( Enumerable.Range( 0, size )
+            .SelectMany( row => Enumerable.Range( 0, size ).Select( col => new GridCoord( row, col ) ) )
+            .OrderBy( x => rand.NextSingle() ) );
+
+        var exit = available.Dequeue();
+        var key = available.Dequeue();
+
+        for ( var i = 0; i < playerCount; ++i )
+        {
+            players.Add( available.Dequeue() );
+        }
+
+        for ( var i = 0; i < enemyCount; ++i )
+        {
+            enemies.Add( available.Dequeue() );
+        }
+
+        for ( var i = 0; i < coinCount; ++i )
+        {
+            coins.Add( available.Dequeue() );
+        }
 
 		var possibleBridges = new List<(GridCoord From, Direction Dir, GridCoord To)>();
 
@@ -189,8 +227,8 @@ public static class MazeGenerator
 			maze.SetWall( next.From, next.dir, false );
 		}
 
-		return maze;
-	}
+        return new GeneratedMaze( maze, exit, key, players.ToArray(), enemies.ToArray(), coins.ToArray() );
+    }
 
 	private static MazeData PlaceRandom( Random rand, MazeData maze, IEnumerable<MazeData> available, bool[,] occupied, int stride )
 	{

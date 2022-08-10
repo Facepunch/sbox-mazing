@@ -108,8 +108,8 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 
 	public static IEnumerable<MazeData> LoadAll()
 	{
-		foreach ( var file in FileSystem.Mounted.FindFile( "mazes", "*.txt", true ) )
-		{
+        foreach ( var file in FileSystem.Mounted.FindFile( "mazes", "*.txt", true ) )
+        {
 			var name = PartNameRegex.Match( file );
 
 			if ( !name.Success )
