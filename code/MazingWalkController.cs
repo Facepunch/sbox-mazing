@@ -300,7 +300,7 @@ public partial class MazingWalkController : BasePlayerController
 
                 if (!IsVaulting && SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && Input.Down(InputButton.Jump))
                 {
-                    CheckVaultButton( cell + delta );
+                    Vault( cell + delta );
                 }
 
                 if ( Debug )
@@ -532,7 +532,7 @@ public partial class MazingWalkController : BasePlayerController
         }
     }
 
-    public virtual void CheckVaultButton( GridCoord target )
+    public virtual void Vault( GridCoord target )
     {
         if (GroundEntity == null)
             return;
