@@ -4,10 +4,10 @@
     <div class="overlay"></div>
     <div class="score left">
         <div class="held-coins">
-            <div class="icon"></div><text @text="HeldCoins"></text>
+            <div class="icon"></div><text @ref="HeldCoinsText"></text><text @ref="HeldCoinsDiffText" class="diff"></text>
         </div>
         <div class="total-coins">
-            <div class="icon"></div><text @text="TotalCoins"></text>
+            <div class="icon"></div><text @ref="TotalCoinsText"></text><text @ref="TotalCoinsDiffText" class="diff"></text>
         </div>
     </div>
     <div class="score right">

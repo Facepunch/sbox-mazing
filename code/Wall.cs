@@ -89,8 +89,8 @@ public partial class Treasure : AnimatedEntity
         return kind switch
         {
             TreasureKind.Emerald => 5,
-            TreasureKind.Sapphire => 10,
-            TreasureKind.Ruby => 25,
+            TreasureKind.Sapphire => 20,
+            TreasureKind.Ruby => 50,
             _ => 1
         };
     }
@@ -131,8 +131,8 @@ public partial class Treasure : AnimatedEntity
             _light = new PointLightEntity()
             {
                 Color = GetColor( 0 ),
-                Brightness = 1f,
-                Range = 64f
+                Brightness = 0.5f,
+                Range = 48f
             };
 
             _light.SetParent( this, "Coin", Transform.Zero );

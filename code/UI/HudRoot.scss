@@ -43,6 +43,7 @@
 }
 
 .score > div {
+    position: relative;
     margin: 1vh;
 }
 
@@ -70,4 +71,14 @@ text.icon {
 
 .level-num .icon {
 
+}
+
+text.diff {
+    position: absolute;
+    left: 20vh;
+    top: 1vh;
+
+    font-size: 4vh;
+
+    transition: opacity 0.25s linear;
 }
