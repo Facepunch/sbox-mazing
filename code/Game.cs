@@ -167,6 +167,51 @@ public partial class MazingGame : Sandbox.Game
 
         _mazeEntities.Add( Hatch );
 
+        var lightCount = (rows * cols / 32f).CeilToInt();
+        var lights = new List<PointLightEntity>();
+
+        var minLightDist = 128f;
+
+        var hueA = Rand.Float( 0f, 360f );
+        var hueB = hueA + 180f;
+
+        for ( var i = 0; i < lightCount; ++i )
+        {
+            var valid = true;
+            Vector3 pos = default;
+
+            for ( var attempt = 0; attempt < 100; ++attempt )
+            {
+                pos = this.CellCenterToPosition( (Rand.Int( 2, rows - 3 ), Rand.Int( 2, cols - 3 )) );
+
+                valid = true;
+
+                foreach ( var other in lights )
+                {
+                    if ( (other.Position - pos).WithZ( 0f ).LengthSquared <= minLightDist * minLightDist )
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if ( valid ) break;
+            }
+
+            if ( !valid ) break;
+
+            var light = new PointLightEntity
+            {
+                Range = 256f,
+                Color = new ColorHsv( (i & 1) == 0 ? hueA : hueB, 0.25f, 1f ),
+                Brightness = 8f,
+                Position = pos + Vector3.Up * 128f
+            };
+
+            lights.Add( light );
+            _mazeEntities.Add( light );
+        }
+
         for ( var i = 0; i < enemies.Length; i++ )
         {
             var enemyCell = generated.Enemies[i % generated.Enemies.Length];
