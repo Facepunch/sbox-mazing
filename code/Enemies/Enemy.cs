@@ -59,7 +59,7 @@ public abstract partial class Enemy : AnimatedEntity
 
         foreach (var child in Children.ToArray())
         {
-            if (child is ModelEntity e && e.Tags.Has("clothes"))
+            if (child is ModelEntity e)
             {
                 e.EnableDrawing = false;
             }
@@ -72,7 +72,7 @@ public abstract partial class Enemy : AnimatedEntity
 
         foreach (var child in Children.ToArray())
         {
-            if (child is ModelEntity e && e.Tags.Has("clothes"))
+            if (child is ModelEntity e)
             {
                 e.EnableDrawing = true;
             }
