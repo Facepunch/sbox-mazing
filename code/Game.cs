@@ -204,7 +204,7 @@ public partial class MazingGame : Sandbox.Game
             {
                 Range = 256f,
                 Color = new ColorHsv( (i & 1) == 0 ? hueA : hueB, 0.25f, 1f ),
-                Brightness = 8f,
+                Brightness = 4f,
                 Position = pos + Vector3.Up * 128f
             };
 
