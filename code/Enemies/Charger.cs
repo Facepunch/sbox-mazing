@@ -2,12 +2,21 @@
 
 namespace Mazing.Enemies;
 
-[EnemySpawn( FirstLevel = 3, SpawnPeriod = 4 )]
 internal partial class Charger : Enemy
 {
     public override float MoveSpeed => IsCharging ? 160f : 85f;
 
-    public bool IsCharging { get; set; }
+    private bool _isCharging;
+
+    public bool IsCharging
+    {
+        get => _isCharging;
+        set
+        {
+            _isCharging = value;
+            RenderColor = IsCharging ? new Color( 1f, 0f, 0f, 1f ) : Color.White;
+        }
+    }
 
     private float _lookTimer;
     private const float LOOK_DELAY = 0.25f;
@@ -17,6 +26,13 @@ internal partial class Charger : Enemy
         base.Spawn();
 
         new ModelEntity("models/citizen_clothes/hat/hat_securityhelmet.vmdl", this);
+    }
+
+    protected override void OnLevelChange()
+    {
+        base.OnLevelChange();
+
+        IsCharging = false;
     }
 
     protected override void OnServerTick()

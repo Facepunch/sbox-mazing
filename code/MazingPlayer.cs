@@ -231,7 +231,7 @@ public partial class MazingPlayer : Sandbox.Player
         HeldItem = item;
 
         item.Parent = this;
-        item.TargetPosition = Vector3.Up * 32f;
+        item.TargetPosition = Vector3.Up * 64f + Vector3.Forward * 8f;
     }
 
     private void ThrowItem( GridCoord cell )

@@ -65,6 +65,22 @@ public partial class Coin : AnimatedEntity
 
         Tags.Add( "coin" );
 
+        if (IsServer)
+        {
+            var light = new SpotLightEntity
+            {
+                Color = Color.FromRgb(0xf2d873),
+                Brightness = 32f,
+                Range = 1024f,
+                Parent = this,
+                InnerConeAngle = 0f,
+                OuterConeAngle = 4f,
+                LocalPosition = Vector3.Up * 256f,
+                LocalRotation = Rotation.FromPitch( 90f )
+            };
+        }
+
+
         EnableDrawing = true;
         EnableSolidCollisions = true;
     }
@@ -83,20 +99,6 @@ public abstract partial class Holdable : AnimatedEntity
     public override void Spawn()
     {
         base.Spawn();
-        
-        Tags.Add("key");
-
-        if (IsServer)
-        {
-            var light = new PointLightEntity
-            {
-                Color = Color.FromRgb(0xf2d873),
-                Brightness = 1f,
-                Range = 128f
-            };
-
-            light.Parent = this;
-        }
 
         _firstTick = true;
 
@@ -110,7 +112,7 @@ public abstract partial class Holdable : AnimatedEntity
         if (_firstTick)
         {
             _firstTick = false;
-            TargetPosition = LocalPosition;
+            TargetPosition = LocalPosition.WithZ( 0f );
         }
 
         LocalPosition += (TargetPosition - LocalPosition) * 0.125f;
@@ -149,19 +151,22 @@ public partial class Key : Holdable
         SetModel("models/key.vmdl");
 
         Tags.Add( "key" );
-
-        if ( IsServer )
+        
+        if (IsServer)
         {
-            var light = new PointLightEntity
+            var light = new SpotLightEntity
             {
-                Color = Color.FromRgb( 0xf2d873 ),
-                Brightness = 1f,
-                Range = 128f
+                Color = Color.FromRgb(0xf2d873),
+                Brightness = 32f,
+                Range = 1024f,
+                Parent = this,
+                InnerConeAngle = 0f,
+                OuterConeAngle = 7.5f,
+                LocalPosition = Vector3.Up * 256f,
+                LocalRotation = Rotation.FromPitch(90f)
             };
-
-            light.Parent = this;
         }
-	}
+    }
 
     protected override void OnServerTick()
     {

@@ -16,7 +16,7 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 
 	public override void Simulate()
 	{
-		var player = Pawn as Player;
+		var player = Pawn as MazingPlayer;
 		var idealRotation = Rotation.LookAt(EyeRotation.Forward.WithZ(0), Vector3.Up);
 
 		DoRotation(idealRotation);
@@ -55,14 +55,28 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 
         if ( player != null )
 		{
-			if ( player.ActiveChild is BaseCarriable carry )
-            {
-                carry.SimulateAnimator(this);
-            }
+			if ( player.HeldItem != null )
+			{
+				/*
+                SetAnimParameter("holdtype", 4);
+                SetAnimParameter("holdtype_handedness", 1);
+				SetAnimParameter("b_vr", false);
+                SetAnimParameter("aim_body_weight", 1f);
+				*/
+
+				SetAnimParameter( "b_vr", true );
+                SetAnimParameter("aim_body_weight", 0.75f);
+                SetAnimParameter( "left_hand_ik.position", new Vector3( 6f, 14f, 64f ) );
+                SetAnimParameter( "right_hand_ik.position", new Vector3( 6f, -14f, 64f ) );
+
+                player.SetAnimParameter( "left_hand_ik.rotation", Rotation.From( -65f, 87f, 7f ) );
+                player.SetAnimParameter( "right_hand_ik.rotation", Rotation.From( -115f, 87f, 7f ) );
+			}
             else
             {
                 SetAnimParameter("holdtype", 0);
-                SetAnimParameter("aim_body_weight", 0.5f);
+                SetAnimParameter( "b_vr", false );
+				SetAnimParameter("aim_body_weight", 0.5f);
             }
 		}
 	}

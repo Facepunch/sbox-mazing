@@ -7,8 +7,6 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-//[EnemySpawn(FirstLevel = 0, LastLevel = 0)]
-[EnemySpawn(FirstLevel = 0, SpawnPeriod = 4)]
 partial class Wanderer : Enemy
 {
     public override float MoveSpeed => 100f;

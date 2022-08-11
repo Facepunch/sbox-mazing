@@ -85,6 +85,32 @@ public partial class MazingGame : Sandbox.Game
 		MazingGame.Current.GenerateMaze();
 	}
 
+    public IEnumerable<Type> GetSpawningEnemyTypes( int levelIndex )
+    {
+        switch ( levelIndex % 5 )
+        {
+            case 0:
+                yield return typeof(Wanderer);
+                break;
+
+            case 1:
+                yield return typeof(Seeker);
+                break;
+
+            case 2:
+                yield return typeof(Charger);
+                break;
+
+            case 3:
+                yield return typeof(Wizard);
+                break;
+
+            case 4:
+                yield return typeof(Keyhunter);
+                break;
+        }
+    }
+
 	public void GenerateMaze()
 	{
 		Host.AssertServer();
@@ -101,11 +127,7 @@ public partial class MazingGame : Sandbox.Game
 
 		Log.Info( $"Generating maze with seed {seed:x8} ");
 
-        var typesToSpawn = TypeLibrary.GetTypes<Enemy>()
-            .SelectMany(x =>
-                TypeLibrary.GetDescription(x).GetAttributes<EnemySpawnAttribute>()
-                    .Where(y => y.ShouldSpawn(LevelIndex))
-                    .Select(y => x))
+        var typesToSpawn = GetSpawningEnemyTypes( LevelIndex )
             .ToArray();
 
         foreach (var type in typesToSpawn)

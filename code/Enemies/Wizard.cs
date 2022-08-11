@@ -4,7 +4,6 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[EnemySpawn(FirstLevel = 4, SpawnPeriod = 4)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;
@@ -66,7 +65,7 @@ internal partial class Wizard : Enemy
         _teleportCell = this.GetCellIndex();
         _spawnParticles = Particles.Create("particles/wizard_spawn.vpcf", Game.CellCenterToPosition(_teleportCell));
 
-        EnableDrawing = false;
+        Hide();
     }
 
     protected override void OnServerTick()
@@ -82,7 +81,7 @@ internal partial class Wizard : Enemy
         {
             if (_teleportTimer >= TELEPORT_DISAPPEAR_TIME)
             {
-                EnableDrawing = true;
+                Show();
                 EnableAllCollisions = true;
 
                 var cell = this.GetCellIndex();
@@ -149,7 +148,7 @@ internal partial class Wizard : Enemy
 
                 _teleportCell = Game.GetRandomEmptyCell();
 
-                EnableDrawing = false;
+                Hide();
                 EnableAllCollisions = false;
 
                 Position = Game.CellCenterToPosition(_teleportCell);

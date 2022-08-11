@@ -7,35 +7,6 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class EnemySpawnAttribute : Attribute
-{
-    /// <summary>
-    /// Level index when this enemy will first spawn (0 is the starting level).
-    /// </summary>
-    public int FirstLevel { get; set; }
-
-    /// <summary>
-    /// Last level index when this enemy is allowed to spawn (0 is the starting level).
-    /// </summary>
-    public int LastLevel { get; set; } = int.MaxValue;
-
-    /// <summary>
-    /// How many levels between new instances of this enemy spawning (1 is every level, 0 is only on <see cref="FirstLevel"/>).
-    /// </summary>
-    public int SpawnPeriod { get; set; } = 1;
-
-    public bool ShouldSpawn( int levelIndex )
-    {
-        if (levelIndex < FirstLevel) return false;
-        if ( levelIndex > LastLevel ) return false;
-        if (levelIndex > FirstLevel && SpawnPeriod <= 0) return false;
-        if ((levelIndex - FirstLevel) % SpawnPeriod != 0) return false;
-
-        return true;
-    }
-}
-
 public abstract partial class Enemy : AnimatedEntity
 {
     public float KillRange { get; } = 16f;
@@ -80,6 +51,32 @@ public abstract partial class Enemy : AnimatedEntity
         EnableShadowInFirstPerson = true;
 
         TargetCell = this.GetCellIndex();
+    }
+
+    public void Hide()
+    {
+        EnableDrawing = false;
+
+        foreach (var child in Children.ToArray())
+        {
+            if (child is ModelEntity e && e.Tags.Has("clothes"))
+            {
+                e.EnableDrawing = false;
+            }
+        }
+    }
+
+    public void Show()
+    {
+        EnableDrawing = true;
+
+        foreach (var child in Children.ToArray())
+        {
+            if (child is ModelEntity e && e.Tags.Has("clothes"))
+            {
+                e.EnableDrawing = true;
+            }
+        }
     }
     
     [Event.Tick.Server]
