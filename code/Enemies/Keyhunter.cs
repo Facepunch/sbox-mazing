@@ -28,7 +28,7 @@ partial class Keyhunter : Enemy
     {
         if ( Game.Key?.IsHeld ?? false )
         {
-            TargetCell = GetNextInPathTo( Game.Key.GetCellIndex() );
+            TargetCell = GetNextInPathTo( Game.Key.Position );
         }
         else
         {

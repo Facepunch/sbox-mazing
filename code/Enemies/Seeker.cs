@@ -32,7 +32,7 @@ partial class Seeker : Enemy
         }
         else
         {
-            TargetCell = GetNextInPathTo( player.GetCellIndex() );
+            TargetCell = GetNextInPathTo( player.Position );
         }
     }
 }

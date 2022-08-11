@@ -238,6 +238,30 @@ public abstract partial class Enemy : AnimatedEntity
     private PathFinder _pathFinder;
     private readonly List<GridCoord> _path = new();
 
+    protected GridCoord GetNextInPathTo( Vector3 pos )
+    {
+        var cell = Game.PositionToCellIndex( pos );
+
+        if ( cell != this.GetCellIndex() )
+        {
+            return GetNextInPathTo( cell );
+        }
+
+        var cellFrac = Game.PositionToCell( pos );
+
+        cellFrac.Row -= cell.Row + 0.5f;
+        cellFrac.Col -= cell.Col + 0.5f;
+
+        if ( Math.Abs( cellFrac.Row ) > Math.Abs( cellFrac.Col ) )
+        {
+            return cell + (Math.Sign( cellFrac.Row ), 0);
+        }
+        else
+        {
+            return cell + (0, Math.Sign(cellFrac.Col));
+        }
+    }
+
     protected GridCoord GetNextInPathTo( GridCoord coord )
     {
         var cell = this.GetCellIndex();

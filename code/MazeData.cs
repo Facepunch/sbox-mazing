@@ -94,6 +94,11 @@ public readonly struct GridCoord : IEquatable<GridCoord>
     {
         return HashCode.Combine( Row, Col );
     }
+
+    public override string ToString()
+    {
+        return $"({Row}, {Col})";
+    }
 }
 
 public partial class MazeData : BaseNetworkable, INetworkSerializer
