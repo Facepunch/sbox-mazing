@@ -252,17 +252,15 @@ public partial class MazingPlayer : Sandbox.Player
             return;
         }
 
-        var coins = Game.Coins;
-
-        foreach ( var coin in coins )
+        foreach ( var treasure in Game.Treasure)
         {
-            var diff = coin.Position.WithZ( 0 ) - Position;
+            var diff = treasure.Position.WithZ( 0 ) - Position;
 
             if ( diff.LengthSquared < 20f * 20f )
             {
-                ++HeldCoins;
+                HeldCoins += treasure.Value;
 
-                coin.Delete();
+                treasure.Delete();
                 break;
             }
         }

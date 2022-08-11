@@ -55,13 +55,54 @@ public partial class Post : ModelEntity
     }
 }
 
-public partial class Coin : AnimatedEntity
+public enum TreasureKind
 {
+    Emerald = 1,
+    Sapphire = 2
+}
+
+public partial class Treasure : AnimatedEntity
+{
+    private TreasureKind _kind;
+
+    [Net]
+    public TreasureKind Kind
+    {
+        get => _kind;
+        set
+        {
+            _kind = value;
+            SetBodyGroup(0, (int)Kind);
+        }
+    }
+
+    public static int GetValue( TreasureKind kind )
+    {
+        return kind switch
+        {
+            TreasureKind.Emerald => 5,
+            TreasureKind.Sapphire => 20,
+            _ => 1
+        };
+    }
+
+    public int Value => GetValue( Kind );
+
+    public Treasure()
+    {
+
+    }
+
+    public Treasure( TreasureKind kind )
+    {
+        Kind = kind;
+    }
+
     public override void Spawn()
     {
         base.Spawn();
 
-        SetModel("models/coin.vmdl");
+        SetModel( "models/item.vmdl" );
 
         Tags.Add( "coin" );
 
@@ -148,7 +189,8 @@ public partial class Key : Holdable
     {
         base.Spawn();
 
-        SetModel("models/key.vmdl");
+        SetModel("models/item.vmdl");
+        SetBodyGroup( 0, 0 );
 
         Tags.Add( "key" );
         

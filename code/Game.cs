@@ -58,7 +58,7 @@ public partial class MazingGame : Sandbox.Game
     public IEnumerable<Enemy> Enemies => Entity.All.OfType<Enemy>()
         .Where( x => !x.IsDeleting );
 
-    public IEnumerable<Coin> Coins => Entity.All.OfType<Coin>();
+    public IEnumerable<Treasure> Treasure => Entity.All.OfType<Treasure>();
 
     public bool IsTransitioning => RestartCountdown > -1f && RestartCountdown < 0f ||
                                    NextLevelCountdown > -1f && NextLevelCountdown < 0f;
@@ -219,14 +219,33 @@ public partial class MazingGame : Sandbox.Game
             enemies[i].Position = CellToPosition(enemyCell.Row + 0.5f, enemyCell.Col + 0.5f);
         }
 
-        foreach ( var coinCell in generated.Coins )
+        var totalTreasureValue = generated.Coins.Length * Mazing.Treasure.GetValue( TreasureKind.Emerald );
+        var possibleKinds = new List<TreasureKind>();
+        var treasureIndex = 0;
+
+        while ( totalTreasureValue > 0 )
         {
-            _mazeEntities.Add( new Coin
+            possibleKinds.Clear();
+
+            foreach ( var kind in Enum.GetValues<TreasureKind>() )
+            {
+                if ( Mazing.Treasure.GetValue( kind ) <= totalTreasureValue )
+                {
+                    possibleKinds.Add( kind );
+                }
+            }
+
+            var chosenKind = possibleKinds[Rand.Int( possibleKinds.Count - 1 )];
+            var coinCell = generated.Coins[treasureIndex++];
+
+            _mazeEntities.Add( new Treasure( chosenKind )
             {
                 Position = CellToPosition( coinCell.Row + 0.5f, coinCell.Col + 0.5f )
             } );
-        }
 
+            totalTreasureValue -= Mazing.Treasure.GetValue( chosenKind );
+        }
+        
         Key = new Key
         {
             Position = CellToPosition( generated.Key.Row + 0.5f, generated.Key.Col + 0.5f ) + Vector3.Up * 64f
