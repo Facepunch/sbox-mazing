@@ -88,9 +88,10 @@ public partial class MazingGame : Sandbox.Game
     public IEnumerable<Type> GetSpawningEnemyTypes( int levelIndex )
     {
         var enemyCount = levelIndex + 1;
+
         var unlocked = TypeLibrary.GetTypes<Enemy>()
-            .Select( x => (Type: x, FirstLevel: TypeLibrary.GetAttribute<UnlockLevelAttribute>( x )?.Level ?? -1) )
-            .Where( x => x.FirstLevel >= 0 && x.FirstLevel <= levelIndex )
+            .Select( x => (Type: x, FirstLevel: TypeLibrary.GetAttribute<UnlockLevelAttribute>( x )?.Level ?? int.MaxValue) )
+            .Where( x => x.FirstLevel <= levelIndex )
             .ToArray();
 
         var justUnlocked = unlocked
@@ -102,6 +103,9 @@ public partial class MazingGame : Sandbox.Game
             .Where( x => x.FirstLevel < levelIndex )
             .Select( x => x.Type )
             .ToArray();
+
+        Log.Info( $"Just unlocked: {string.Join( ",", justUnlocked.Select( x => x.Name ) )}" );
+        Log.Info( $"Already unlocked: {string.Join( ",", alreadyUnlocked.Select( x => x.Name ) )}" );
 
         for ( var i = 0; i < alreadyUnlocked.Length; ++i )
         {
@@ -115,7 +119,12 @@ public partial class MazingGame : Sandbox.Game
             .Concat( alreadyUnlocked.Take( extraTypeCount ) )
             .ToArray();
 
-        for ( var i = 0; i < enemyCount; ++i )
+        for ( var i = 0; i < enemyCount && i < usedTypes.Length; ++i )
+        {
+            yield return usedTypes[i];
+        }
+
+        for (var i = usedTypes.Length; i < enemyCount; ++i)
         {
             yield return usedTypes[Rand.Int( 0, usedTypes.Length - 1 )];
         }

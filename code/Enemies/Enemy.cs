@@ -32,8 +32,6 @@ public abstract partial class Enemy : AnimatedEntity
     public MazingGame Game => MazingGame.Current;
     
     private TimeSince[,] _cellVisitTimes;
-    
-    private int _lastLevelIndex;
 
     public TimeSince LastAttack { get; private set; }
 
@@ -123,18 +121,10 @@ public abstract partial class Enemy : AnimatedEntity
     [Event.Tick.Server]
     private void ServerTick()
     {
-        if (_lastLevelIndex > Game.LevelIndex)
-        {
-            Delete();
-            return;
-        }
-
         var cell = this.GetCellIndex();
 
-        if (_lastLevelIndex < Game.LevelIndex || _cellVisitTimes == null)
+        if (_cellVisitTimes == null)
         {
-            _lastLevelIndex = Game.LevelIndex;
-
             TargetCell = cell;
 
             AwakeTime = -2.5f - Rand.Float(0.5f);
