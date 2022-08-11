@@ -25,7 +25,7 @@ namespace Mazing.UI
             valueText.Text = $"{_lastValue - _spareValue}";
             diffText.Text = $"{(_diffSign > 0 ? "+" : "-")}{Math.Abs(_spareValue)}";
 
-            diffText.Style.Set( "left", $"{15 + (int)Math.Floor( Math.Log10( _lastValue ) ) * 3}vh" );
+            diffText.Style.Set( "left", $"{15 + (int)Math.Floor(  _lastValue > 0 ? Math.Log10( _lastValue ) : 1 ) * 3}vh" );
         }
 
         public void Tick( int value, Label valueText, Label diffText, bool ignoreDecrease )
@@ -114,7 +114,7 @@ namespace Mazing.UI
                 return;
             }
 
-            _heldCoinsTicker.Tick( player.HeldCoins, HeldCoinsText, HeldCoinsDiffText, player.IsAlive );
+            _heldCoinsTicker.Tick( player.HeldCoins, HeldCoinsText, HeldCoinsDiffText, player.HasExited );
             _totalCoinsTicker.Tick( game.TotalCoins, TotalCoinsText, TotalCoinsDiffText, true );
 
             _overlay ??= Children.FirstOrDefault( x => x.HasClass( "overlay" ) );

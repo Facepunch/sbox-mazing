@@ -153,6 +153,9 @@ public abstract partial class Holdable : AnimatedEntity
 
     private bool _firstTick;
 
+    [Net]
+    public MazingPlayer LastHolder { get; set; }
+
     public override void Spawn()
     {
         base.Spawn();

@@ -7,6 +7,17 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class UnlockLevelAttribute : Attribute
+{
+    public int Level { get; }
+
+    public UnlockLevelAttribute( int level )
+    {
+        Level = level;
+    }
+}
+
 public abstract partial class Enemy : AnimatedEntity
 {
     public float KillRange { get; } = 16f;
@@ -31,6 +42,34 @@ public abstract partial class Enemy : AnimatedEntity
     public bool IsAwake => AwakeTime > 0f;
 
     public bool IsDeleting { get; set; }
+
+    private static readonly (string Verb, float Weight)[] _sDeathVerbs = new (string Verb, float Weight)[]
+    {
+        ("killed", 10f),
+        ("slapped", 1f),
+    };
+
+    private static string GetRandomDeathVerb()
+    {
+        var totalWeight = _sDeathVerbs.Sum( x => x.Weight );
+        var randomWeight = Rand.Float( 0f, totalWeight );
+
+        for ( var i = 0; i < _sDeathVerbs.Length; ++i )
+        {
+            randomWeight -= _sDeathVerbs[i].Weight;
+
+            if ( randomWeight < 0f )
+            {
+                return _sDeathVerbs[i].Verb;
+            }
+        }
+
+        return "killed";
+    }
+
+    protected virtual string DeathMessage => $"{{0}} was {GetRandomDeathVerb()} by a {GetType().Name.ToTitleCase()}";
+
+    protected virtual int HoldType => 5;
 
     public override void Spawn()
     {
@@ -170,7 +209,7 @@ public abstract partial class Enemy : AnimatedEntity
             return;
         }
 
-        Animator?.SetAnimParameter( "holdtype", 5 );
+        Animator?.SetAnimParameter( "holdtype", HoldType );
 
         var closestPlayer = Game.GetClosestPlayer( Position, KillRange );
 
@@ -178,9 +217,10 @@ public abstract partial class Enemy : AnimatedEntity
         {
             LastAttack = 0f;
 
+            Animator?.SetAnimParameter("holdtype", 5);
             Animator?.Trigger( "b_attack" );
 
-            closestPlayer.Kill( (closestPlayer.Position - Position).WithZ( 0f ) );
+            closestPlayer.Kill( (closestPlayer.Position - Position).WithZ( 0f ), DeathMessage );
         }
     }
 

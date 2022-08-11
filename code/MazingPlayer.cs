@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Sandbox;
+using Sandbox.UI;
 
 namespace Mazing;
 
@@ -106,12 +107,40 @@ public partial class MazingPlayer : Sandbox.Player
         _ragdoll = null;
     }
 
-    public void Kill( Vector3 damageDir, bool ragdoll = true )
+    [ClientRpc]
+    public static void ClientDeathNotify( string name, string message, int coins )
+    {
+        if ( coins == 0 )
+        {
+            ChatBox.AddInformation($"{message}!");
+        }
+        else
+        {
+            ChatBox.AddInformation($"{message}, losing ${coins}!");
+        }
+    }
+
+    [ClientRpc]
+    public static void ClientExitNotify( string name, string message, int coins )
+    {
+        if (coins == 0)
+        {
+            ChatBox.AddInformation($"{message}!");
+        }
+        else
+        {
+            ChatBox.AddInformation($"{message}, banking ${coins}!");
+        }
+    }
+
+    public void Kill( Vector3 damageDir, string message, bool ragdoll = true )
     {
         if ( !IsServer || !IsAlive )
         {
             return;
         }
+
+        ClientDeathNotify( Client.Name, string.Format( message, Client.Name ), HeldCoins );
 
         IsAlive = false;
 
@@ -233,6 +262,7 @@ public partial class MazingPlayer : Sandbox.Player
         HeldItem = item;
 
         item.Parent = this;
+        item.LastHolder = this;
         item.TargetPosition = Vector3.Up * 64f + Vector3.Forward * 8f;
     }
 
@@ -289,6 +319,8 @@ public partial class MazingPlayer : Sandbox.Player
 
         HasExited = true;
         EnableAllCollisions = false;
+
+        ClientExitNotify( Client.Name, $"{Client.Name} has escaped", HeldCoins );
 
         Game.TotalCoins += HeldCoins;
         HeldCoins = 0;

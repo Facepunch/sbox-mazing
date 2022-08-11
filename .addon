@@ -38,12 +38,12 @@
         "ladder": "Ignore",
         "water": "Trigger",
         "wall": "Unset",
-        "ragdoll": "Unset",
+        "ragdoll": "Ignore",
         "player": "Unset",
-        "ghost": "Unset",
+        "ghost": "Ignore",
         "enemy": "Unset",
-        "exited": "Unset",
-        "exit": "Unset"
+        "exited": "Ignore",
+        "exit": "Ignore"
       },
       "Pairs": [
         {

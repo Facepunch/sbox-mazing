@@ -87,27 +87,37 @@ public partial class MazingGame : Sandbox.Game
 
     public IEnumerable<Type> GetSpawningEnemyTypes( int levelIndex )
     {
-        switch ( levelIndex % 5 )
+        var enemyCount = levelIndex + 1;
+        var unlocked = TypeLibrary.GetTypes<Enemy>()
+            .Select( x => (Type: x, FirstLevel: TypeLibrary.GetAttribute<UnlockLevelAttribute>( x )?.Level ?? -1) )
+            .Where( x => x.FirstLevel >= 0 && x.FirstLevel <= levelIndex )
+            .ToArray();
+
+        var justUnlocked = unlocked
+            .Where( x => x.FirstLevel == levelIndex )
+            .Select( x => x.Type )
+            .ToArray();
+
+        var alreadyUnlocked = unlocked
+            .Where( x => x.FirstLevel < levelIndex )
+            .Select( x => x.Type )
+            .ToArray();
+
+        for ( var i = 0; i < alreadyUnlocked.Length; ++i )
         {
-            case 0:
-                yield return typeof(Wanderer);
-                break;
+            var index = Rand.Int( i, alreadyUnlocked.Length - 1 );
+            (alreadyUnlocked[i], alreadyUnlocked[index]) = (alreadyUnlocked[index], alreadyUnlocked[i]);
+        }
 
-            case 1:
-                yield return typeof(Seeker);
-                break;
+        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : Rand.Int( 1, alreadyUnlocked.Length - 1 );
 
-            case 2:
-                yield return typeof(Charger);
-                break;
+        var usedTypes = justUnlocked
+            .Concat( alreadyUnlocked.Take( extraTypeCount ) )
+            .ToArray();
 
-            case 3:
-                yield return typeof(Wizard);
-                break;
-
-            case 4:
-                yield return typeof(Keyhunter);
-                break;
+        for ( var i = 0; i < enemyCount; ++i )
+        {
+            yield return usedTypes[Rand.Int( 0, usedTypes.Length - 1 )];
         }
     }
 
@@ -120,7 +130,9 @@ public partial class MazingGame : Sandbox.Game
 			entity.Delete();
 		}
 
-		_mazeEntities.Clear();
+        ClearEnemies();
+
+        _mazeEntities.Clear();
         _walls.Clear();
 
         var seed = Rand.Int(1, int.MaxValue - 1);
@@ -130,11 +142,9 @@ public partial class MazingGame : Sandbox.Game
         var typesToSpawn = GetSpawningEnemyTypes( LevelIndex )
             .ToArray();
 
-        foreach (var type in typesToSpawn)
-        {
-            TypeLibrary.Create<Enemy>(type);
-        }
-
+        var enemies = typesToSpawn.Select( x => (Enemy)TypeLibrary.Create<Enemy>( x ) )
+            .ToArray();
+        
         var (rows, cols) = LevelIndex switch
         {
             < 4 => (8, 8),
@@ -144,8 +154,7 @@ public partial class MazingGame : Sandbox.Game
             < 64 => (16, 16),
             _ => (20, 16)
         };
-
-        var enemies = Enemies.ToArray();
+        
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
             : MazeGenerator.Generate( seed, rows, cols, MaxPlayers, enemies.Length,
@@ -407,7 +416,7 @@ public partial class MazingGame : Sandbox.Game
 
         if ( LevelIndex > 0 )
         {
-            mazingPlayer.Kill( Vector3.Up, false );
+            mazingPlayer.Kill( Vector3.Up, "{0} joined as a ghost", false );
         }
     }
 

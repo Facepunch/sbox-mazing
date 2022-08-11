@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Sandbox;
+using Sandbox.UI;
 
 namespace Mazing;
 
@@ -27,13 +28,30 @@ public partial class Hatch : AnimatedEntity
 
         EnableDrawing = true;
     }
-    
+
+    [ClientRpc]
+    public static void ClientOpenNotify( string name )
+    {
+        if (!string.IsNullOrEmpty(name))
+        {
+            ChatBox.AddInformation( $"{name} has unlocked the exit hatch!" );
+        }
+        else
+        {
+            ChatBox.AddInformation( "The exit hatch has been unlocked!" );
+        }
+    }
+
     public void Open()
     {
         if ( IsOpen || !IsServer )
         {
             return;
         }
+
+        ClientOpenNotify( MazingGame.Current.Key?.LastHolder != null
+            ? MazingGame.Current.Key.LastHolder.Client.Name
+            : null );
 
         IsOpen = true;
 

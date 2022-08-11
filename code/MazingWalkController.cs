@@ -692,7 +692,6 @@ public partial class MazingWalkController : BasePlayerController
             maxs = maxs.WithZ(maxs.z - liftFeet);
         }
 
-
         var trace = Trace.Ray( start + TraceOffset, end + TraceOffset )
             .Size( mins, maxs )
             .WithAnyTags( "playerclip", "passbullets" )
@@ -723,6 +722,7 @@ public partial class MazingWalkController : BasePlayerController
         var tr = trace.Run();
 
         tr.EndPosition -= TraceOffset;
+
         return tr;
     }
 

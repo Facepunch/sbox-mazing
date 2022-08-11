@@ -4,6 +4,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
+[UnlockLevel(5)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;
@@ -244,7 +245,7 @@ partial class WizardBolt : ModelEntity
 
         if ( player != null )
         {
-            player.Kill( ((GridCoord)Direction).Normal );
+            player.Kill( ((GridCoord)Direction).Normal, "{0} was zapped by a Wizard" );
         }
 
         if ( this.GetCellIndex() != cell )
