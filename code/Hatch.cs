@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing;
 
-internal partial class Hatch : AnimatedEntity
+public partial class Hatch : AnimatedEntity
 {
     [Net]
     public bool IsOpen { get; private set; }

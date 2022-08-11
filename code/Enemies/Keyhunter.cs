@@ -27,17 +27,13 @@ partial class Keyhunter : Enemy
 
     protected override void OnReachTarget()
     {
-        var key = Entity.All.OfType<Key>()
-            .Where(x => x.IsHeld)
-            .MinBy(x => (x.Position - Position).LengthSquared);
-
-        if (key == null)
+        if ( Game.Key?.IsHeld ?? false )
         {
-            TargetCell = GetRandomNeighborCell();
+            TargetCell = GetNextInPathTo( Game.Key.GetCellIndex() );
         }
         else
         {
-            TargetCell = GetNextInPathTo(key.GetCellIndex());
+            TargetCell = GetRandomNeighborCell();
         }
     }
 

@@ -70,15 +70,78 @@ public partial class Coin : AnimatedEntity
     }
 }
 
-public partial class Key : ModelEntity
+public abstract partial class Holdable : AnimatedEntity
 {
-    [Net]
-    public bool IsHeld { get; set; }
+    public bool IsHeld => Parent is MazingPlayer;
+
+    protected MazingGame Game => MazingGame.Current;
 
     public Vector3 TargetPosition { get; set; }
 
     private bool _firstTick;
 
+    public override void Spawn()
+    {
+        base.Spawn();
+        
+        Tags.Add("key");
+
+        if (IsServer)
+        {
+            var light = new PointLightEntity
+            {
+                Color = Color.FromRgb(0xf2d873),
+                Brightness = 1f,
+                Range = 128f
+            };
+
+            light.Parent = this;
+        }
+
+        _firstTick = true;
+
+        EnableDrawing = true;
+        EnableSolidCollisions = true;
+    }
+
+    [Event.Tick.Server]
+    public void ServerTick()
+    {
+        if (_firstTick)
+        {
+            _firstTick = false;
+            TargetPosition = LocalPosition;
+        }
+
+        LocalPosition += (TargetPosition - LocalPosition) * 0.125f;
+
+        // Don't tick if moving to target position
+        if ((TargetPosition - LocalPosition).LengthSquared > 4f * 4f)
+        {
+            return;
+        }
+
+        OnServerTick();
+    }
+
+    protected virtual void OnServerTick()
+    {
+        if ( IsHeld )
+        {
+            return;
+        }
+        
+        var closestPlayer = Game.GetClosestPlayer(Position, 20f);
+
+        if (closestPlayer != null && closestPlayer.CanPickUpItem)
+        {
+            closestPlayer.PickUpItem( this );
+        }
+    }
+}
+
+public partial class Key : Holdable
+{
     public override void Spawn()
     {
         base.Spawn();
@@ -98,46 +161,25 @@ public partial class Key : ModelEntity
 
             light.Parent = this;
         }
-
-        Scale = 0.25f;
-
-        _firstTick = true;
-
-        EnableDrawing = true;
-        EnableSolidCollisions = true;
 	}
 
-    [Event.Tick.Server]
-    public void ServerTick()
+    protected override void OnServerTick()
     {
-        if ( _firstTick )
+        base.OnServerTick();
+
+        var hatch = MazingGame.Current.Hatch;
+
+        if (hatch == null || hatch.IsOpen)
         {
-            _firstTick = false;
-            TargetPosition = LocalPosition;
+            return;
         }
 
-        LocalPosition += (TargetPosition - LocalPosition).WithZ( 0f ) * 0.125f;
+        var diff = hatch.Position.WithZ(0) - Position.WithZ(0);
 
-        LocalPosition = LocalPosition.WithZ( 0f ) + Vector3.Up * (MathF.Sin( Time.Now * MathF.PI * 0.5f ) * 16f + (IsHeld ? 96f : 32f));
-        LocalRotation *= Rotation.FromRoll( Time.Delta * 180f ) * Rotation.FromYaw(Time.Delta * 80f);
-        
-        var hatches = Entity.All.OfType<Hatch>();
-
-        foreach (var hatch in hatches)
+        if (diff.LengthSquared < 16f * 16f)
         {
-            if (hatch.IsOpen)
-            {
-                continue;
-            }
-
-            var diff = hatch.Position.WithZ(0) - Position.WithZ(0);
-
-            if (diff.LengthSquared < 16f * 16f)
-            {
-                hatch.Open();
-                Delete();
-                return;
-            }
+            hatch.Open();
+            Delete();
         }
     }
 }

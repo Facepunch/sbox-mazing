@@ -11,7 +11,7 @@ public static class EntityExtensions
     public static Direction GetFacingDirection(this Entity entity) => MazeData.GetDirection(entity.EyeRotation.Forward);
 }
 
-partial class MazingPlayer : Sandbox.Player
+public partial class MazingPlayer : Sandbox.Player
 {
     public ClothingContainer Clothing { get; } = new();
 
@@ -24,7 +24,7 @@ partial class MazingPlayer : Sandbox.Player
     public bool IsAliveInMaze => IsAlive && !HasExited;
 
     [Net]
-    public Key HeldKey { get; set; }
+    public Holdable HeldItem { get; set; }
 
     [Net]
     public int HeldCoins { get; set; }
@@ -39,6 +39,8 @@ partial class MazingPlayer : Sandbox.Player
     private ModelEntity _ragdoll;
 
     public MazingGame Game => MazingGame.Current;
+
+    public bool CanPickUpItem => HeldItem == null && LastItemDrop > 0.6f;
 
     public MazingPlayer()
     {
@@ -80,7 +82,9 @@ partial class MazingPlayer : Sandbox.Player
 
         IsAlive = true;
 
-        HeldKey = null;
+        HeldItem?.SetParent( null );
+        HeldItem = null;
+
         HeldCoins = 0;
 
         _sweatParticles?.Destroy();
@@ -92,6 +96,9 @@ partial class MazingPlayer : Sandbox.Player
     protected override void OnDestroy()
     {
         base.OnDestroy();
+
+        HeldItem?.SetParent(null);
+        HeldItem = null;
 
         _ragdoll?.Delete();
         _ragdoll = null;
@@ -162,7 +169,7 @@ partial class MazingPlayer : Sandbox.Player
     public void ServerTick()
     {
         CheckForVault();
-        CheckForKeyPickup();
+        CheckForItemPickup();
         CheckExited();
 
         //var cell = Game.GetRandomCell();
@@ -186,7 +193,7 @@ partial class MazingPlayer : Sandbox.Player
 
         if ( Controller?.HasEvent( "vault" ) ?? false )
         {
-            if (HeldKey != null)
+            if (HeldItem != null)
             {
                 var dropCell = this.GetCellIndex() + (GridCoord)this.GetFacingDirection() * 2;
                 if (Game.IsInMaze(dropCell))
@@ -214,64 +221,48 @@ partial class MazingPlayer : Sandbox.Player
         ThrowItem( this.GetCellIndex() );
     }
 
+    public void PickUpItem( Holdable item )
+    {
+        if ( !CanPickUpItem )
+        {
+            return;
+        }
+
+        HeldItem = item;
+
+        item.Parent = this;
+        item.TargetPosition = Vector3.Up * 32f;
+    }
+
     private void ThrowItem( GridCoord cell )
     {
-        if ( HeldKey == null ) return;
+        if ( HeldItem == null ) return;
 
         LastItemDrop = 0f;
 
-        HeldKey.IsHeld = false;
-        HeldKey.Parent = null;
-        HeldKey.TargetPosition = Game.CellCenterToPosition( cell );
-        HeldKey = null;
+        HeldItem.Parent = null;
+        HeldItem.TargetPosition = Game.CellCenterToPosition( cell );
+        HeldItem = null;
     }
 
-    private void CheckForKeyPickup()
+    private void CheckForItemPickup()
     {
         if ( !IsAliveInMaze )
         {
             return;
         }
-        
-        var coins = Entity.All.OfType<Coin>().ToArray();
 
-        foreach (var coin in coins)
+        var coins = Game.Coins;
+
+        foreach ( var coin in coins )
         {
-            var diff = coin.Position.WithZ(0) - Position.WithZ(0);
+            var diff = coin.Position.WithZ( 0 ) - Position;
 
-            if (diff.LengthSquared < 20f * 20f)
+            if ( diff.LengthSquared < 20f * 20f )
             {
                 ++HeldCoins;
 
                 coin.Delete();
-                break;
-            }
-        }
-        
-        if ( HeldKey != null || LastItemDrop < 0.6f )
-        {
-            return;
-        }
-
-        var keys = Entity.All.OfType<Key>();
-
-        foreach (var key in keys)
-        {
-            if ( key.IsHeld )
-            {
-                continue;
-            }
-
-            var diff = key.Position.WithZ(0) - Position.WithZ(0);
-
-            if (diff.LengthSquared < 20f * 20f)
-            {
-                HeldKey = key;
-                key.IsHeld = true;
-
-                key.Parent = this;
-                key.TargetPosition = Vector3.Up * 64f;
-
                 break;
             }
         }
@@ -291,10 +282,7 @@ partial class MazingPlayer : Sandbox.Player
             return;
         }
 
-        var hatch = Entity.All.OfType<Hatch>()
-            .FirstOrDefault();
-
-        if ( hatch == null || !hatch.IsOpen )
+        if ( Game.Hatch == null || !Game.Hatch.IsOpen )
         {
             return;
         }

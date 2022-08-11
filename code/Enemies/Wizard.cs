@@ -241,12 +241,11 @@ partial class WizardBolt : ModelEntity
 
         Position += dir.Normal * Time.Delta * MoveSpeed;
 
-        foreach ( var player in Entity.All.OfType<MazingPlayer>().ToArray() )
+        var player = MazingGame.Current.GetClosestPlayer( Position, KillRange );
+
+        if ( player != null )
         {
-            if ( player.IsAliveInMaze && (player.Position - Position).WithZ( 0f ).LengthSquared <= KillRange * KillRange )
-            {
-                player.Kill( ((GridCoord)Direction).Normal);
-            }
+            player.Kill( ((GridCoord)Direction).Normal );
         }
 
         if ( this.GetCellIndex() != cell )
@@ -254,6 +253,9 @@ partial class WizardBolt : ModelEntity
             if ( game.CurrentMaze.GetWall( cell, Direction ) )
             {
                 RenderColor = Color.Transparent;
+
+                _particles?.Destroy();
+                _particles = null;
 
                 _isDespawning = true;
                 _despawnTime = 0f;

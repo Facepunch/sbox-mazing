@@ -81,24 +81,21 @@ internal class PathFinder
 
         _costs.Clear();
 
-        foreach ( var hatch in Entity.All.OfType<Hatch>() )
-        {
-            AddCost( hatch.GetCellIndex(), hatch.IsOpen ? OpenHatchCost : ClosedHatchCost );
-        }
+        var game = MazingGame.Current;
 
-        foreach ( var player in Entity.All.OfType<MazingPlayer>() )
-        {
-            if ( !player.IsAliveInMaze) continue;
+        AddCost(game.Hatch.GetCellIndex(), game.Hatch.IsOpen ? OpenHatchCost : ClosedHatchCost );
 
+        foreach ( var player in game.PlayersAliveInMaze )
+        {
             AddCost( player.GetCellIndex(), PlayerCost );
         }
 
-        foreach ( var enemy in Entity.All.OfType<Enemy>() )
+        foreach ( var enemy in game.Enemies )
         {
             AddCost( enemy.GetCellIndex(), EnemyCost );
         }
 
-        var maze = MazingGame.Current.CurrentMaze;
+        var maze = game.CurrentMaze;
 
         while ( _openSet.TryDequeue( out var current, out var fScore ) )
         {

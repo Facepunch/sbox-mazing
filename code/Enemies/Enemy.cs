@@ -36,7 +36,7 @@ public sealed class EnemySpawnAttribute : Attribute
     }
 }
 
-abstract partial class Enemy : AnimatedEntity
+public abstract partial class Enemy : AnimatedEntity
 {
     public float KillRange { get; } = 16f;
 
@@ -173,9 +173,7 @@ abstract partial class Enemy : AnimatedEntity
 
         Animator?.SetAnimParameter( "holdtype", 5 );
 
-        var closestPlayer = Entity.All.OfType<MazingPlayer>()
-            .Where(x => x.IsAliveInMaze && (x.Position - Position).LengthSquared < KillRange * KillRange)
-            .MinBy(x => (x.Position - Position).LengthSquared);
+        var closestPlayer = Game.GetClosestPlayer( Position, KillRange );
 
         if ( closestPlayer != null )
         {
@@ -216,10 +214,7 @@ abstract partial class Enemy : AnimatedEntity
             return 0f;
         }
 
-        var hatch = Entity.All.OfType<Hatch>()
-            .FirstOrDefault();
-
-        if ( hatch == null || !hatch.IsOpen )
+        if ( Game.Hatch?.IsOpen ?? true )
         {
             return 0f;
         }
@@ -253,7 +248,10 @@ abstract partial class Enemy : AnimatedEntity
         _pathFinder ??= new PathFinder();
         _path.Clear();
 
-        _pathFinder.FindPath(cell, coord, _path);
+        if ( !_pathFinder.FindPath( cell, coord, _path ) )
+        {
+            return GetRandomNeighborCell();
+        }
 
         if ( _path.Count < 2 )
         {

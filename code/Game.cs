@@ -42,6 +42,24 @@ public partial class MazingGame : Sandbox.Game
 
     [Net] public TimeSince NextLevelCountdown { get; set; }
 
+    [Net]
+    public Key Key { get; set; }
+
+    [Net]
+    public Hatch Hatch { get; set; }
+
+    public IEnumerable<MazingPlayer> Players => Client.All
+        .Select( x => x.Pawn )
+        .OfType<MazingPlayer>();
+
+    public IEnumerable<MazingPlayer> PlayersAliveInMaze => Players
+        .Where( x => x.IsAliveInMaze );
+
+    public IEnumerable<Enemy> Enemies => Entity.All.OfType<Enemy>()
+        .Where( x => !x.IsDeleting );
+
+    public IEnumerable<Coin> Coins => Entity.All.OfType<Coin>();
+
     public bool IsTransitioning => RestartCountdown > -1f && RestartCountdown < 0f ||
                                    NextLevelCountdown > -1f && NextLevelCountdown < 0f;
 
@@ -105,7 +123,7 @@ public partial class MazingGame : Sandbox.Game
             _ => (20, 16)
         };
 
-        var enemies = Entity.All.OfType<Enemy>().Where( x => x.IsValid && !x.IsDeleting ).ToArray();
+        var enemies = Enemies.ToArray();
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
             : MazeGenerator.Generate( seed, rows, cols, MaxPlayers, enemies.Length,
@@ -123,9 +141,9 @@ public partial class MazingGame : Sandbox.Game
         const float wallModelHeight = 256f;
         const float borderHeight = outerWallHeight - 16f;
 
-        var hatch = new Hatch();
+        Hatch = new Hatch();
 
-		_mazeEntities.Add( hatch );
+        _mazeEntities.Add( Hatch );
 
         for ( var i = 0; i < enemies.Length; i++ )
         {
@@ -142,12 +160,12 @@ public partial class MazingGame : Sandbox.Game
             } );
         }
 
-        var key = new Key
+        Key = new Key
         {
             Position = CellToPosition( generated.Key.Row + 0.5f, generated.Key.Col + 0.5f ) + Vector3.Up * 64f
         };
 
-		_mazeEntities.Add( key );
+        _mazeEntities.Add( Key );
 
 		for (var row = 0; row <= CurrentMaze.Rows; row++)
 		{
@@ -222,6 +240,19 @@ public partial class MazingGame : Sandbox.Game
         return CellToPosition( row.FloorToInt() + 0.5f, col.FloorToInt() + 0.5f );
     }
 
+    public MazingPlayer GetClosestPlayer( Vector3 pos, float maxRange = float.PositiveInfinity, bool aliveInMaze = true, bool ignoreZ = true )
+    {
+        var players = aliveInMaze ? PlayersAliveInMaze : Players;
+        var playerDists = ignoreZ
+            ? players.Select( x => (Player: x, DistSq: (x.Position - pos).WithZ( 0f ).LengthSquared) )
+            : players.Select( x => (Player: x, DistSq: (x.Position - pos).LengthSquared) );
+
+        return playerDists.OrderBy( x => x.DistSq )
+            .FirstOrDefault( x => x.DistSq <= maxRange * maxRange )
+            .Player;
+
+    }
+
     public (float Row, float Col) PositionToCell( Vector3 pos ) =>
         (pos.y / 48f + ExitCell.Row + 0.5f, pos.x / 48f + ExitCell.Col + 0.5f);
 
@@ -235,15 +266,15 @@ public partial class MazingGame : Sandbox.Game
     {
         // TODO: optimize
 
-        return Entity.All.OfType<MazingPlayer>()
-            .Any( x => x.IsAliveInMaze && x.GetCellIndex() == coord );
+        return PlayersAliveInMaze
+            .Any( x => x.GetCellIndex() == coord );
     }
 
     public bool IsEnemyInCell(GridCoord coord)
     {
         // TODO: optimize
-        return Entity.All.OfType<Enemy>()
-            .Any(x => x.GetCellIndex() == coord);
+        return Enemies
+            .Any( x => x.GetCellIndex() == coord );
     }
 
     public GridCoord GetRandomEmptyCell()
@@ -298,7 +329,7 @@ public partial class MazingGame : Sandbox.Game
     {
         player.HasExited = false;
 
-        var index = Array.IndexOf( Entity.All.OfType<MazingPlayer>().ToArray(), player );
+        var index = Array.IndexOf( Players.ToArray(), player );
 
         // Spawn in a random grid cell
         var spawnCell = _playerSpawns[index % _playerSpawns.Length];
@@ -353,7 +384,7 @@ public partial class MazingGame : Sandbox.Game
         var anyPlayers = false;
         var anyDeadPlayers = false;
 
-        foreach ( var player in Entity.All.OfType<MazingPlayer>() )
+        foreach ( var player in Players )
         {
             if ( !player.IsAlive )
             {
@@ -416,7 +447,7 @@ public partial class MazingGame : Sandbox.Game
 
     private void ClearEnemies()
     {
-        var enemies = Entity.All.OfType<Enemy>().ToArray();
+        var enemies = Enemies.ToArray();
 
         foreach ( var enemy in enemies )
         {
@@ -430,7 +461,7 @@ public partial class MazingGame : Sandbox.Game
         RestartCountdown = float.PositiveInfinity;
         NextLevelCountdown = float.PositiveInfinity;
 
-        foreach ( var player in Entity.All.OfType<MazingPlayer>().ToArray() )
+        foreach ( var player in Players.ToArray() )
         {
             RespawnPlayer( player );
         }

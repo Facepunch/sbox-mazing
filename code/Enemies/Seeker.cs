@@ -25,9 +25,7 @@ partial class Seeker : Enemy
 
     protected override void OnReachTarget()
     {
-        var player = Entity.All.OfType<MazingPlayer>()
-            .Where( x => x.IsAliveInMaze )
-            .MinBy( x => (x.Position - Position).LengthSquared );
+        var player = Game.GetClosestPlayer( Position );
 
         if ( player == null )
         {
