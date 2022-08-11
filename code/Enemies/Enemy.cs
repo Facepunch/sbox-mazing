@@ -174,7 +174,7 @@ public abstract partial class Enemy : AnimatedEntity
 
         var closestPlayer = Game.GetClosestPlayer( Position, KillRange );
 
-        if ( closestPlayer != null )
+        if ( closestPlayer != null && !closestPlayer.IsVaulting )
         {
             LastAttack = 0f;
 

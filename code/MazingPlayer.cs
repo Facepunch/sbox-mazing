@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Sandbox;
 
@@ -34,6 +34,8 @@ public partial class MazingPlayer : Sandbox.Player
 
     [Net]
     public float VaultCooldown { get; set; } = 3.5f;
+
+    public bool IsVaulting => Controller is MazingWalkController controller && controller.IsVaulting;
 
     private Particles _sweatParticles;
     private ModelEntity _ragdoll;
