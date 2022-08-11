@@ -90,7 +90,7 @@ public partial class Treasure : AnimatedEntity
         {
             TreasureKind.Emerald => 5,
             TreasureKind.Sapphire => 20,
-            TreasureKind.Ruby => 50,
+            TreasureKind.Ruby => 100,
             _ => 1
         };
     }
