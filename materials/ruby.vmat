@@ -12,15 +12,15 @@ Layer0
 
 	//---- Color ----
 	g_flModelTintAmount "1.000"
-	g_vColorTint "[0.196078 0.803922 0.196078 1.000000]"
+	g_vColorTint "[0.545098 0.000000 0.000000 1.000000]"
 	TextureColor "materials/default/default_color.tga"
 
 	//---- Emissive ----
 	g_flEmissiveEdgeColorFalloff "3.000"
 	g_flEmissiveEdgeColorThickness "0.100"
 	g_flEmissiveStrength "0.500"
-	g_vEmissiveColor "[0.000000 0.392157 0.000000 1.000000]"
-	g_vEmissiveEdgeColor "[0.000000 1.000000 0.000000 1.000000]"
+	g_vEmissiveColor "[0.545098 0.000000 0.000000 1.000000]"
+	g_vEmissiveEdgeColor "[1.000000 0.000000 0.000000 1.000000]"
 
 	//---- Fade ----
 	g_flFadeExponent "1.000"

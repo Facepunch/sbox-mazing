@@ -58,12 +58,14 @@ public partial class Post : ModelEntity
 public enum TreasureKind
 {
     Emerald = 1,
-    Sapphire = 2
+    Sapphire = 2,
+    Ruby = 3
 }
 
 public partial class Treasure : AnimatedEntity
 {
     private TreasureKind _kind;
+    private PointLightEntity _light;
 
     [Net]
     public TreasureKind Kind
@@ -72,6 +74,12 @@ public partial class Treasure : AnimatedEntity
         set
         {
             _kind = value;
+
+            if ( _light != null )
+            {
+                _light.Color = GetColor(value);
+            }
+
             SetBodyGroup(0, (int)Kind);
         }
     }
@@ -81,8 +89,20 @@ public partial class Treasure : AnimatedEntity
         return kind switch
         {
             TreasureKind.Emerald => 5,
-            TreasureKind.Sapphire => 20,
+            TreasureKind.Sapphire => 10,
+            TreasureKind.Ruby => 25,
             _ => 1
+        };
+    }
+
+    public static Color GetColor( TreasureKind kind )
+    {
+        return kind switch
+        {
+            TreasureKind.Emerald => Color.FromRgb( 0x32cd32 ),
+            TreasureKind.Sapphire => Color.FromRgb( 0x3150cd ),
+            TreasureKind.Ruby => Color.FromRgb( 0x8b0000 ),
+            _ => Color.FromRgb( 0xf2d873 )
         };
     }
 
@@ -108,19 +128,15 @@ public partial class Treasure : AnimatedEntity
 
         if (IsServer)
         {
-            var light = new SpotLightEntity
+            _light = new PointLightEntity()
             {
-                Color = Color.FromRgb(0xf2d873),
-                Brightness = 32f,
-                Range = 1024f,
-                Parent = this,
-                InnerConeAngle = 0f,
-                OuterConeAngle = 4f,
-                LocalPosition = Vector3.Up * 256f,
-                LocalRotation = Rotation.FromPitch( 90f )
+                Color = GetColor( 0 ),
+                Brightness = 1f,
+                Range = 64f
             };
-        }
 
+            _light.SetParent( this, "Coin", Transform.Zero );
+        }
 
         EnableDrawing = true;
         EnableSolidCollisions = true;
@@ -196,17 +212,14 @@ public partial class Key : Holdable
         
         if (IsServer)
         {
-            var light = new SpotLightEntity
+            var light = new PointLightEntity()
             {
-                Color = Color.FromRgb(0xf2d873),
-                Brightness = 32f,
-                Range = 1024f,
-                Parent = this,
-                InnerConeAngle = 0f,
-                OuterConeAngle = 7.5f,
-                LocalPosition = Vector3.Up * 256f,
-                LocalRotation = Rotation.FromPitch(90f)
+                Color = Treasure.GetColor(0),
+                Brightness = 1f,
+                Range = 64f
             };
+
+            light.SetParent(this, "Coin", Transform.Zero);
         }
     }
 

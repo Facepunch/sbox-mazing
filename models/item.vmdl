@@ -25,6 +25,10 @@
 								from = "gem2.vmat"
 								to = "materials/sapphire.vmat"
 							},
+							{
+								from = "gem3.vmat"
+								to = "materials/ruby.vmat"
+							},
 						]
 						use_global_default = false
 						global_default_material = ""
@@ -53,6 +57,7 @@
 							[
 								"Gem1",
 								"Gem2",
+								"Gem3",
 							]
 						}
 					},
@@ -74,6 +79,7 @@
 							[
 								"Key_001",
 								"Gem2",
+								"Gem3",
 							]
 						}
 					},
@@ -93,6 +99,29 @@
 							exclude_by_default = false
 							exception_list = 
 							[
+								"Gem1",
+								"Key_001",
+								"Gem3",
+							]
+						}
+					},
+					{
+						_class = "RenderMeshFile"
+						name = "gem3"
+						filename = "models/items.fbx"
+						import_translation = [ 0.0, 0.0, 0.0 ]
+						import_rotation = [ 0.0, 0.0, 0.0 ]
+						import_scale = 1.0
+						align_origin_x_type = "None"
+						align_origin_y_type = "None"
+						align_origin_z_type = "None"
+						parent_bone = ""
+						import_filter = 
+						{
+							exclude_by_default = false
+							exception_list = 
+							[
+								"Gem2",
 								"Gem1",
 								"Key_001",
 							]
@@ -159,6 +188,14 @@
 								meshes = 
 								[
 									"gem2",
+								]
+							},
+							{
+								_class = "BodyGroupChoice"
+								name = "gem3"
+								meshes = 
+								[
+									"gem3",
 								]
 							},
 						]

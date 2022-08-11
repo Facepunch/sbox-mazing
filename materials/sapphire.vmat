@@ -58,5 +58,5 @@ Layer0
 
 	//---- Translucent ----
 	g_flOpacityScale "1.000"
-	TextureTranslucency "[0.750000 0.750000 0.750000 0.000000]"
+	TextureTranslucency "[0.900000 0.900000 0.900000 0.000000]"
 }
