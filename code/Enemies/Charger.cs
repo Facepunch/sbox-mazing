@@ -39,6 +39,11 @@ internal partial class Charger : Enemy
     {
         base.OnServerTick();
 
+        if ( !IsAwake )
+        {
+            return;
+        }
+
         _lookTimer -= Time.Delta;
         if (_lookTimer <= 0f && !IsCharging)
         {

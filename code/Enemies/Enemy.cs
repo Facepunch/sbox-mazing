@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,6 +27,8 @@ public abstract partial class Enemy : AnimatedEntity
     public TimeSince LastAttack { get; private set; }
 
     public TimeSince AwakeTime { get; set; }
+
+    public bool IsAwake => AwakeTime > 0f;
 
     public bool IsDeleting { get; set; }
 
