@@ -41,6 +41,8 @@ public abstract partial class Enemy : AnimatedEntity
 
     public bool IsDeleting { get; set; }
 
+    public ClothingContainer Clothing { get; set; } = new();
+
     private static readonly (string Verb, float Weight)[] _sDeathVerbs = new (string Verb, float Weight)[]
     {
         ("killed", 10f),
@@ -312,5 +314,17 @@ public abstract partial class Enemy : AnimatedEntity
         }
 
         return _path.Skip( 1 ).First();
+    }
+
+    protected void AddClothingItem(string itemName)
+    {
+        if (ResourceLibrary.TryGet(itemName, out Clothing item))
+        {
+            Clothing.Clothing.Add(item);
+        }
+        else
+        {
+            Log.Error("Couldn't find clothing: " + itemName);
+        }
     }
 }

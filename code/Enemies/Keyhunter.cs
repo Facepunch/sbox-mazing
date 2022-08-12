@@ -10,7 +10,7 @@ namespace Mazing.Enemies;
 [UnlockLevel(9)]
 partial class Keyhunter : Enemy
 {
-    public override float MoveSpeed => IsHuntingKey() ? 118f : 75f;
+    public override float MoveSpeed => IsHuntingKey() ? 116f : 72f;
 
     private Color _colorNormal = new Color(0.66f, 0.66f, 0.3f);
     private Color _colorHunting = new Color(1f, 1f, 0f);
