@@ -27,6 +27,8 @@ internal partial class Wizard : Enemy
     private Particles _spawnParticles;
     private Particles _popParticles;
 
+    private bool _playedPortalSound;
+
     public override void Spawn()
     {
         base.Spawn();
@@ -91,10 +93,19 @@ internal partial class Wizard : Enemy
 
         if (IsTeleporting)
         {
+            if ( !_playedPortalSound )
+            {
+                _playedPortalSound = true;
+
+                Sound.FromWorld("wizard.portal", Position);
+            }
+
             if (_teleportTimer >= TELEPORT_DISAPPEAR_TIME)
             {
                 Show();
                 EnableAllCollisions = true;
+
+                Sound.FromWorld( "wizard.appear", Position );
 
                 var cell = this.GetCellIndex();
                 var totalDist = 0;
@@ -164,6 +175,8 @@ internal partial class Wizard : Enemy
 
                 _teleportCell = Game.GetRandomEmptyCell();
 
+                Sound.FromWorld( "wizard.disappear", Position );
+
                 Hide();
                 EnableAllCollisions = false;
 
@@ -171,6 +184,8 @@ internal partial class Wizard : Enemy
                 TargetCell = _teleportCell;
 
                 _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
+
+                _playedPortalSound = false;
 
                 _teleportTimer = 0f;
 
@@ -263,6 +278,7 @@ partial class WizardBolt : ModelEntity
 
         if ( player != null )
         {
+            Sound.FromEntity("wizard.boltkill", this);
             player.Kill( ((GridCoord)Direction).Normal, "{0} was zapped by a Wizard" );
         }
 
@@ -274,6 +290,8 @@ partial class WizardBolt : ModelEntity
 
                 _particles?.Destroy();
                 _particles = null;
+
+                Sound.FromEntity( "wizard.bolthitwall", this );
 
                 _isDespawning = true;
                 _despawnTime = 0f;

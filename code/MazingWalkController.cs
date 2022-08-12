@@ -729,6 +729,11 @@ public partial class MazingWalkController : BasePlayerController
         SurfaceFriction = tr.Surface.Friction * 1.25f;
         if (SurfaceFriction > 1) SurfaceFriction = 1;
 
+        if ( GroundEntity == null && Pawn is not Enemy )
+        {
+            Sound.FromWorld("player.land", Position);
+        }
+
         GroundEntity = tr.Entity;
 
         if (GroundEntity != null)

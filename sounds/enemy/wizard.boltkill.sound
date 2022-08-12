@@ -10,7 +10,7 @@
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/player/stamina_recharge_louder.vsnd",
+			resource:"sounds/enemy/wizard_projectile_kill_player.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

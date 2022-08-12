@@ -10,7 +10,9 @@
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/player/stamina_recharge_louder.vsnd",
+			resource:"sounds/enemy/punch_1.vsnd",
+			resource:"sounds/enemy/punch_2.vsnd",
+			resource:"sounds/enemy/punch_3.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

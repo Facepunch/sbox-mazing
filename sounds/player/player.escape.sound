@@ -2,15 +2,15 @@
 {
 	data = 
 	{
-		UI = false
+		UI = true
 		Volume = 1
 		VolumeRandom = 0
 		Pitch = 1
-		PitchRandom = 0.1
+		PitchRandom = 0
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/player/stamina_recharge_louder.vsnd",
+			resource:"sounds/player/player_escape_1_louder.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

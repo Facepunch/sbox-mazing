@@ -6,11 +6,11 @@
 		Volume = 1
 		VolumeRandom = 0
 		Pitch = 1
-		PitchRandom = 0.1
+		PitchRandom = 0
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/player/stamina_recharge_louder.vsnd",
+			resource:"sounds/enemy/charger_hit_wall.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

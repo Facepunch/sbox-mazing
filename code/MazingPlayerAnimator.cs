@@ -14,7 +14,7 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 
 	float duck;
 
-	public override void Simulate()
+    public override void Simulate()
 	{
 		var player = Pawn as MazingPlayer;
 		var idealRotation = Rotation.LookAt(EyeRotation.Forward.WithZ(0), Vector3.Up);
@@ -22,7 +22,7 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 		DoRotation(idealRotation);
 		DoWalk();
 
-		//
+        //
 		// Let the animation graph know some shit
 		//
 		bool sitting = HasTag("sitting");
@@ -157,8 +157,8 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 	}
 
 	public override void OnEvent( string name )
-	{
-		// DebugOverlay.Text( Pos + Vector3.Up * 100, name, 5.0f );
+    {
+        // DebugOverlay.Text( Pos + Vector3.Up * 100, name, 5.0f );
 
 		if (name == "vault")
 		{

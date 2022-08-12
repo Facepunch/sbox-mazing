@@ -114,6 +114,20 @@ public abstract partial class Enemy : AnimatedEntity
         TargetCell = this.GetCellIndex();
     }
 
+    private TimeSince _lastFootstep;
+
+    public override void OnAnimEventFootstep( Vector3 pos, int foot, float volume )
+    {
+        base.OnAnimEventFootstep(pos, foot, volume);
+
+        if (GroundEntity != null && IsClient && _lastFootstep > 0.25f)
+        {
+            _lastFootstep = 0f;
+            var sound = Sound.FromWorld("player.footstep", pos);
+            sound.SetVolume(Math.Clamp(Velocity.Length / 160f, 0.25f, 1f));
+        }
+    }
+
     public void Hide()
     {
         EnableDrawing = false;
@@ -237,6 +251,8 @@ public abstract partial class Enemy : AnimatedEntity
             //Animator?.SetAnimParameter("b_vr", false);
             Animator?.SetAnimParameter("holdtype", 5);
             Animator?.Trigger( "b_attack" );
+
+            Sound.FromEntity( "enemy.punch", this );
 
             closestPlayer.Kill( (closestPlayer.Position - Position).WithZ( 0f ), DeathMessage );
         }

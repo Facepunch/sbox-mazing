@@ -112,6 +112,20 @@ public partial class MazingPlayer : Sandbox.Player
         _ragdoll = null;
     }
 
+    private TimeSince _lastFootstep;
+
+    public override void OnAnimEventFootstep( Vector3 pos, int foot, float volume )
+    {
+        base.OnAnimEventFootstep( pos, foot, volume );
+
+        if ( GroundEntity != null && IsClient && _lastFootstep > 0.25f )
+        {
+            _lastFootstep = 0f;
+            var sound = Sound.FromWorld("player.footstep", pos);
+            sound.SetVolume( Math.Clamp( Velocity.Length / 160f, 0f, 1f ) );
+        }
+    }
+
     [ClientRpc]
     public static void ClientDeathNotify( string name, string message, int coins )
     {
@@ -207,6 +221,19 @@ public partial class MazingPlayer : Sandbox.Player
         CheckForVault();
         CheckExited();
 
+        if ( HasExited && ExitTime > 0.5f )
+        {
+            RenderColor = RenderColor.WithAlpha( Math.Clamp( 1f - (ExitTime - 0.5f) * 2f, 0f, 1f ) );
+
+            foreach (var child in Children.ToArray())
+            {
+                if ( child is ModelEntity e )
+                {
+                    e.RenderColor = RenderColor;
+                }
+            }
+        }
+
         //var cell = Game.GetRandomCell();
         //var cell = Game.GetCellInDirection(this.GetCellIndex(), this.GetFacingDirection(), dist: 2);
         //var color = Game.IsInMaze(cell) ? Color.Cyan : Color.Red;
@@ -247,7 +274,6 @@ public partial class MazingPlayer : Sandbox.Player
             _sweatParticles?.Destroy();
             _sweatParticles = null;
 
-            Sound.FromWorld( "player.recharge", EyePosition );
         }
 
         //DropHeldItem();
@@ -280,8 +306,6 @@ public partial class MazingPlayer : Sandbox.Player
 
         LastItemDrop = 0f;
 
-        Sound.FromEntity( "key.drop", this );
-
         HeldItem.Parent = null;
         HeldItem.TargetPosition = Game.CellCenterToPosition( cell );
         HeldItem = null;
@@ -311,6 +335,15 @@ public partial class MazingPlayer : Sandbox.Player
         EnableAllCollisions = false;
 
         ClientExitNotify( Client.Name, $"{Client.Name} has escaped", HeldCoins );
+
+        if ( Game.PlayersAliveInMaze.Any() )
+        {
+            Sound.FromScreen( "player.escape" );
+        }
+        else
+        {
+            Sound.FromScreen( "player.victory" );
+        }
 
         Game.TotalCoins += HeldCoins;
         HeldCoins = 0;
