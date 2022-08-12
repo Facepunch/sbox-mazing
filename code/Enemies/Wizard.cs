@@ -4,8 +4,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(5)]
-//[UnlockLevel(0)]
+[UnlockLevel(5), ThreatValue(2)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;

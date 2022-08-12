@@ -7,6 +7,9 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
+/// <summary>
+/// Which level does this enemy first appear.
+/// </summary>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class UnlockLevelAttribute : Attribute
 {
@@ -15,6 +18,20 @@ public sealed class UnlockLevelAttribute : Attribute
     public UnlockLevelAttribute( int level )
     {
         Level = level;
+    }
+}
+
+/// <summary>
+/// How dangerous is this enemy compared to a <see cref="Wanderer"/>.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class ThreatValueAttribute : Attribute
+{
+    public int Value { get; }
+
+    public ThreatValueAttribute( int value )
+    {
+        Value = value;
     }
 }
 
@@ -38,8 +55,6 @@ public abstract partial class Enemy : AnimatedEntity
     public TimeSince AwakeTime { get; set; }
 
     public bool IsAwake => AwakeTime > 0f;
-
-    public bool IsDeleting { get; set; }
 
     public int Index { get; set; }
 
@@ -123,14 +138,11 @@ public abstract partial class Enemy : AnimatedEntity
         }
     }
     
-    [Event.Tick.Server]
-    private void ServerTick()
+    public void ServerTick()
     {
         var cell = this.GetCellIndex();
 
-        if (_cellVisitTimes == null
-            || _cellVisitTimes.GetLength( 0 ) != Game.CurrentMaze.Rows
-            || _cellVisitTimes.GetLength( 1 ) != Game.CurrentMaze.Cols)
+        if (_cellVisitTimes == null)
         {
             TargetCell = cell;
 

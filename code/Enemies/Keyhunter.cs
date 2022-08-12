@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(9)]
+[UnlockLevel(9), ThreatValue(4)]
 partial class Keyhunter : Enemy
 {
     public override float MoveSpeed => IsHuntingKey() ? 105f : 60f;

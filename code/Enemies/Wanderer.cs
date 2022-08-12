@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(0)]
+[UnlockLevel(0), ThreatValue(1)]
 partial class Wanderer : Enemy
 {
     public override float MoveSpeed => 88f;

@@ -96,46 +96,76 @@ public partial class MazingGame : Sandbox.Game
     {
         var rand = new Random( seed );
 
-        var enemyCount = levelIndex + 1;
+        var totalThreat = levelIndex + 1;
 
         var unlocked = TypeLibrary.GetTypes<Enemy>()
-            .Select( x => (Type: x, FirstLevel: TypeLibrary.GetAttribute<UnlockLevelAttribute>( x )?.Level ?? int.MaxValue) )
+            .Select( x => (
+                Type: x,
+                FirstLevel: TypeLibrary.GetAttribute<UnlockLevelAttribute>( x )?.Level ?? int.MaxValue,
+                Threat: TypeLibrary.GetAttribute<ThreatValueAttribute>( x )?.Value ?? 1) )
             .Where( x => x.FirstLevel <= levelIndex )
             .ToArray();
 
         var justUnlocked = unlocked
             .Where( x => x.FirstLevel == levelIndex )
-            .Select( x => x.Type )
             .ToArray();
 
         var alreadyUnlocked = unlocked
             .Where( x => x.FirstLevel < levelIndex )
-            .Select( x => x.Type )
             .ToArray();
 
-        Log.Info( $"Just unlocked: {string.Join( ",", justUnlocked.Select( x => x.Name ) )}" );
-        Log.Info( $"Already unlocked: {string.Join( ",", alreadyUnlocked.Select( x => x.Name ) )}" );
-
+        // Shuffle already unlocked types
         for ( var i = 0; i < alreadyUnlocked.Length; ++i )
         {
             var index = rand.Next( i, alreadyUnlocked.Length );
             (alreadyUnlocked[i], alreadyUnlocked[index]) = (alreadyUnlocked[index], alreadyUnlocked[i]);
         }
 
-        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : rand.Next( 1, alreadyUnlocked.Length );
+        // Choose which types of enemies will spawn:
+        // * Any that have just unlocked are guaranteed to spawn
+        // * Pick at least one other type too, if possible
+
+        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : rand.Next(1, alreadyUnlocked.Length);
 
         var usedTypes = justUnlocked
             .Concat( alreadyUnlocked.Take( extraTypeCount ) )
-            .ToArray();
+            .ToList();
 
-        for ( var i = 0; i < enemyCount && i < usedTypes.Length; ++i )
+        // Make sure at least one enemy of each chosen type spawns
+        for ( var i = 0; totalThreat > 0 && i < usedTypes.Count; ++i )
         {
-            yield return usedTypes[i];
+            var type = usedTypes[i];
+
+            if ( type.Threat > totalThreat )
+            {
+                continue;
+            }
+
+            totalThreat -= type.Threat;
+
+            yield return type.Type;
         }
 
-        for (var i = usedTypes.Length; i < enemyCount; ++i)
+        // Spawn other random enemies until the total threat is reached
+        while ( totalThreat > 0 && usedTypes.Count > 0 )
         {
-            yield return usedTypes[Rand.Int( 0, usedTypes.Length - 1 )];
+            var type = usedTypes[Rand.Int( 0, usedTypes.Count - 1 )];
+
+            if ( type.Threat > totalThreat )
+            {
+                usedTypes.Remove( type );
+                continue;
+            }
+
+            totalThreat -= type.Threat;
+            yield return type.Type;
+        }
+
+        // Spawn wanderers if there's still spare threat
+        while ( totalThreat > 0 )
+        {
+            totalThreat -= 1;
+            yield return typeof(Wanderer);
         }
     }
 
@@ -168,8 +198,6 @@ public partial class MazingGame : Sandbox.Game
         {
             var cross = (((float)targetArea / length) / 4f).CeilToInt() * 4;
             var score = GetLevelSizeScore( length, cross, targetArea );
-
-            Log.Info( $"{length}, {cross}, {score}" );
 
             candidates.Add( (length, cross, score) );
             totalScore += score;
@@ -226,8 +254,6 @@ public partial class MazingGame : Sandbox.Game
                     case Player:
                         continue;
                 }
-
-                Log.Info( $"Name: {entity.Name}, Type: {entity.GetType()}, Tags: {string.Join( ", ", entity.Tags.List )}" );
 
                 _worldEntities.Add( entity );
             }
@@ -544,6 +570,11 @@ public partial class MazingGame : Sandbox.Game
 	[Event.Tick.Server]
     public void ServerTick()
     {
+        foreach ( var enemy in Enemies )
+        {
+            enemy.ServerTick();
+        }
+
         if ( !float.IsPositiveInfinity( RestartCountdown ) )
         {
             if ( RestartCountdown > 0f )
