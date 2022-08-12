@@ -214,7 +214,7 @@ public abstract partial class Enemy : AnimatedEntity
 
         Animator?.SetAnimParameter( "holdtype", HoldType );
 
-        var closestPlayer = Game.GetClosestPlayer( Position, KillRange );
+        var closestPlayer = Game.GetClosestPlayer( Position, KillRange, ignoreZ: false );
 
         if ( closestPlayer != null && !closestPlayer.IsVaulting )
         {

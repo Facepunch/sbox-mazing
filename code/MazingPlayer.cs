@@ -78,6 +78,8 @@ public partial class MazingPlayer : Sandbox.Player
 
         Clothing.DressEntity(this);
 
+        UsePhysicsCollision = false;
+
         EnableAllCollisions = true;
         EnableDrawing = true;
         EnableHideInFirstPerson = true;

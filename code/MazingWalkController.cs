@@ -18,12 +18,15 @@ public partial class MazingWalkController : BasePlayerController
     [Net] public float BodyGirth { get; set; } = 32.0f;
     [Net] public float BodyHeight { get; set; } = 72.0f;
     [Net] public float EyeHeight { get; set; } = 64.0f;
-    [Net] public float Gravity { get; set; } = 800.0f;
+    [Net] public float BaseGravity { get; set; } = 800.0f;
+    public float Gravity => IsGhost ? 0f : BaseGravity;
     [Net] public float AirControl { get; set; } = 30.0f;
     [Net] public float VaultTime { get; set; } = 0.6f;
     //[Net] public float PostVaultTime { get; set; } = 0.2f;
     [Net] public float VaultHeight { get; set; } = 192f;
     [Net] public float VaultCooldown { get; set; } = 3.5f;
+
+    public bool IsGhost => Pawn is MazingPlayer player && !player.IsAlive;
 
     public bool IsVaulting => SinceVault <= VaultTime;
 
@@ -128,6 +131,163 @@ public partial class MazingWalkController : BasePlayerController
         UpdateEyeRotation();
     }
 
+    private void WallCollision()
+    {
+        var game = MazingGame.Current;
+        var (rowF, colF) = game.PositionToCell(Position);
+        var cell = new GridCoord(rowF.FloorToInt(), colF.FloorToInt());
+
+        var wishVelocityAdd = Vector3.Zero;
+        var velocityAdd = Vector3.Zero;
+        var positionAdd = Vector3.Zero;
+
+        var rowFrac = rowF - cell.Row;
+        var colFrac = colF - cell.Col;
+
+        foreach (var (dir, delta) in MazeData.Directions)
+        {
+            var directWall = game.CurrentMaze.GetWall(cell, dir);
+
+            bool endWall = false;
+
+            if (delta.Row != 0 && Math.Abs(colFrac - 0.5f) > 0.2f)
+            {
+                if (colFrac > 0.5f)
+                {
+                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.East) || game.CurrentMaze.GetWall(cell + (0, 1), dir);
+                }
+                else
+                {
+                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.West) || game.CurrentMaze.GetWall(cell - (0, 1), dir);
+                }
+            }
+            else if (delta.Col != 0 && Math.Abs(rowFrac - 0.5f) > 0.2f)
+            {
+                if (rowFrac > 0.5f)
+                {
+                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.South) || game.CurrentMaze.GetWall(cell + (1, 0), dir);
+                }
+                else
+                {
+                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.North) || game.CurrentMaze.GetWall(cell - (1, 0), dir);
+                }
+            }
+
+            if (!directWall && !endWall)
+            {
+                continue;
+            }
+
+            var mid = (game.CellToPosition(cell.Row + 0.5f, cell.Col + 0.5f) + game.CellToPosition(cell.Row + delta.Row + 0.5f, cell.Col + delta.Col + 0.5f)) * 0.5f;
+            var diff = game.CellToPosition(cell + delta) - game.CellToPosition(cell);
+            var normal = diff.Normal;
+            var size = new Vector3(Math.Abs(diff.y) + 6f, Math.Abs(diff.x) + 6f, 0f);
+
+            var canVault = directWall && (delta.Row == 0 || cell.Row + delta.Row >= 0 && cell.Row + delta.Row < game.CurrentMaze.Rows)
+                           && (delta.Col == 0 || cell.Col + delta.Col >= 0 && cell.Col + delta.Col < game.CurrentMaze.Cols);
+
+            var playerDist = Vector3.Dot(mid - Position, normal) - 24f;
+
+            var moveDot = Vector3.Dot(WishVelocity, normal);
+
+            //
+            // If you're too close to a wall, immediately move back and cancel any velocity
+            // in that direction
+            //
+            if (playerDist < 0f)
+            {
+                if (Velocity.Length > 15f) // hack so slow movement doesn't jitter
+                    positionAdd += playerDist * normal;
+
+                var velDot = Vector3.Dot(Velocity, normal);
+
+                if (directWall && velDot > 0f)
+                {
+                    velocityAdd -= velDot * normal;
+                }
+            }
+
+            var perpMoveDot = Math.Abs(Vector3.Dot(WishVelocity, new Vector3(normal.y, -normal.x)));
+
+            //
+            // If you're trying to walk into a wall, cancel that movement if either:
+            //   1) you are also moving in a perpendicular direction
+            //   2) you aren't currently facing that direction
+            //
+            if (moveDot > 0f && (perpMoveDot > 0.5f || Vector3.Dot(normal, EyeRotation.Forward) > 0.5f))
+            {
+                wishVelocityAdd -= moveDot * normal * Math.Clamp(1f - playerDist, 0f, 1f);
+            }
+
+            //
+            // If you're walking towards a gap between walls, but you're not cleanly going through
+            // the middle, walk perpendicular so you'll be in the middle of the gap
+            //
+            if (!directWall && moveDot > 0f)
+            {
+                var perp = delta.Row != 0 ? colFrac > 0.5f
+                        ? new Vector3(-1f, 0f)
+                        : new Vector3(1f, 0f)
+                    : rowFrac > 0.5f ? new Vector3(0f, -1f) : new Vector3(0f, 1f);
+
+                wishVelocityAdd += perp;
+            }
+
+            if (!IsVaulting && !IsGhost && SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && Input.Down(InputButton.Jump))
+            {
+                Vault(cell + delta);
+            }
+
+            if (Debug)
+            {
+                DebugOverlay.Box(mid - size * 0.5f, mid + size * 0.5f, canVault ? Color.Blue : Color.Red,
+                    depthTest: false);
+            }
+        }
+
+        Position += positionAdd;
+        WishVelocity += wishVelocityAdd;
+        Velocity += velocityAdd;
+    }
+
+    public void KeepInBounds()
+    {
+        var game = MazingGame.Current;
+        var a = game.CellCenterToPosition( (0, 0) );
+        var b = game.CellCenterToPosition( (game.CurrentMaze.Rows - 1, game.CurrentMaze.Cols - 1) );
+
+        var min = Vector3.Min( a, b );
+        var max = Vector3.Max( a, b );
+
+        if ( Position.x < min.x )
+        {
+            Position = Position.WithX( min.x );
+            WishVelocity = WishVelocity.WithX( Math.Max( 0f, WishVelocity.x ) );
+            Velocity = Velocity.WithX( Math.Max( 0f, Velocity.x ) );
+        }
+
+        if ( Position.x > max.x )
+        {
+            Position = Position.WithX( max.x );
+            WishVelocity = WishVelocity.WithX( Math.Min( 0f, WishVelocity.x ) );
+            Velocity = Velocity.WithX( Math.Min( 0f, Velocity.x ) );
+        }
+
+        if ( Position.y < min.y )
+        {
+            Position = Position.WithY( min.y );
+            WishVelocity = WishVelocity.WithY( Math.Max( 0f, WishVelocity.y ) );
+            Velocity = Velocity.WithY( Math.Max( 0f, Velocity.y ) );
+        }
+
+        if ( Position.y > max.y )
+        {
+            Position = Position.WithY( max.y );
+            WishVelocity = WishVelocity.WithY( Math.Min( 0f, WishVelocity.y ) );
+            Velocity = Velocity.WithY( Math.Min( 0f, Velocity.y ) );
+        }
+    }
+
     public override void Simulate()
     {
         EyeLocalPosition = Vector3.Up * (EyeHeight * Pawn.Scale);
@@ -203,130 +363,27 @@ public partial class MazingWalkController : BasePlayerController
                 WishVelocity = EnemyWishVelocity;
             }
 
-            var wishVelocityAdd = Vector3.Zero;
-            var velocityAdd = Vector3.Zero;
-            var positionAdd = Vector3.Zero;
-
-            var rowFrac = rowF - cell.Row;
-            var colFrac = colF - cell.Col;
-
-            foreach ( var (dir, delta) in MazeData.Directions )
+            if ( !IsGhost )
             {
-                var directWall = game.CurrentMaze.GetWall( cell, dir );
-
-                bool endWall = false;
-
-                if (delta.Row != 0 && Math.Abs(colFrac - 0.5f) > 0.2f )
-                {
-                    if ( colFrac > 0.5f )
-                    {
-                        endWall = game.CurrentMaze.GetWall( cell + delta, Direction.East ) || game.CurrentMaze.GetWall( cell + (0, 1), dir );
-                    }
-                    else
-                    {
-                        endWall = game.CurrentMaze.GetWall( cell + delta, Direction.West ) || game.CurrentMaze.GetWall( cell - (0, 1), dir );
-                    }
-                }
-                else if (delta.Col != 0 && Math.Abs( rowFrac - 0.5f ) > 0.2f )
-                {
-                    if ( rowFrac > 0.5f )
-                    {
-                        endWall = game.CurrentMaze.GetWall( cell + delta, Direction.South ) || game.CurrentMaze.GetWall( cell + (1, 0), dir );
-                    }
-                    else
-                    {
-                        endWall = game.CurrentMaze.GetWall( cell + delta, Direction.North ) || game.CurrentMaze.GetWall( cell - (1, 0), dir );
-                    }
-                }
-
-                if ( !directWall && !endWall )
-                {
-                    continue;
-                }
-
-                var mid = (game.CellToPosition(cell.Row + 0.5f, cell.Col + 0.5f) + game.CellToPosition(cell.Row + delta.Row + 0.5f, cell.Col + delta.Col + 0.5f)) * 0.5f;
-                var diff = game.CellToPosition(cell + delta) - game.CellToPosition(cell);
-                var normal = diff.Normal;
-                var size = new Vector3(Math.Abs(diff.y) + 6f, Math.Abs(diff.x) + 6f, 0f);
-
-                var canVault = directWall && (delta.Row == 0 || cell.Row + delta.Row >= 0 && cell.Row + delta.Row < game.CurrentMaze.Rows)
-                               && (delta.Col == 0 || cell.Col + delta.Col >= 0 && cell.Col + delta.Col < game.CurrentMaze.Cols);
-
-                var playerDist = Vector3.Dot(mid - Position, normal) - 24f;
-
-                var moveDot = Vector3.Dot(WishVelocity, normal);
-
-                //
-                // If you're too close to a wall, immediately move back and cancel any velocity
-                // in that direction
-                //
-                if ( playerDist < 0f )
-                {
-                    if (Velocity.Length > 15f) // hack so slow movement doesn't jitter
-                        positionAdd += playerDist * normal;
-
-                    var velDot = Vector3.Dot(Velocity, normal);
-
-                    if ( directWall && velDot > 0f )
-                    {
-                        velocityAdd -= velDot * normal;
-                    }
-                }
-
-                var perpMoveDot = Math.Abs( Vector3.Dot( WishVelocity, new Vector3( normal.y, -normal.x ) ) );
-
-                //
-                // If you're trying to walk into a wall, cancel that movement if either:
-                //   1) you are also moving in a perpendicular direction
-                //   2) you aren't currently facing that direction
-                //
-                if ( moveDot > 0f && (perpMoveDot > 0.5f || Vector3.Dot( normal, EyeRotation.Forward ) > 0.5f) )
-                {
-                    wishVelocityAdd -= moveDot * normal * Math.Clamp( 1f - playerDist, 0f, 1f );
-                }
-
-                //
-                // If you're walking towards a gap between walls, but you're not cleanly going through
-                // the middle, walk perpendicular so you'll be in the middle of the gap
-                //
-                if ( !directWall && moveDot > 0f )
-                {
-                    var perp = delta.Row != 0 ? colFrac > 0.5f
-                            ? new Vector3( -1f, 0f )
-                            : new Vector3( 1f, 0f )
-                        : rowFrac > 0.5f ? new Vector3( 0f, -1f ) : new Vector3( 0f, 1f );
-
-                    wishVelocityAdd += perp;
-                }
-
-                if (!IsVaulting && SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && Input.Down(InputButton.Jump))
-                {
-                    Vault( cell + delta );
-                }
-
-                if ( Debug )
-                {
-                    DebugOverlay.Box( mid - size * 0.5f, mid + size * 0.5f, canVault ? Color.Blue : Color.Red,
-                        depthTest: false );
-                }
+                WallCollision();
             }
-
-            Position += positionAdd;
-            WishVelocity += wishVelocityAdd;
-            Velocity += velocityAdd;
+            else
+            {
+                KeepInBounds();
+            }
 
             // Fricion is handled before we add in any base velocity. That way, if we are on a conveyor,
             //  we don't slow when standing still, relative to the conveyor.
             bool bStartOnGround = GroundEntity != null;
             //bool bDropSound = false;
-            if ( bStartOnGround )
+            if ( bStartOnGround || IsGhost )
             {
                 //if ( Velocity.z < FallSoundZ ) bDropSound = true;
 
                 Velocity = Velocity.WithZ( 0 );
                 //player->m_Local.m_flFallVelocity = 0.0f;
 
-                if ( GroundEntity != null )
+                if ( GroundEntity != null || IsGhost )
                 {
                     ApplyFriction( GroundFriction * SurfaceFriction );
                 }
@@ -343,15 +400,25 @@ public partial class MazingWalkController : BasePlayerController
             WishVelocity = WishVelocity.Normal * inSpeed;
             WishVelocity *= GetWishSpeed();
 
+            if (IsGhost)
+            {
+                if (Position.z < 32f)
+                {
+                    Position = Position.WithZ(32f);
+                }
+
+                Velocity += Vector3.Up * (128f - Position.z);
+                Position = Position.WithZ( Position.z + Velocity.z * Time.Delta );
+            }
+
             bool bStayOnGround = false;
-            if ( GroundEntity != null )
+            if ( GroundEntity != null || IsGhost )
             {
                 bStayOnGround = true;
                 WalkMove();
             }
             else
             {
-                WishVelocity = Vector3.Zero;
                 AirMove();
             }
 
@@ -361,7 +428,7 @@ public partial class MazingWalkController : BasePlayerController
         // FinishGravity
         Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
         
-        if (GroundEntity != null)
+        if ( GroundEntity != null && !IsGhost )
         {
             Velocity = Velocity.WithZ(0);
         }
@@ -497,7 +564,7 @@ public partial class MazingWalkController : BasePlayerController
             return;
 
         // Determine amount of acceleration.
-        var accelspeed = acceleration * Time.Delta * wishspeed * SurfaceFriction;
+        var accelspeed = acceleration * Time.Delta * wishspeed * (IsGhost ? 1f : SurfaceFriction);
 
         // Cap at addspeed
         if (accelspeed > addspeed)

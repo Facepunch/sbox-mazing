@@ -143,6 +143,11 @@ public partial class MazingGame : Sandbox.Game
             return false;
         }
 
+        if ( ent.GetType().FullName == "Sandbox.ClientEntity" )
+        {
+            return false;
+        }
+
         switch ( ent )
         {
             case Player:
@@ -167,6 +172,8 @@ public partial class MazingGame : Sandbox.Game
                     case Player:
                         continue;
                 }
+
+                Log.Info( $"Name: {entity.Name}, Type: {entity.GetType()}, Tags: {string.Join( ", ", entity.Tags.List )}" );
 
                 _worldEntities.Add( entity );
             }
