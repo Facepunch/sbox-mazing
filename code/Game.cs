@@ -36,6 +36,9 @@ public partial class MazingGame : Sandbox.Game
 	public int LevelIndex { get; set; }
 
     [Net]
+    public int NextLevelIndex { get; set; }
+
+    [Net]
     public int TotalCoins { get; set; }
 
     [Net] public TimeSince RestartCountdown { get; set; }
@@ -47,6 +50,9 @@ public partial class MazingGame : Sandbox.Game
 
     [Net]
     public Hatch Hatch { get; set; }
+
+    private readonly HashSet<Entity> _worldEntities = new();
+    private bool _firstSpawn = true;
 
     public IEnumerable<MazingPlayer> Players => Client.All
         .Select( x => x.Pawn )
@@ -63,8 +69,6 @@ public partial class MazingGame : Sandbox.Game
     public bool IsTransitioning => RestartCountdown > -1f && RestartCountdown < 0f ||
                                    NextLevelCountdown > -1f && NextLevelCountdown < 0f;
 
-    private readonly List<ModelEntity> _mazeEntities = new List<ModelEntity>();
-
     private readonly Dictionary<(GridCoord Coord, Direction Dir), ModelEntity> _walls = new();
     private GridCoord[] _playerSpawns;
 
@@ -79,11 +83,12 @@ public partial class MazingGame : Sandbox.Game
         NextLevelCountdown = float.PositiveInfinity;
     }
 
-	[ConCmd.Admin("maze_generate")]
-	public static void GenerateNewMaze()
-	{
-		MazingGame.Current.GenerateMaze();
-	}
+    [ConCmd.Admin( "mazing_level", Help = "Go to a given level" )]
+    public static void GoToLevel( int level )
+    {
+        Current.NextLevelIndex = Math.Max( level - 1, 0 );
+        Current.NextLevelCountdown = -1.5f;
+    }
 
     public IEnumerable<Type> GetSpawningEnemyTypes( int levelIndex )
     {
@@ -130,18 +135,51 @@ public partial class MazingGame : Sandbox.Game
         }
     }
 
+    public bool ShouldRemoveBetweenLevels( Entity ent )
+    {
+        if ( ent.Parent?.IsValid ?? false )
+        {
+            return false;
+        }
+
+        switch ( ent )
+        {
+            case Player:
+                return false;
+        }
+
+        return !_worldEntities.Contains( ent );
+    }
+
 	public void GenerateMaze()
 	{
 		Host.AssertServer();
 
-		foreach ( var entity in _mazeEntities )
-		{
-			entity.Delete();
-		}
+        if ( _firstSpawn )
+        {
+            _firstSpawn = false;
 
-        ClearEnemies();
+            foreach ( var entity in Entity.All )
+            {
+                switch ( entity )
+                {
+                    case Player:
+                        continue;
+                }
 
-        _mazeEntities.Clear();
+                _worldEntities.Add( entity );
+            }
+        }
+
+        var entitiesToDelete = Entity.All
+            .Where( ShouldRemoveBetweenLevels )
+            .ToArray();
+
+        foreach ( var entity in entitiesToDelete )
+        {
+            entity.Delete();
+        }
+
         _walls.Clear();
 
         var seed = Rand.Int(1, int.MaxValue - 1);
@@ -182,8 +220,6 @@ public partial class MazingGame : Sandbox.Game
         const float borderHeight = outerWallHeight - 16f;
 
         Hatch = new Hatch();
-
-        _mazeEntities.Add( Hatch );
 
         var lightCount = (rows * cols / 32f).CeilToInt();
         var lights = new List<PointLightEntity>();
@@ -227,7 +263,6 @@ public partial class MazingGame : Sandbox.Game
             };
 
             lights.Add( light );
-            _mazeEntities.Add( light );
         }
 
         for ( var i = 0; i < enemies.Length; i++ )
@@ -256,10 +291,10 @@ public partial class MazingGame : Sandbox.Game
             var chosenKind = possibleKinds[Rand.Int( possibleKinds.Count - 1 )];
             var coinCell = generated.Coins[treasureIndex++];
 
-            _mazeEntities.Add( new Treasure( chosenKind )
+            new Treasure( chosenKind )
             {
                 Position = CellToPosition( coinCell.Row + 0.5f, coinCell.Col + 0.5f )
-            } );
+            };
 
             totalTreasureValue -= Mazing.Treasure.GetValue( chosenKind );
         }
@@ -268,8 +303,6 @@ public partial class MazingGame : Sandbox.Game
         {
             Position = CellToPosition( generated.Key.Row + 0.5f, generated.Key.Col + 0.5f ) + Vector3.Up * 64f
         };
-
-        _mazeEntities.Add( Key );
 
 		for (var row = 0; row <= CurrentMaze.Rows; row++)
 		{
@@ -283,7 +316,6 @@ public partial class MazingGame : Sandbox.Game
                         Position = CellToPosition( row + 1f, col ) + Vector3.Up * (height - wallModelHeight)
                     };
 
-                    _mazeEntities.Add(wall);
                     _walls.Add(((row, col), Direction.West), wall);
 
                 }
@@ -296,8 +328,7 @@ public partial class MazingGame : Sandbox.Game
                         Position = CellToPosition( row, col ) + Vector3.Up * (height - wallModelHeight),
                         Rotation = Rotation.FromYaw( 90f )
                     };
-                    
-                    _mazeEntities.Add(wall);
+
                     _walls.Add(((row, col), Direction.North), wall);
                 }
 
@@ -312,24 +343,24 @@ public partial class MazingGame : Sandbox.Game
                     var height = row <= 0 || row >= CurrentMaze.Rows || col <= 0 || col >= CurrentMaze.Cols
                         ? outerWallHeight : innerWallHeight;
 
-					_mazeEntities.Add(new Post
-					{
-						Position = CellToPosition(row, col) + Vector3.Up * (height - wallModelHeight)
-					});
-				}
+                    new Post
+                    {
+                        Position = CellToPosition( row, col ) + Vector3.Up * (height - wallModelHeight)
+                    };
+                }
 			}
 		}
 
-        _mazeEntities.Add( new Border
+        new Border
         {
             Position = Vector3.Up * borderHeight + CellToPosition( CurrentMaze.Rows, 0f )
-        } );
+        };
 
-        _mazeEntities.Add( new Border
+        new Border
         {
             Position = Vector3.Up * borderHeight + CellToPosition( 0f, CurrentMaze.Cols ),
             Rotation = Rotation.FromYaw( 180f )
-        } );
+        };
     }
 
 	public Vector3 CellToPosition( float row, float col ) => new Vector3( (col - ExitCell.Col - 0.5f) * 48f, (row - ExitCell.Row - 0.5f) * 48f, 0f );
@@ -453,8 +484,7 @@ public partial class MazingGame : Sandbox.Game
 
                 LevelIndex = 0;
                 TotalCoins = 0;
-
-                ClearEnemies();
+                
                 GenerateMaze();
                 ResetPlayers();
             }
@@ -468,7 +498,7 @@ public partial class MazingGame : Sandbox.Game
             {
                 NextLevelCountdown = float.PositiveInfinity;
 
-                ++LevelIndex;
+                LevelIndex = NextLevelIndex;
 
                 foreach ( var player in Player.All.OfType<MazingPlayer>() )
                 {
@@ -508,6 +538,7 @@ public partial class MazingGame : Sandbox.Game
         if ( anyPlayers && allExited )
         {
             NextLevelCountdown = -1.5f;
+            NextLevelIndex = LevelIndex + 1;
         }
         else if ( !anyPlayers && anyDeadPlayers )
         {
@@ -548,18 +579,7 @@ public partial class MazingGame : Sandbox.Game
 
         CurrentMaze.WriteNetworkData();
     }
-
-    private void ClearEnemies()
-    {
-        var enemies = Enemies.ToArray();
-
-        foreach ( var enemy in enemies )
-        {
-            enemy.IsDeleting = true;
-            enemy.Delete();
-        }
-    }
-
+    
     private void ResetPlayers()
     {
         RestartCountdown = float.PositiveInfinity;
