@@ -65,8 +65,6 @@ internal partial class Wizard : Enemy
     {
         base.OnLevelChange();
 
-        Log.Info( "OnLevelChange" );
-
         _spawnParticles?.Destroy();
         _spawnParticles = null;
 
