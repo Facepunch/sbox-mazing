@@ -102,6 +102,8 @@ public abstract partial class Enemy : AnimatedEntity
 
         Tags.Add( "enemy" );
 
+        Rotation = EyeRotation = Rotation.FromYaw( Rand.Int( 0, 3 ) * 90f );
+
         Animator = new MazingPlayerAnimator();
 
         EnableAllCollisions = true;
