@@ -10,7 +10,7 @@
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/treasure/gemb.vsnd",
+			resource:"sounds/player/stamina_recharge.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

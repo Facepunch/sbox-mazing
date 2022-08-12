@@ -10,7 +10,7 @@
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/treasure/gem1.vsnd",
+			resource:"sounds/treasure/gema.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

@@ -10,7 +10,7 @@
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/treasure/gemb.vsnd",
+			resource:"sounds/enemy/wizard.shoot.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

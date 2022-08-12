@@ -6,12 +6,11 @@
 		Volume = 1
 		VolumeRandom = 0
 		Pitch = 1
-		PitchRandom = 0
+		PitchRandom = 0.1
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/world/hatch.open1.vsnd",
-			resource:"sounds/world/hatch.open2.vsnd",
+			resource:"sounds/world/key_unlock_hatch.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

@@ -332,8 +332,11 @@ public partial class MazingWalkController : BasePlayerController
 
             if ( !vaultOnCooldown && _wasVaultCooldown )
             {
+                Sound.FromEntity( "player.recharge", Pawn );
                 AddEvent( "vault_reset" );
             }
+
+            _wasVaultCooldown = vaultOnCooldown;
 
             if ( Debug )
             {
@@ -632,6 +635,8 @@ public partial class MazingWalkController : BasePlayerController
         {
             (Pawn as MazingPlayer)?.OnVault();
         }
+
+        Sound.FromEntity( "player.vault", Pawn );
 
         AddEvent("vault");
     }

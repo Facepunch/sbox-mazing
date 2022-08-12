@@ -246,6 +246,8 @@ public partial class MazingPlayer : Sandbox.Player
         {
             _sweatParticles?.Destroy();
             _sweatParticles = null;
+
+            Sound.FromWorld( "player.recharge", EyePosition );
         }
 
         //DropHeldItem();
@@ -268,6 +270,8 @@ public partial class MazingPlayer : Sandbox.Player
         item.Parent = this;
         item.LastHolder = this;
         item.TargetPosition = Vector3.Up * 64f + Vector3.Forward * 8f;
+
+        Sound.FromEntity( "key.collect", this );
     }
 
     private void ThrowItem( GridCoord cell )
@@ -275,6 +279,8 @@ public partial class MazingPlayer : Sandbox.Player
         if ( HeldItem == null ) return;
 
         LastItemDrop = 0f;
+
+        Sound.FromEntity( "key.drop", this );
 
         HeldItem.Parent = null;
         HeldItem.TargetPosition = Game.CellCenterToPosition( cell );

@@ -19,6 +19,8 @@ partial class Keyhunter : Enemy
     private Color _colorNormal = new Color(0.66f, 0.66f, 0.3f);
     private Color _colorHunting = new Color(1f, 1f, 0f);
 
+    private bool _wasHuntingKey;
+
     public override void Spawn()
     {
         base.Spawn();
@@ -46,7 +48,17 @@ partial class Keyhunter : Enemy
     protected override void OnServerTick()
     {
         base.OnServerTick();
-        RenderColor = IsHuntingKey() ? _colorHunting : _colorNormal;
+
+        var huntingKey = IsHuntingKey();
+
+        if ( huntingKey && !_wasHuntingKey )
+        {
+            Sound.FromEntity( "keyhunter.alert", this );
+        }
+
+        _wasHuntingKey = huntingKey;
+
+        RenderColor = huntingKey ? _colorHunting : _colorNormal;
     }
 
     public bool IsHuntingKey()

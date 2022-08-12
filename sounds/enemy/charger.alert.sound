@@ -10,7 +10,9 @@
 		Decibels = 70
 		Sounds = 
 		[
-			resource:"sounds/treasure/gemb.vsnd",
+			resource:"sounds/enemy/charger_alert_1.vsnd",
+			resource:"sounds/enemy/charger_alert_2.vsnd",
+			resource:"sounds/enemy/charger_alert_3.vsnd",
 		]
 		SelectionMode = "Random"
 		MaximumDistance = 1143.9335

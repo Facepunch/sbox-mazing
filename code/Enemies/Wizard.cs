@@ -149,7 +149,7 @@ internal partial class Wizard : Enemy
                     Position = Position + Vector3.Up * 48f
                 };
                 
-                // Sound.FromEntity( BoltShootSound.ResourceName, this );
+                Sound.FromEntity( "wizard.shoot", this );
             }
 
             if (_teleportTimer >= TELEPORT_DELAY)

@@ -68,7 +68,7 @@ namespace Mazing.UI
 
                 _spareValue -= Math.Sign( _spareValue ) * Math.Max( MinCoinAccumulateRate, Math.Abs( _spareValue ) / 20 );
 
-                Sound.FromScreen( "click.tiny" );
+                Sound.FromScreen( "click.tiny", 1f, 0f );
 
                 if (Math.Abs(_spareValue) < MinCoinAccumulateRate)
                 {

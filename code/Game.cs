@@ -107,7 +107,7 @@ public partial class MazingGame : Sandbox.Game
     {
         if ( levelIndex == 0 )
         {
-            yield return typeof(Wizard);
+            yield return typeof(Keyhunter);
             yield break;
         }
 

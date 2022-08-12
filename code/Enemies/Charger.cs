@@ -79,6 +79,11 @@ internal partial class Charger : Enemy
 
             if (Game.IsPlayerInCell(curr))
             {
+                if ( !IsCharging )
+                {
+                    Sound.FromEntity( "charger.alert", this );
+                }
+
                 IsCharging = true;
                 TargetCell = end;
                 break;
