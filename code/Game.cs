@@ -107,8 +107,8 @@ public partial class MazingGame : Sandbox.Game
     {
         if ( levelIndex == 0 )
         {
-            yield return typeof(Wizard);
-            yield break;
+            //yield return typeof(Wizard);
+            //yield break;
         }
 
         var rand = new Random( seed );
