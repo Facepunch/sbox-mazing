@@ -10,7 +10,7 @@ namespace Mazing.Enemies;
 [UnlockLevel(9), ThreatValue(4)]
 partial class Keyhunter : Enemy
 {
-    public override float MoveSpeed => IsHuntingKey() ? 105f : 60f;
+    public override float MoveSpeed => IsHuntingKey() ? 99f : 60f;
 
     protected override int HoldType => IsHuntingKey() ? 4 : 0;
 
