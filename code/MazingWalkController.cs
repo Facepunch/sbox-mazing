@@ -262,7 +262,8 @@ public partial class MazingWalkController : BasePlayerController
                 //
                 if ( playerDist < 0f )
                 {
-                    positionAdd += playerDist * normal;
+                    if (Velocity.Length > 15f) // hack so slow movement doesn't jitter
+                        positionAdd += playerDist * normal;
 
                     var velDot = Vector3.Dot(Velocity, normal);
 

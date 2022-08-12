@@ -10,7 +10,11 @@ namespace Mazing.Enemies;
 [UnlockLevel(9)]
 partial class Keyhunter : Enemy
 {
-    public override float MoveSpeed => IsHuntingKey() ? 116f : 72f;
+    public override float MoveSpeed => IsHuntingKey() ? 105f : 60f;
+
+    protected override int HoldType => IsHuntingKey() ? 4 : 0;
+
+    public override Vector3 LookPos => GetLookPos();
 
     private Color _colorNormal = new Color(0.66f, 0.66f, 0.3f);
     private Color _colorHunting = new Color(1f, 1f, 0f);
@@ -19,10 +23,12 @@ partial class Keyhunter : Enemy
     {
         base.Spawn();
 
-        //SetModel("models/citizen_mannequin/mannequin.vmdl");
-        //new ModelEntity( "models/citizen_clothes/hat/hat_beret.black.vmdl", this );
-        new ModelEntity("models/citizen_clothes/hair/hair_shortscruffy/Models/hair_shortscruffy_grey.vmdl", this);
-        //new ModelEntity("models/citizen_clothes/glasses/Stylish_Glasses/Models/stylish_glasses_black.vmdl", this);
+        Clothing = new ClothingContainer();
+        AddClothingItem("models/citizen_clothes/skin04.clothing");
+        AddClothingItem("models/citizen_clothes/hair/hair_fade/hair_fade.clothing");
+        Clothing.DressEntity(this);
+
+        Scale = 1.225f;
     }
 
     protected override void OnReachTarget()
@@ -47,5 +53,19 @@ partial class Keyhunter : Enemy
     {
         var key = Entity.All.OfType<Key>().FirstOrDefault();
         return (key == null || key.IsHeld);
+    }
+
+    private Vector3 GetLookPos()
+    {
+        var player = Entity.All.OfType<MazingPlayer>().Where(x => x.HeldItem != null).FirstOrDefault();
+
+        if (player != null)
+        {
+            return player.EyePosition.WithZ(player.EyePosition.z * 0.25f);
+        }
+        else
+        {
+            return EyePosition + EyeRotation.Forward * 200;
+        }
     }
 }

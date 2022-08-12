@@ -88,7 +88,8 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 
 		SetLookAt("aim_eyes", lookPos);
 		SetLookAt("aim_head", lookPos);
-		SetLookAt("aim_body", lookPos);
+		SetLookAt("aim_body", Pawn.EyePosition + EyeRotation.Forward * 200);
+		//SetLookAt("aim_body", lookPos);
 	}
 
 	public virtual void DoRotation( Rotation idealRotation )

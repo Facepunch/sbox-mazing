@@ -188,6 +188,8 @@ public abstract partial class Enemy : AnimatedEntity
             walkController.EnemyWishVelocity = dir;
         }
 
+        //DebugOverlay.Text(Velocity.Length.ToString(), EyePosition, 0f, float.MaxValue);
+
         Controller?.Simulate(default, this, null);
         Animator?.Simulate(default, this, null);
 
