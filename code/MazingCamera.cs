@@ -62,7 +62,7 @@ public class MazingCamera : CameraMode
 
         Position = target - Rotation.Forward * distance;
 
-        Sound.Listener = new Transform( target, Rotation.LookAt( Rotation.Forward.WithZ( 0f ), Vector3.Up ) );
+        Sound.Listener = new Transform( targetPawn.EyePosition, Rotation.LookAt( Rotation.Forward.WithZ( 0f ), Vector3.Up ) );
 
 		FieldOfView = 20;
 

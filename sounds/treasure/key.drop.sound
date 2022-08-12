@@ -5,7 +5,7 @@
 		UI = false
 		Volume = 1
 		VolumeRandom = 0
-		Pitch = 0.7
+		Pitch = 0.95
 		PitchRandom = 0.05
 		Decibels = 70
 		Sounds = 
