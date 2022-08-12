@@ -202,7 +202,6 @@ public partial class MazingPlayer : Sandbox.Player
     public void ServerTick()
     {
         CheckForVault();
-        CheckForItemPickup();
         CheckExited();
 
         //var cell = Game.GetRandomCell();
@@ -277,27 +276,6 @@ public partial class MazingPlayer : Sandbox.Player
         HeldItem.Parent = null;
         HeldItem.TargetPosition = Game.CellCenterToPosition( cell );
         HeldItem = null;
-    }
-
-    private void CheckForItemPickup()
-    {
-        if ( !IsAliveInMaze )
-        {
-            return;
-        }
-
-        foreach ( var treasure in Game.Treasure)
-        {
-            var diff = treasure.Position.WithZ( 0 ) - Position;
-
-            if ( diff.LengthSquared < 20f * 20f )
-            {
-                HeldCoins += treasure.Value;
-
-                treasure.Delete();
-                break;
-            }
-        }
     }
 
     private void CheckExited()

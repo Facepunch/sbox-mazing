@@ -64,6 +64,9 @@ public enum TreasureKind
 
 public partial class Treasure : AnimatedEntity
 {
+    public const float FadeOutStartTime = 0.5f;
+    public const float FaceOutDuration = 0.25f;
+
     private TreasureKind _kind;
     private PointLightEntity _light;
 
@@ -108,6 +111,10 @@ public partial class Treasure : AnimatedEntity
 
     public int Value => GetValue( Kind );
 
+    public bool IsCollected { get; private set; }
+
+    private TimeSince _collectedTime;
+
     public Treasure()
     {
 
@@ -124,7 +131,7 @@ public partial class Treasure : AnimatedEntity
 
         SetModel( "models/item.vmdl" );
 
-        Tags.Add( "coin" );
+        Tags.Add( "treasure" );
 
         if (IsServer)
         {
@@ -135,11 +142,57 @@ public partial class Treasure : AnimatedEntity
                 Range = 48f
             };
 
-            _light.SetParent( this, "Coin", Transform.Zero );
+            _light.SetParent( this, "Item", Transform.Zero );
         }
 
         EnableDrawing = true;
         EnableSolidCollisions = true;
+    }
+
+    public void ServerTick()
+    {
+        if ( IsCollected )
+        {
+            LocalPosition = LocalPosition.WithZ( LocalPosition.z + (192f - LocalPosition.z) * 0.25f );
+
+            _light.Brightness = Math.Max( 0.75f - _collectedTime / FadeOutStartTime, 0f );
+
+            if ( _collectedTime > FadeOutStartTime)
+            {
+                var alpha = 1f - (_collectedTime - FadeOutStartTime) / FaceOutDuration;
+
+                RenderColor = RenderColor.WithAlpha( Math.Clamp( alpha, 0f, 1f ) );
+
+                if ( alpha < 0f )
+                {
+                    Delete();
+                }
+            }
+
+            return;
+        }
+
+        var game = MazingGame.Current;
+
+        var player = game.GetClosestPlayer( Position, 24f, true, false );
+
+        if ( player != null )
+        {
+            Collect( player );
+        }
+    }
+
+    public void Collect( MazingPlayer player )
+    {
+        if ( IsCollected ) return;
+
+        IsCollected = true;
+        Parent = player;
+        LocalPosition = Vector3.Zero;
+
+        _collectedTime = 0f;
+
+        player.HeldCoins += Value;
     }
 }
 
@@ -222,7 +275,7 @@ public partial class Key : Holdable
                 Range = 64f
             };
 
-            light.SetParent(this, "Coin", Transform.Zero);
+            light.SetParent(this, "Item", Transform.Zero);
         }
     }
 

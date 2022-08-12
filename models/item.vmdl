@@ -135,8 +135,8 @@
 				[
 					{
 						_class = "AnimFile"
-						name = "key"
-						activity_name = ""
+						name = "idle"
+						activity_name = "ACT_IDLE"
 						activity_weight = 1
 						weight_list_name = ""
 						fade_in_time = 0.2
@@ -149,9 +149,9 @@
 						disable_compression = false
 						source_filename = "models/items.fbx"
 						start_frame = 1
-						end_frame = -1
+						end_frame = 120
 						framerate = 30.0
-						take = 0
+						take = 1
 						reverse = false
 					},
 				]
