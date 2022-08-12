@@ -51,7 +51,7 @@ public static class MazeGenerator
             keys[Rand.Int( keys.Length - 1 )],
             players,
             new[] { enemies[Rand.Int( enemies.Length - 1 )] },
-            new[] { coins[Rand.Int( coins.Length - 1 )] } );
+            coins );
     }
 
 	public static GeneratedMaze Generate( int seed, int rows, int cols, int playerCount, int enemyCount, int coinCount )

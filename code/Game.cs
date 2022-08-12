@@ -286,7 +286,7 @@ public partial class MazingGame : Sandbox.Game
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
             : MazeGenerator.Generate( seed, rows, cols, MaxPlayers, enemies.Length,
-                LevelIndex + 1 );
+                LevelIndex * 2 + 2 );
 
         CurrentMaze = generated.MazeData;
         CurrentMaze.WriteNetworkData();
@@ -573,6 +573,11 @@ public partial class MazingGame : Sandbox.Game
         foreach ( var enemy in Enemies )
         {
             enemy.ServerTick();
+        }
+
+        foreach ( var treasure in Treasure )
+        {
+            treasure.ServerTick();
         }
 
         if ( !float.IsPositiveInfinity( RestartCountdown ) )
