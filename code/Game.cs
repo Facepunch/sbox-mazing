@@ -1,4 +1,4 @@
-using Sandbox;
+﻿using Sandbox;
 using Sandbox.UI.Construct;
 using System;
 using System.Collections.Generic;
@@ -96,7 +96,7 @@ public partial class MazingGame : Sandbox.Game
     {
         var rand = new Random( seed );
 
-        var totalThreat = levelIndex + 1;
+        var totalThreat = levelIndex == 0 ? 1 : levelIndex + 2;
 
         var unlocked = TypeLibrary.GetTypes<Enemy>()
             .Select( x => (
