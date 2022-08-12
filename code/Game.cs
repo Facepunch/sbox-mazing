@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Mazing.Enemies;
 using Mazing.UI;
+using Sandbox.UI;
 
 //
 // You don't need to put things in a namespace, but it doesn't hurt.
@@ -91,8 +92,10 @@ public partial class MazingGame : Sandbox.Game
         Current.NextLevelCountdown = -1.5f;
     }
 
-    public IEnumerable<Type> GetSpawningEnemyTypes( int levelIndex )
+    public IEnumerable<Type> GetSpawningEnemyTypes( int levelIndex, int seed )
     {
+        var rand = new Random( seed );
+
         var enemyCount = levelIndex + 1;
 
         var unlocked = TypeLibrary.GetTypes<Enemy>()
@@ -115,11 +118,11 @@ public partial class MazingGame : Sandbox.Game
 
         for ( var i = 0; i < alreadyUnlocked.Length; ++i )
         {
-            var index = Rand.Int( i, alreadyUnlocked.Length - 1 );
+            var index = rand.Next( i, alreadyUnlocked.Length );
             (alreadyUnlocked[i], alreadyUnlocked[index]) = (alreadyUnlocked[index], alreadyUnlocked[i]);
         }
 
-        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : Rand.Int( 1, alreadyUnlocked.Length - 1 );
+        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : rand.Next( 1, alreadyUnlocked.Length );
 
         var usedTypes = justUnlocked
             .Concat( alreadyUnlocked.Take( extraTypeCount ) )
@@ -134,6 +137,57 @@ public partial class MazingGame : Sandbox.Game
         {
             yield return usedTypes[Rand.Int( 0, usedTypes.Length - 1 )];
         }
+    }
+
+    private static float GetLevelSizeScore( int length, int cross, int targetArea )
+    {
+        var area = length * cross;
+
+        if ( area < targetArea )
+        {
+            return 0f;
+        }
+
+        var max = Math.Max( length, cross );
+        var min = Math.Min( length, cross );
+
+        return (float)targetArea * targetArea / (area * area) * min * min * min / (max * max * max);
+    }
+
+    public (int Rows, int Cols) GetLevelSize( int levelIndex, int seed )
+    {
+        var rand = new Random( seed );
+        var targetArea = 64 + (levelIndex < 2 ? 0 : (levelIndex - 2) * 4);
+        var minLength = 4;
+        var maxLength = MathF.Sqrt(targetArea).FloorToInt();
+
+        var candidates = new List<(int Length, int Cross, float Score)>();
+        var totalScore = 0f;
+
+        for ( var length = minLength; length <= maxLength; length += 4 )
+        {
+            var cross = (((float)targetArea / length) / 4f).CeilToInt() * 4;
+            var score = GetLevelSizeScore( length, cross, targetArea );
+
+            Log.Info( $"{length}, {cross}, {score}" );
+
+            candidates.Add( (length, cross, score) );
+            totalScore += score;
+        }
+
+        var targetScore = rand.NextSingle() * totalScore;
+
+        foreach ( var (length, cross, score) in candidates )
+        {
+            targetScore -= score;
+
+            if ( targetScore < 0f )
+            {
+                return rand.NextSingle() < 0.25f ? (cross, length) : (length, cross);
+            }
+        }
+
+        throw new Exception();
     }
 
     public bool ShouldRemoveBetweenLevels( Entity ent )
@@ -195,21 +249,13 @@ public partial class MazingGame : Sandbox.Game
 
 		Log.Info( $"Generating maze with seed {seed:x8} ");
 
-        var typesToSpawn = GetSpawningEnemyTypes( LevelIndex )
+        var typesToSpawn = GetSpawningEnemyTypes( LevelIndex, seed )
             .ToArray();
 
         var enemies = typesToSpawn.Select( x => (Enemy)TypeLibrary.Create<Enemy>( x ) )
             .ToArray();
         
-        var (rows, cols) = LevelIndex switch
-        {
-            < 4 => (8, 8),
-            < 8 => (8, 12),
-            < 16 => (12, 12),
-            < 32 => (16, 12),
-            < 64 => (16, 16),
-            _ => (20, 16)
-        };
+        var (rows, cols) = GetLevelSize( LevelIndex, seed );
         
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
