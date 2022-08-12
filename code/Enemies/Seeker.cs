@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(0)]
+[UnlockLevel(1)]
 partial class Seeker : Enemy
 {
     public override float MoveSpeed => 84f;
@@ -21,24 +21,9 @@ partial class Seeker : Enemy
 
         Clothing = new ClothingContainer();
         AddClothingItem("models/citizen_clothes/skin05.clothing");
-        //AddClothingItem("models/citizen_clothes/vest/Chest_Armour/chest_armour.clothing");
-        //AddClothingItem("models/citizen_clothes/trousers/LegArmour/leg_armour.clothing");
-        //AddClothingItem("models/citizen_clothes/gloves/tactical_gloves/tactical_gloves.clothing");
-        //AddClothingItem("models/citizen_clothes/shoes/Boots/army_boots.clothing");
+        //AddClothingItem("models/citizen_clothes/hair/hair_balding/hair_baldinggrey.clothing");
         Clothing.DressEntity(this);
 
-        SetAnimParameter("b_vr", true);
-        SetAnimParameter("aim_body_weight", 0.75f);
-        SetAnimParameter("left_hand_ik.position", new Vector3(56f, 14f, 64f));
-        SetAnimParameter("right_hand_ik.position", new Vector3(6f, -114f, 164f));
-
-        //SetAnimParameter("holdtype", 4);
-
-        //SetModel("models/citizen_mannequin/mannequin.vmdl");
-        //new ModelEntity( "models/citizen_clothes/hat/hat_beret.black.vmdl", this );
-        //new ModelEntity("models/citizen_clothes/gloves/tactical_gloves/Models/tactical_gloves.vmdl", this);
-        //new ModelEntity("models/citizen_clothes/glasses/Stylish_Glasses/Models/stylish_glasses_black.vmdl", this);
-        //RenderColor = Color.Green;
         Scale = 0.8f;
     }
 

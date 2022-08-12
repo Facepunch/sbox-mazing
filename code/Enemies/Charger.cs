@@ -5,9 +5,11 @@ namespace Mazing.Enemies;
 [UnlockLevel(3)]
 internal partial class Charger : Enemy
 {
-    public override float MoveSpeed => IsCharging ? 160f : 85f;
+    public override float MoveSpeed => IsCharging ? 163f : 85f;
 
     private bool _isCharging;
+
+    protected override int HoldType => _isCharging ? 4 : 0;
 
     public bool IsCharging
     {
@@ -26,7 +28,10 @@ internal partial class Charger : Enemy
     {
         base.Spawn();
 
-        new ModelEntity("models/citizen_clothes/hat/hat_securityhelmet.vmdl", this);
+        Clothing = new ClothingContainer();
+        AddClothingItem("models/citizen_clothes/skin04.clothing");
+        AddClothingItem("models/citizen_clothes/hat/hardhat.yellow.clothing");
+        Clothing.DressEntity(this);
     }
 
     protected override void OnLevelChange()

@@ -4,13 +4,18 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(5)]
+[UnlockLevel(0)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;
 
+    protected override int HoldType => FiredBolt && !IsTeleporting && _firedBoltTime > 0.15f ? (_firedBoltTime > 2.75f ? _teleportHoldType : 0) : 5;
+    private int _teleportHoldType;
+
     public bool IsTeleporting { get; set; } = false;
     public bool FiredBolt { get; set; }
+
+    private TimeSince _firedBoltTime;
 
     private GridCoord _teleportCell;
 
@@ -26,10 +31,22 @@ internal partial class Wizard : Enemy
     {
         base.Spawn();
 
-        //new ModelEntity("models/citizen_clothes/hat/hat.tophat.vmdl", this);
-        new ModelEntity("models/citizen_clothes/dress/Office_Skirt/Models/office_skirt.vmdl", this);
-        //new ModelEntity("models/citizen_clothes/gloves/long_white_gloves/Models/long_white_gloves.vmdl", this);
-        RenderColor = new Color(0.7f, 0f, 0.7f);
+        Clothing = new ClothingContainer();
+        AddClothingItem("models/citizen_clothes/skin05.clothing");
+        AddClothingItem("models/citizen_clothes/dress/Skirt/skirt.clothing");
+        AddClothingItem("models/citizen_clothes/necklace/necklace/necklace.clothing");
+        AddClothingItem("models/citizen_clothes/hair/hair_balding/hair_baldinggrey.clothing");
+        //AddClothingItem("models/citizen_clothes/dress/dress.kneelength.clothing");
+        //AddClothingItem("models/citizen_clothes/hair/hair_wavyblack/hair_wavyblack.clothing");
+        //AddClothingItem("models/citizen_clothes/hair/hair_longcurly/hair_longcurly.clothing");
+        Clothing.DressEntity(this);
+
+        ////new ModelEntity("models/citizen_clothes/hat/hat.tophat.vmdl", this);
+        //new ModelEntity("models/citizen_clothes/dress/Office_Skirt/Models/office_skirt.vmdl", this);
+        ////new ModelEntity("models/citizen_clothes/gloves/long_white_gloves/Models/long_white_gloves.vmdl", this);
+        RenderColor = new Color(0.75f, 0f, 0.75f);
+
+        _teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
 
         _teleportTimer = 0f;
     }
@@ -130,6 +147,8 @@ internal partial class Wizard : Enemy
 
                 Animator.Trigger("b_attack");
 
+                _firedBoltTime = 0f;
+
                 var bolt = new WizardBolt
                 {
                     Direction = this.GetFacingDirection(),
@@ -158,10 +177,12 @@ internal partial class Wizard : Enemy
                 _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
 
                 _teleportTimer = 0f;
+
+                _teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
             }
         }
 
-        //DebugOverlay.Text($"_teleportTimer: {_teleportTimer}", new Vector3(0f, 0f, 0f), 0f, float.MaxValue);
+        //DebugOverlay.Text($"FiredBolt: {FiredBolt}", EyePosition, 0f, float.MaxValue);
     }
 
     protected override void OnReachTarget()
