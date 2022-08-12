@@ -23,9 +23,10 @@ namespace Mazing.UI
         private void UpdateText( Label valueText, Label diffText )
         {
             valueText.Text = $"{_lastValue - _spareValue}";
-            diffText.Text = $"{(_diffSign > 0 ? "+" : "-")}{Math.Abs(_spareValue)}";
+            diffText.Text = $"{(_diffSign > 0 ? "+" : "-")}{Math.Abs( _spareValue )}";
 
-            diffText.Style.Set( "left", $"{15 + (int)Math.Floor(  _lastValue > 0 ? Math.Log10( _lastValue ) : 1 ) * 3}vh" );
+            diffText.Style.Set( "left",
+                $"{15 + (int)Math.Floor( Math.Log10( Math.Max( 1, _lastValue - _spareValue ) ) ) * 3}vh" );
         }
 
         public void Tick( int value, Label valueText, Label diffText, bool ignoreDecrease )
@@ -40,6 +41,8 @@ namespace Mazing.UI
             {
                 var diff = value - _lastValue;
                 _lastValue = value;
+
+                diffText.SetClass( "negative", diff < 0 );
 
                 if ( diff > 0 || !ignoreDecrease )
                 {

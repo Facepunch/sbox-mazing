@@ -80,5 +80,11 @@ text.diff {
 
     font-size: 4vh;
 
+    color: gold;
+
     transition: opacity 0.25s linear;
+}
+
+text.diff.negative {
+    color: red;
 }
