@@ -105,6 +105,8 @@ internal partial class Charger : Enemy
             IsCharging = false;
             TargetCell = GetRandomNeighborCell();
 
+            Sound.FromEntity( "charger.hitwall", this );
+
             // TODO: look left and right for a player
         }
     }
