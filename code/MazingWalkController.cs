@@ -419,6 +419,7 @@ public partial class MazingWalkController : BasePlayerController
             }
             else
             {
+                WishVelocity = Vector3.Zero;
                 AirMove();
             }
 
