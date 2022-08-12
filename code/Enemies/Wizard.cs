@@ -5,6 +5,7 @@ using Sandbox;
 namespace Mazing.Enemies;
 
 [UnlockLevel(5)]
+//[UnlockLevel(0)]
 internal partial class Wizard : Enemy
 {
     public override float MoveSpeed => 20f;
@@ -36,11 +37,13 @@ internal partial class Wizard : Enemy
         AddClothingItem("models/citizen_clothes/dress/Skirt/skirt.clothing");
         AddClothingItem("models/citizen_clothes/necklace/necklace/necklace.clothing");
         AddClothingItem("models/citizen_clothes/hair/hair_balding/hair_baldinggrey.clothing");
+        AddClothingItem("models/citizen_clothes/hair/scruffy_beard/scruffy_beard_grey.clothing");
         Clothing.DressEntity(this);
 
         RenderColor = new Color(0.75f, 0f, 0.75f);
 
-        _teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
+        //_teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
+        _teleportHoldType = 3;
 
         _teleportTimer = 0f;
     }
@@ -172,7 +175,8 @@ internal partial class Wizard : Enemy
 
                 _teleportTimer = 0f;
 
-                _teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
+                //_teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
+                _teleportHoldType = 3;
             }
         }
 

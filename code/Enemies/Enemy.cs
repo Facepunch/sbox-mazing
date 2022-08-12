@@ -239,7 +239,7 @@ public abstract partial class Enemy : AnimatedEntity
 
     public TimeSince GetSinceLastVisited( GridCoord coord )
     {
-        return IsInBounds(coord) ? _cellVisitTimes[coord.Row, coord.Col] : default;
+        return IsInBounds(coord) && _cellVisitTimes != null ? _cellVisitTimes[coord.Row, coord.Col] : default;
     }
 
     public float GetCost( GridCoord coord )
