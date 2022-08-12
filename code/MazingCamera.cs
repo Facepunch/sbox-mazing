@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Sandbox;
+using Sandbox.Internal;
 
 namespace Mazing;
 
@@ -38,7 +39,7 @@ public class MazingCamera : CameraMode
 
         var targetPawn = Local.Pawn;
 
-        if ( targetPawn == null || targetPawn is MazingPlayer player && player.HasExited )
+        if ( targetPawn == null || targetPawn is MazingPlayer player && player.HasExited && player.ExitTime > 1.5f )
         {
             targetPawn = MazingGame.Current.PlayersAliveInMaze.FirstOrDefault();
         }
@@ -48,7 +49,7 @@ public class MazingCamera : CameraMode
             return;
         }
         
-        var center = targetPawn.Position.WithZ(0f) + Vector3.Up * 64;
+        var center = targetPawn.Position.WithZ( 64f );
         var distance = 1600f * targetPawn.Scale;
         var target = (Position + Rotation.Forward * distance).WithZ( center.z );
         var (stageMin, stageMax) = GetCameraBounds();
@@ -60,6 +61,8 @@ public class MazingCamera : CameraMode
         target.y = Math.Clamp(target.y, stageMin.y, stageMax.y );
 
         Position = target - Rotation.Forward * distance;
+
+        Sound.Listener = new Transform( target, Rotation.LookAt( Rotation.Forward.WithZ( 0f ), Vector3.Up ) );
 
 		FieldOfView = 20;
 

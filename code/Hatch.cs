@@ -53,6 +53,8 @@ public partial class Hatch : AnimatedEntity
             ? MazingGame.Current.Key.LastHolder.Client.Name
             : null );
 
+        Sound.FromEntity( "hatch.open", this );
+
         IsOpen = true;
 
         Tags.Remove( "solid" );

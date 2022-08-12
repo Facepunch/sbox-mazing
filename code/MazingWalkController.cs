@@ -25,6 +25,7 @@ public partial class MazingWalkController : BasePlayerController
     //[Net] public float PostVaultTime { get; set; } = 0.2f;
     [Net] public float VaultHeight { get; set; } = 192f;
     [Net] public float VaultCooldown { get; set; } = 3.5f;
+    [Net] public float GhostHeight { get; set; } = 384f;
 
     public bool IsGhost => Pawn is MazingPlayer player && !player.IsAlive;
 
@@ -402,13 +403,8 @@ public partial class MazingWalkController : BasePlayerController
 
             if (IsGhost)
             {
-                if (Position.z < 32f)
-                {
-                    Position = Position.WithZ(32f);
-                }
-
-                Velocity += Vector3.Up * (128f - Position.z);
-                Position = Position.WithZ( Position.z + Velocity.z * Time.Delta );
+                Velocity += Vector3.Up * (GhostHeight - Position.z);
+                Position = Position.WithZ( Math.Clamp( Position.z + Velocity.z * Time.Delta, 32f, GhostHeight + 64f ) );
             }
 
             bool bStayOnGround = false;
@@ -631,6 +627,11 @@ public partial class MazingWalkController : BasePlayerController
         
         Velocity = Velocity.WithZ(startz + flMul * flGroundFactor);
         Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
+
+        if ( Host.IsServer )
+        {
+            (Pawn as MazingPlayer)?.OnVault();
+        }
 
         AddEvent("vault");
     }

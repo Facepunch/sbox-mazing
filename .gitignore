@@ -11,3 +11,7 @@ launchSettings.json
 *.vmdl_c
 
 *.vpcf_c
+
+*.vsnd_c
+
+*.sound_c

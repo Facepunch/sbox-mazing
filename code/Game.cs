@@ -14,6 +14,12 @@ using Sandbox.UI;
 //
 namespace Mazing;
 
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class PrecacheMethodAttribute : Attribute
+{
+
+}
+
 /// <summary>
 /// This is your game class. This is an entity that is created serverside when
 /// the game starts, and is replicated to the client. 
@@ -76,6 +82,11 @@ public partial class MazingGame : Sandbox.Game
 
 	public MazingGame()
 	{
+        foreach ( var method in TypeLibrary.FindStaticMethods<PrecacheMethodAttribute>() )
+        {
+            method.Invoke( null );
+        }
+
         if ( IsClient )
         {
             new HudRoot();
@@ -94,6 +105,12 @@ public partial class MazingGame : Sandbox.Game
 
     public IEnumerable<Type> GetSpawningEnemyTypes( int levelIndex, int seed )
     {
+        if ( levelIndex == 0 )
+        {
+            yield return typeof(Wizard);
+            yield break;
+        }
+
         var rand = new Random( seed );
 
         var totalThreat = levelIndex == 0 ? 1 : levelIndex + 2;

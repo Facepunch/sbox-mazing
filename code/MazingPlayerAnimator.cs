@@ -26,10 +26,10 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 		// Let the animation graph know some shit
 		//
 		bool sitting = HasTag("sitting");
-		bool noclip = !player?.IsAlive ?? false;
+		bool isGhost = !(player?.IsAlive ?? true);
 
-		SetAnimParameter("b_grounded", GroundEntity != null || noclip || sitting);
-		SetAnimParameter("b_noclip", noclip);
+		SetAnimParameter("b_grounded", !isGhost && (GroundEntity != null || sitting));
+		SetAnimParameter("b_noclip", isGhost && Velocity.WithZ( 0f ).LengthSquared < 50f * 50f);
 		SetAnimParameter("b_sit", sitting);
 		SetAnimParameter("b_swim", Pawn.WaterLevel > 0.5f && !sitting);
 

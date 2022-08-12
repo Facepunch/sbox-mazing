@@ -109,6 +109,17 @@ public partial class Treasure : AnimatedEntity
         };
     }
 
+    public static string GetSound( TreasureKind kind )
+    {
+        return kind switch
+        {
+            TreasureKind.Emerald => "gem1.collect",
+            TreasureKind.Sapphire => "gem2.collect",
+            TreasureKind.Ruby => "gem3.collect",
+            _ => "gem1.collect"
+        };
+    }
+
     public int Value => GetValue( Kind );
 
     public bool IsCollected { get; private set; }
@@ -189,6 +200,8 @@ public partial class Treasure : AnimatedEntity
         IsCollected = true;
         Parent = player;
         LocalPosition = Vector3.Zero;
+
+        Sound.FromEntity( GetSound( Kind ), this );
 
         _collectedTime = 0f;
 

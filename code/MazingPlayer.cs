@@ -20,6 +20,9 @@ public partial class MazingPlayer : Sandbox.Player
     public bool HasExited { get; set; }
 
     [Net]
+    public TimeSince ExitTime { get; set; }
+
+    [Net]
     public bool IsAlive { get; set; }
 
     public bool IsAliveInMaze => IsAlive && !HasExited;
@@ -43,7 +46,7 @@ public partial class MazingPlayer : Sandbox.Player
 
     public MazingGame Game => MazingGame.Current;
 
-    public bool CanPickUpItem => HeldItem == null && LastItemDrop > 0.6f;
+    public bool CanPickUpItem => HeldItem == null && LastItemDrop > 0.6f && !IsVaulting;
 
     public MazingPlayer()
     {
@@ -216,21 +219,21 @@ public partial class MazingPlayer : Sandbox.Player
 
     }
 
+    public void OnVault()
+    {
+        if (HeldItem != null)
+        {
+            var dropCell = this.GetCellIndex() + (GridCoord)this.GetFacingDirection() * 2;
+            if (Game.IsInMaze(dropCell))
+                ThrowItem(dropCell);
+        }
+    }
+
     private void CheckForVault()
     {
         if (!IsServer)
         {
             return;
-        }
-
-        if ( Controller?.HasEvent( "vault" ) ?? false )
-        {
-            if (HeldItem != null)
-            {
-                var dropCell = this.GetCellIndex() + (GridCoord)this.GetFacingDirection() * 2;
-                if (Game.IsInMaze(dropCell))
-                    ThrowItem(dropCell);
-            }
         }
 
         if ( (Controller?.HasEvent( "vault_end" ) ?? false) && IsAlive )
@@ -298,6 +301,7 @@ public partial class MazingPlayer : Sandbox.Player
         }
 
         HasExited = true;
+        ExitTime = 0f;
         EnableAllCollisions = false;
 
         ClientExitNotify( Client.Name, $"{Client.Name} has escaped", HeldCoins );

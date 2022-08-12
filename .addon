@@ -8,7 +8,8 @@
   "AssetsPath": "",
   "ResourcePaths": [
     "/ui/*",
-    "/mazes/*"
+    "/mazes/*",
+    "/sounds/*"
   ],
   "HasCode": true,
   "CodePath": "/code/",

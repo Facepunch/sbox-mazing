@@ -148,6 +148,8 @@ internal partial class Wizard : Enemy
                     Direction = this.GetFacingDirection(),
                     Position = Position + Vector3.Up * 48f
                 };
+                
+                // Sound.FromEntity( BoltShootSound.ResourceName, this );
             }
 
             if (_teleportTimer >= TELEPORT_DELAY)
