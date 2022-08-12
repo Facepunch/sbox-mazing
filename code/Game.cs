@@ -1,4 +1,4 @@
-﻿using Sandbox;
+using Sandbox;
 using Sandbox.UI.Construct;
 using System;
 using System.Collections.Generic;
@@ -642,7 +642,14 @@ public partial class MazingGame : Sandbox.Game
         else if ( !anyPlayers && anyDeadPlayers )
         {
             RestartCountdown = -3f;
+            ClientNotifyFinalScore( TotalCoins );
         }
+    }
+
+    [ClientRpc]
+    public void ClientNotifyFinalScore( int score )
+    {
+        ChatBox.AddInformation( $"Everyone is dead! Final score: ${score}" );
     }
 
     public void DestroyWall( GridCoord coord, Direction dir )
