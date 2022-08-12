@@ -70,6 +70,7 @@ public abstract partial class Enemy : AnimatedEntity
     protected virtual string DeathMessage => $"{{0}} was {GetRandomDeathVerb()} by a {GetType().Name.ToTitleCase()}";
 
     protected virtual int HoldType => 5;
+    public virtual Vector3 LookPos => EyePosition + EyeRotation.Forward * 200;
 
     public override void Spawn()
     {
@@ -209,6 +210,7 @@ public abstract partial class Enemy : AnimatedEntity
         {
             LastAttack = 0f;
 
+            //Animator?.SetAnimParameter("b_vr", false);
             Animator?.SetAnimParameter("holdtype", 5);
             Animator?.Trigger( "b_attack" );
 

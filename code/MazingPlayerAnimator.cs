@@ -38,23 +38,16 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 			SetAnimParameter("voice", Client.TimeSinceLastVoice < 0.5f ? Client.VoiceLevel : 0.0f);
 		}
 
-		Vector3 aimPos = Pawn.EyePosition + EyeRotation.Forward * 200;
-		Vector3 lookPos = aimPos;
-
-		//
-		// Look in the direction what the player's input is facing
-		//
-		SetLookAt("aim_eyes", lookPos);
-		SetLookAt("aim_head", lookPos);
-		SetLookAt("aim_body", aimPos);
-
 		if (HasTag("ducked")) duck = duck.LerpTo(1.0f, Time.Delta * 10.0f);
 		else duck = duck.LerpTo(0.0f, Time.Delta * 5.0f);
-
 		SetAnimParameter("duck", duck);
 
-        if ( player != null )
+		Vector3 lookPos;
+
+		if ( player != null )
 		{
+			lookPos = Pawn.EyePosition + EyeRotation.Forward * 200;
+
 			if ( player.HeldItem != null )
 			{
 				/*
@@ -78,7 +71,24 @@ internal partial class MazingPlayerAnimator : PawnAnimator
                 SetAnimParameter( "b_vr", false );
 				SetAnimParameter("aim_body_weight", 0.5f);
             }
+		} 
+		else
+        {
+			var enemy = Pawn as Mazing.Enemies.Enemy;
+
+			if (enemy != null)
+            {
+				lookPos = enemy.LookPos;
+			} 
+			else
+            {
+				lookPos = Pawn.EyePosition + EyeRotation.Forward * 200;
+			}
 		}
+
+		SetLookAt("aim_eyes", lookPos);
+		SetLookAt("aim_head", lookPos);
+		SetLookAt("aim_body", lookPos);
 	}
 
 	public virtual void DoRotation( Rotation idealRotation )

@@ -7,18 +7,18 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(0)]
+[UnlockLevel(1)]
 partial class Wanderer : Enemy
 {
     public override float MoveSpeed => 88f;
 
-    protected override int HoldType => 0;
+    protected override int HoldType => 4;
 
     public override void Spawn()
     {
         base.Spawn();
 
-        SetAnimParameter("holdtype", 0);
+        //SetAnimParameter("holdtype", 0);
 
         Clothing = new ClothingContainer();
         AddClothingItem("models/citizen_clothes/hat/Bucket_Helmet/Models/bucket_helmet.clothing");
