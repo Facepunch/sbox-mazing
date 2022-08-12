@@ -41,6 +41,8 @@ public abstract partial class Enemy : AnimatedEntity
 
     public bool IsDeleting { get; set; }
 
+    public int Index { get; set; }
+
     public ClothingContainer Clothing { get; set; } = new();
 
     private static readonly (string Verb, float Weight)[] _sDeathVerbs = new (string Verb, float Weight)[]
@@ -126,7 +128,9 @@ public abstract partial class Enemy : AnimatedEntity
     {
         var cell = this.GetCellIndex();
 
-        if (_cellVisitTimes == null)
+        if (_cellVisitTimes == null
+            || _cellVisitTimes.GetLength( 0 ) != Game.CurrentMaze.Rows
+            || _cellVisitTimes.GetLength( 1 ) != Game.CurrentMaze.Cols)
         {
             TargetCell = cell;
 
@@ -176,7 +180,11 @@ public abstract partial class Enemy : AnimatedEntity
 
         if ( Controller is MazingWalkController walkController )
         {
-            walkController.DefaultSpeed = MoveSpeed;
+            var otherEnemy = Game.GetClosestEnemy( Position, 32f, except: this );
+
+            walkController.DefaultSpeed = otherEnemy == null || otherEnemy.MoveSpeed < MoveSpeed || otherEnemy.Index > Index
+                ? MoveSpeed
+                : MoveSpeed * 0.5f;
 
             var dir = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f) - Position;
 

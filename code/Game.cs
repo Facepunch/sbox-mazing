@@ -54,6 +54,8 @@ public partial class MazingGame : Sandbox.Game
     private readonly HashSet<Entity> _worldEntities = new();
     private bool _firstSpawn = true;
 
+    private readonly List<Enemy> _enemies = new();
+
     public IEnumerable<MazingPlayer> Players => Client.All
         .Select( x => x.Pawn )
         .OfType<MazingPlayer>();
@@ -61,8 +63,7 @@ public partial class MazingGame : Sandbox.Game
     public IEnumerable<MazingPlayer> PlayersAliveInMaze => Players
         .Where( x => x.IsAliveInMaze );
 
-    public IEnumerable<Enemy> Enemies => Entity.All.OfType<Enemy>()
-        .Where( x => !x.IsDeleting );
+    public IEnumerable<Enemy> Enemies => _enemies;
 
     public IEnumerable<Treasure> Treasure => Entity.All.OfType<Treasure>();
 
@@ -181,6 +182,7 @@ public partial class MazingGame : Sandbox.Game
         }
 
         _walls.Clear();
+        _enemies.Clear();
 
         var seed = Rand.Int(1, int.MaxValue - 1);
 
@@ -269,7 +271,10 @@ public partial class MazingGame : Sandbox.Game
         {
             var enemyCell = generated.Enemies[i % generated.Enemies.Length];
 
+            enemies[i].Index = i;
             enemies[i].Position = CellToPosition(enemyCell.Row + 0.5f, enemyCell.Col + 0.5f);
+
+            _enemies.Add( enemies[i] );
         }
 
         var totalTreasureValue = generated.Coins.Length * Mazing.Treasure.GetValue( TreasureKind.Emerald );
@@ -375,17 +380,27 @@ public partial class MazingGame : Sandbox.Game
         return CellToPosition( row.FloorToInt() + 0.5f, col.FloorToInt() + 0.5f );
     }
 
-    public MazingPlayer GetClosestPlayer( Vector3 pos, float maxRange = float.PositiveInfinity, bool aliveInMaze = true, bool ignoreZ = true )
+    private T GetClosest<T>( IEnumerable<T> enumerable, Vector3 pos, float maxRange, bool ignoreZ, T except )
+        where T : Entity
+    {
+        var dists = ignoreZ
+            ? enumerable.Select(x => (Entity: x, DistSq: (x.Position - pos).WithZ(0f).LengthSquared))
+            : enumerable.Select(x => (Entity: x, DistSq: (x.Position - pos).LengthSquared));
+
+        return dists.OrderBy( x => x.DistSq )
+            .FirstOrDefault( x => x.DistSq <= maxRange * maxRange && x.Entity != except )
+            .Entity;
+    }
+
+    public MazingPlayer GetClosestPlayer( Vector3 pos, float maxRange = float.PositiveInfinity, bool aliveInMaze = true, bool ignoreZ = true, MazingPlayer except = null )
     {
         var players = aliveInMaze ? PlayersAliveInMaze : Players;
-        var playerDists = ignoreZ
-            ? players.Select( x => (Player: x, DistSq: (x.Position - pos).WithZ( 0f ).LengthSquared) )
-            : players.Select( x => (Player: x, DistSq: (x.Position - pos).LengthSquared) );
+        return GetClosest( players, pos, maxRange, ignoreZ, except );
+    }
 
-        return playerDists.OrderBy( x => x.DistSq )
-            .FirstOrDefault( x => x.DistSq <= maxRange * maxRange )
-            .Player;
-
+    public Enemy GetClosestEnemy( Vector3 pos, float maxRange = float.PositiveInfinity, bool ignoreZ = true, Enemy except = null )
+    {
+        return GetClosest( Enemies, pos, maxRange, ignoreZ, except );
     }
 
     public (float Row, float Col) PositionToCell( Vector3 pos ) =>
