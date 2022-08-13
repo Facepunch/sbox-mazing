@@ -23,7 +23,7 @@
       "ziks.mazingmap"
     ],
     "RankType": "Best",
-    "PerMapRanking": true,
+    "PerMapRanking": false,
     "LeaderboardType": "Descending",
     "ProjectTemplate": null,
     "GameCategory": "Parkour",
