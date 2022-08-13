@@ -287,7 +287,7 @@ public abstract partial class Enemy : AnimatedEntity
             return 0f;
         }
 
-        if ( Game.Hatch?.IsOpen ?? true )
+        if ( !(Game.Hatch?.IsOpen ?? false) )
         {
             return 0f;
         }
