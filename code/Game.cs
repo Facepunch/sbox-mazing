@@ -2,8 +2,10 @@
 using Sandbox.UI.Construct;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Mazing.Enemies;
 using Mazing.UI;
@@ -39,16 +41,16 @@ public partial class MazingGame : Sandbox.Game
 	[Net]
     public (int Row, int Col) ExitCell { get; set; }
 
-	[Net]
+	[Net, HideInEditor]
 	public int LevelIndex { get; set; }
 
     [Net]
     public int TotalTreasureValue { get; set; }
 
-    [Net]
+    [Net, HideInEditor]
     public int NextLevelIndex { get; set; }
 
-    [Net]
+    [Net, HideInEditor]
     public int TotalCoins { get; set; }
 
     [Net] public TimeSince RestartCountdown { get; set; }
@@ -60,6 +62,10 @@ public partial class MazingGame : Sandbox.Game
 
     [Net]
     public Hatch Hatch { get; set; }
+
+    private bool _hasCheated;
+
+    private int _nextLevelSeed = -1;
 
     private readonly HashSet<Entity> _worldEntities = new();
     private bool _firstSpawn = true;
@@ -100,8 +106,18 @@ public partial class MazingGame : Sandbox.Game
     }
 
     [ConCmd.Admin( "mazing_level", Help = "Go to a given level" )]
-    public static void GoToLevel( int level )
+    public static void GoToLevel( int level, string seed = null )
     {
+        if (!string.IsNullOrEmpty( seed ) && int.TryParse(seed, NumberStyles.HexNumber, null, out var seedInt))
+        {
+            Current._nextLevelSeed = seedInt;
+        }
+        else
+        {
+            Current._nextLevelSeed = -1;
+        }
+
+        Current._hasCheated = true;
         Current.NextLevelIndex = Math.Max( level - 1, 0 );
         Current.NextLevelCountdown = -1.5f;
     }
@@ -259,7 +275,7 @@ public partial class MazingGame : Sandbox.Game
         return !_worldEntities.Contains( ent );
     }
 
-	public void GenerateMaze()
+	public void GenerateMaze( int seed = -1 )
 	{
 		Host.AssertServer();
 
@@ -291,7 +307,10 @@ public partial class MazingGame : Sandbox.Game
         _walls.Clear();
         _enemies.Clear();
 
-        var seed = Rand.Int(1, int.MaxValue - 1);
+        if ( seed == -1 )
+        {
+            seed = Rand.Int(1, int.MaxValue - 1);
+        }
 
 		Log.Info( $"Generating maze with seed {seed:x8} ");
 
@@ -611,6 +630,8 @@ public partial class MazingGame : Sandbox.Game
 
                 LevelIndex = 0;
                 TotalCoins = 0;
+
+                _hasCheated = false;
                 
                 GenerateMaze();
                 ResetPlayers();
@@ -627,15 +648,20 @@ public partial class MazingGame : Sandbox.Game
 
                 LevelIndex = NextLevelIndex;
 
-                foreach ( var player in Player.All.OfType<MazingPlayer>() )
+                if ( !_hasCheated )
                 {
-                    if ( player.Client == null ) continue;
+                    foreach (var player in Player.All.OfType<MazingPlayer>())
+                    {
+                        if (player.Client == null) continue;
 
-                    GameServices.SubmitScore( player.Client.PlayerId, TotalCoins );
+                        GameServices.SubmitScore(player.Client.PlayerId, TotalCoins);
+                    }
                 }
 
-                GenerateMaze();
+                GenerateMaze( _nextLevelSeed );
                 ResetPlayers();
+
+                _nextLevelSeed = -1;
             }
 
             return;

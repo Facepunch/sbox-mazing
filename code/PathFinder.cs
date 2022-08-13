@@ -83,7 +83,7 @@ internal class PathFinder
 
         var game = MazingGame.Current;
 
-        AddCost(game.Hatch.GetCellIndex(), game.Hatch.IsOpen ? OpenHatchCost : ClosedHatchCost );
+        AddCost( game.Hatch.GetCellIndex(), game.Hatch.IsOpen ? OpenHatchCost : ClosedHatchCost );
 
         foreach ( var player in game.PlayersAliveInMaze )
         {

@@ -28,6 +28,8 @@ namespace Mazing.UI
         public NameplateRoot( MazingPlayer player )
         {
             Player = player;
+
+            PanelBounds = new Rect(-512f, -256f, 1024f, 512f);
         }
 
         public override void Tick()
@@ -39,8 +41,6 @@ namespace Mazing.UI
             var camera = (Local.Pawn as Player)?.CameraMode;
 
             if ( camera == null ) return;
-
-            PanelBounds = new Rect(-512f, -256f, 1024f, 512f);
 
             Avatar.Style.SetBackgroundImage( $"avatar:{Player.Client.PlayerId}" );
 

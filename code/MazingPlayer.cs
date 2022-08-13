@@ -31,7 +31,7 @@ public partial class MazingPlayer : Sandbox.Player
     [Net]
     public Holdable HeldItem { get; set; }
 
-    [Net]
+    [Net, HideInEditor]
     public int HeldCoins { get; set; }
 
     [Net]
