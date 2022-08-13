@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Mazing.UI;
 using Sandbox;
 using Sandbox.UI;
 
@@ -39,6 +40,8 @@ public partial class MazingPlayer : Sandbox.Player
     [Net]
     public float VaultCooldown { get; set; } = 3.5f;
 
+    public NameplateRoot Nameplate { get; private set; }
+
     public bool IsVaulting => Controller is MazingWalkController controller && controller.IsVaulting;
 
     private Particles _sweatParticles;
@@ -56,6 +59,13 @@ public partial class MazingPlayer : Sandbox.Player
     public MazingPlayer( Client cl )
     {
         Clothing.LoadFromClient(cl);
+    }
+
+    public override void ClientSpawn()
+    {
+        base.ClientSpawn();
+
+        Nameplate = new NameplateRoot( this );
     }
 
     public override void Respawn()
@@ -110,6 +120,9 @@ public partial class MazingPlayer : Sandbox.Player
 
         _ragdoll?.Delete();
         _ragdoll = null;
+
+        Nameplate?.Delete();
+        Nameplate = null;
     }
 
     private TimeSince _lastFootstep;

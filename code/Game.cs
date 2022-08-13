@@ -43,6 +43,9 @@ public partial class MazingGame : Sandbox.Game
 	public int LevelIndex { get; set; }
 
     [Net]
+    public int TotalTreasureValue { get; set; }
+
+    [Net]
     public int NextLevelIndex { get; set; }
 
     [Net]
@@ -373,9 +376,12 @@ public partial class MazingGame : Sandbox.Game
             _enemies.Add( enemies[i] );
         }
 
-        var totalTreasureValue = generated.Coins.Length * Mazing.Treasure.GetValue( TreasureKind.Emerald );
+        TotalTreasureValue = generated.Coins.Length * Mazing.Treasure.GetValue( TreasureKind.Emerald );
+
         var possibleKinds = new List<TreasureKind>();
         var treasureIndex = 0;
+
+        var totalTreasureValue = TotalTreasureValue;
 
         while ( totalTreasureValue > 0 )
         {
