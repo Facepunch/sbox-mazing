@@ -301,6 +301,9 @@ public partial class MazingWalkController : BasePlayerController
         if (Unstuck.TestAndFix())
             return;
 
+        if (MazingGame.Current == null)
+            return;
+
         //
         // Start Gravity
         //
