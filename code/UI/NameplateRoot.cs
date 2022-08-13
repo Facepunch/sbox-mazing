@@ -36,7 +36,7 @@ namespace Mazing.UI
         {
             base.Tick();
 
-            if ( Player == null ) return;
+            if ( Player == null || MazingGame.Current == null ) return;
 
             var camera = (Local.Pawn as Player)?.CameraMode;
 
