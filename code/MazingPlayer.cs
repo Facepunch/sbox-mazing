@@ -144,15 +144,29 @@ public partial class MazingPlayer : Sandbox.Player
     }
 
     [ClientRpc]
-    public static void ClientDeathNotify( string name, string message, int coins )
+    public static void ClientDeathNotify( string name, string message, int coins, int streak )
     {
         if ( coins == 0 )
         {
-            ChatBox.AddInformation($"{message}!");
+            if ( streak >= 5 )
+            {
+                ChatBox.AddInformation($"{message}, losing a {streak} level streak!");
+            }
+            else
+            {
+                ChatBox.AddInformation($"{message}!");
+            }
         }
         else
         {
-            ChatBox.AddInformation($"{message}, losing ${coins}!");
+            if (streak >= 5)
+            {
+                ChatBox.AddInformation($"{message}, losing a {streak} level streak and ${coins} coins!");
+            }
+            else
+            {
+                ChatBox.AddInformation($"{message}, losing ${coins}!");
+            }
         }
     }
 
@@ -176,7 +190,7 @@ public partial class MazingPlayer : Sandbox.Player
             return;
         }
 
-        ClientDeathNotify( Client.Name, string.Format( message, Client.Name ), HeldCoins );
+        ClientDeathNotify( Client.Name, string.Format( message, Client.Name ), HeldCoins, SurvivalStreak );
 
         IsAlive = false;
 
