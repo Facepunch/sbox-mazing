@@ -37,7 +37,7 @@ public sealed class ThreatValueAttribute : Attribute
 
 public abstract partial class Enemy : AnimatedEntity
 {
-    public float KillRange { get; } = 12f;
+    public const float KillRange = 12f;
 
     public virtual float MoveSpeed => 100f;
 
