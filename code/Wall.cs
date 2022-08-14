@@ -205,7 +205,7 @@ public partial class Treasure : AnimatedEntity
 
         _collectedTime = 0f;
 
-        player.HeldCoins += Value;
+        player.AddCoins( Value );
     }
 }
 

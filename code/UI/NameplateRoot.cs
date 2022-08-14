@@ -16,14 +16,21 @@ namespace Mazing.UI
         public string Name => Player?.Client.Name ?? "?";
         public Label DiffText { get; set; }
         public Label ValueText { get; set; }
+        public Label StreakText { get; set; }
 
         public Panel Avatar { get; set; }
 
 
-        private readonly ValueTicker _ticker = new ValueTicker( "${0:N0}" );
+        private readonly ValueTicker _heldTicker = new ValueTicker( "${0:N0}" );
+
+        private readonly ValueTicker _streakTicker = new ValueTicker
+        {
+            ImmediateIncrease = true
+        };
 
 
         private bool _wasAlive = true;
+        private bool _setAvatar;
 
         public NameplateRoot( MazingPlayer player )
         {
@@ -40,11 +47,20 @@ namespace Mazing.UI
 
             if ( camera == null ) return;
 
-            Avatar.Style.SetBackgroundImage( $"avatar:{Player.Client.PlayerId}" );
+            if ( !_setAvatar )
+            {
+                _setAvatar = true;
+                Avatar.Style.SetBackgroundImage($"avatar:{Player.Client.PlayerId}");
+            }
 
-            _ticker.SoundSource = Player;
-            _ticker.Tick( Player.HeldCoins, ValueText, DiffText, Player.HasExited, MazingGame.Current.TotalTreasureValue / 2 );
-            
+            _heldTicker.SoundSource = Player;
+            _heldTicker.MaxDiffOpacityValue = MazingGame.Current.TotalTreasureValue / 2;
+            _heldTicker.Tick( Player.HeldCoins, ValueText, DiffText, Player.HasExited );
+
+            _streakTicker.Tick( Player.SurvivalStreak, StreakText, null, false );
+
+            StreakText.Style.Opacity = Math.Min( Player.SurvivalStreak / 5f, 1f );
+
             PanelBounds = new Rect(-512f, -512f, 1024f, 512f);
 
             Position = Player.Position + Vector3.Up * 128f;

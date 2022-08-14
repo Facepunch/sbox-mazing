@@ -22,28 +22,45 @@
     background-color: rgba(0, 0, 0, 1.0);
 }
 
-.score {
+.scores {
     position: absolute;
-    display: flex;
 
     bottom: 2vh;
+    left: 2vh;
+    right: 2vh;
 
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+}
+
+.score {
+    display: flex;
     font-size: 6vh;
     color: rgba(255, 255, 255, 0.75);
     text-shadow: 2px 2px 4px black;
-
     flex-direction: column;
+    width: 25%;
+
+    margin-right: 2vh;
+    margin-left: 2vh;
 }
 
 .score.left {
-    left: 4vh;
+
 }
+
+.score.center {
+    text-align: center;
+}
+
 .score.right {
-    right: 4vh;
+    text-align: right;
 }
 
 .score > div {
     position: relative;
+    width: 100%;
     margin: 1vh;
 }
 
@@ -61,6 +78,28 @@ text.icon {
     margin-right: 2vh;
 }
 
+.multiplier {
+    width: 25%;
+    position: relative;
+    transition: opacity 1s linear;
+    font-size: 4vh;
+}
+
+.multiplier text {
+    margin-top: 2vh;
+    width: 100%;
+    text-align: center;
+}
+
+.multiplier .icon {
+    position: absolute;
+    bottom: 5vh;
+    width: 100%;
+    margin-top: 1vh;
+    font-size: 2vh;
+    transition: opacity 0.25s linear;
+}
+
 .held-coins .icon {
     background-image: url(ui/money_bag.png);
 }
@@ -69,8 +108,9 @@ text.icon {
     background-image: url(ui/bank.png);
 }
 
-.level-num .icon {
-
+.level-num text {
+    width: 100%;
+    margin-right: 2vh;
 }
 
 text.diff {

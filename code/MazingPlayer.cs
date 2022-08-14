@@ -32,7 +32,10 @@ public partial class MazingPlayer : Sandbox.Player
     public Holdable HeldItem { get; set; }
 
     [Net, HideInEditor]
-    public int HeldCoins { get; set; }
+    public int HeldCoins { get; private set; }
+
+    [Net, HideInEditor]
+    public int SurvivalStreak { get; set; }
 
     [Net]
     public TimeSince LastItemDrop { get; set; }
@@ -104,6 +107,7 @@ public partial class MazingPlayer : Sandbox.Player
         HeldItem = null;
 
         HeldCoins = 0;
+        SurvivalStreak = Math.Min( SurvivalStreak, Game.LevelIndex );
 
         _sweatParticles?.Destroy();
         _sweatParticles = null;
@@ -177,6 +181,7 @@ public partial class MazingPlayer : Sandbox.Player
         IsAlive = false;
 
         HeldCoins = 0;
+        SurvivalStreak = 0;
 
         _sweatParticles?.Destroy();
         _sweatParticles = null;
@@ -217,6 +222,16 @@ public partial class MazingPlayer : Sandbox.Player
         }
 
         RenderColor = new Color( 1f, 1f, 1f, 0.25f );
+    }
+
+    public void AddCoins( int value, bool applyBonus = true )
+    {
+        if ( applyBonus )
+        {
+            value = value * (5 + Math.Max( 0, SurvivalStreak )) / 5;
+        }
+
+        HeldCoins += value;
     }
     
     public override void Simulate( Client cl )
@@ -359,7 +374,9 @@ public partial class MazingPlayer : Sandbox.Player
         }
 
         Game.TotalCoins += HeldCoins;
+
         HeldCoins = 0;
+        SurvivalStreak += 1;
 
         Tags.Remove( "player" );
         Tags.Add( "exited" );

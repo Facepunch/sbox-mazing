@@ -22,6 +22,10 @@ namespace Mazing.UI
         private string _format;
 
         public Entity SoundSource { get; set; }
+
+        public bool ImmediateIncrease { get; set; }
+
+        public int MaxDiffOpacityValue { get; set; } = 1;
         public float MinDiffOpacity { get; set; } = 0.125f;
 
         public ValueTicker( string format = "{0}" )
@@ -31,21 +35,27 @@ namespace Mazing.UI
 
         private void UpdateText( Label valueText, Label diffText )
         {
-            valueText.Text = string.Format( _format, _lastValue - _spareValue );
-            diffText.Text = $"{(_diffSign > 0 ? "+" : "-")}{string.Format( _format, Math.Abs( _spareValue ) )}";
+            if ( valueText != null )
+            {
+                valueText.Text = string.Format(_format, _lastValue - _spareValue);
+            }
 
-            /*
-            diffText.Style.Set("left",
-                $"{15 + (int)Math.Floor(Math.Log10(Math.Max(1, _lastValue - _spareValue))) * 3}vh");
-            */
+            if ( diffText != null )
+            {
+                diffText.Text = $"{(_diffSign > 0 ? "+" : "-")}{string.Format(_format, Math.Abs(_spareValue))}";
+            }
         }
 
-        public void Tick( int value, Label valueText, Label diffText, bool ignoreDecrease, int maxOpacityValue )
+        public void Tick( int value, Label valueText, Label diffText, bool ignoreDecrease )
         {
             if (_firstUpdate)
             {
                 _firstUpdate = false;
-                valueText.Text = string.Format( _format, value );
+
+                if ( valueText != null )
+                {
+                    valueText.Text = string.Format(_format, value);
+                }
             }
 
             if (value != _lastValue)
@@ -53,25 +63,34 @@ namespace Mazing.UI
                 var diff = value - _lastValue;
                 _lastValue = value;
 
-                diffText.SetClass("negative", diff < 0);
-
-                if (diff > 0 || !ignoreDecrease)
+                if (diff > 0 && ImmediateIncrease)
                 {
-                    diffText.Style.Set( "opacity",
-                        $"{Math.Min( MinDiffOpacity + (1f - MinDiffOpacity) * Math.Abs( diff ) / maxOpacityValue, 1.0f ):F2}" );
+                    _changedTime = 0f;
+                    _spareValue = 1;
+                    _diffSign = 1;
                 }
                 else
                 {
-                    diffText.Style.Set("opacity", "0.0");
-                    _spareValue = 0;
+                    diffText?.SetClass("negative", diff < 0);
+
+                    if (diff > 0 || !ignoreDecrease)
+                    {
+                        diffText?.Style.Set("opacity",
+                            $"{Math.Min(MinDiffOpacity + (1f - MinDiffOpacity) * Math.Abs(diff) / MaxDiffOpacityValue, 1.0f):F2}");
+                    }
+                    else
+                    {
+                        diffText?.Style.Set("opacity", "0.0");
+                        _spareValue = 0;
+                    }
+
+                    _spareValue += diff;
+                    _diffSign = Math.Sign(_spareValue);
+
+                    _changedTime = -1f;
+
+                    UpdateText(valueText, diffText);
                 }
-
-                _spareValue += diff;
-                _diffSign = Math.Sign(_spareValue);
-
-                _changedTime = -1f;
-
-                UpdateText(valueText, diffText);
             }
 
             if (_changedTime >= 0f && _spareValue != 0)
@@ -95,7 +114,7 @@ namespace Mazing.UI
 
             if (_changedTime > 0.5f)
             {
-                diffText.Style.Set("opacity", "0.0");
+                diffText?.Style.Set("opacity", "0.0");
             }
 
         }

@@ -3,14 +3,21 @@
 <root>
     <div class="overlay"></div>
     <ChatBox></ChatBox>
-    <div class="score left">
-        <div class="total-coins">
-            <div class="icon"></div><text @ref="TotalCoinsText"></text><text @ref="TotalCoinsDiffText" class="diff"></text>
+    <div class="scores">
+        <div class="score left">
+            <div class="total-coins">
+                <div class="icon"></div><text @ref="TotalCoinsText"></text><text @ref="TotalCoinsDiffText" class="diff"></text>
+            </div>
         </div>
-    </div>
-    <div class="score right">
-        <div class="level-num">
-            <text class="icon">Floor</text><text @text="LevelNumber"></text>
+        <div class="score middle">
+            <div class="multiplier" @ref="StreakBonusParent">
+                <text class="icon" @ref="StreakBonusLabel">Streak Bonus</text><text @ref="StreakBonusText">1.8x</text>
+            </div>
+        </div>
+        <div class="score right">
+            <div class="level-num">
+                <text @ref="LevelNumberText"></text>
+            </div>
         </div>
     </div>
 </root>
