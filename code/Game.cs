@@ -609,7 +609,12 @@ public partial class MazingGame : Sandbox.Game
         player.Respawn();
 	}
 
-	[Event.Tick.Server]
+    public override void DoPlayerNoclip( Client player )
+    {
+        Log.Info( $"Noclip is disabled" );
+    }
+
+    [Event.Tick.Server]
     public void ServerTick()
     {
         foreach ( var enemy in Enemies )
