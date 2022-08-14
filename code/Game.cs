@@ -648,7 +648,7 @@ public partial class MazingGame : Sandbox.Game
 
                 LevelIndex = NextLevelIndex;
 
-                if ( !_hasCheated )
+                if ( !_hasCheated && !Host.IsToolsEnabled )
                 {
                     foreach (var player in Player.All.OfType<MazingPlayer>())
                     {
