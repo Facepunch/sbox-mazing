@@ -28,8 +28,6 @@ namespace Mazing.UI
         public NameplateRoot( MazingPlayer player )
         {
             Player = player;
-
-            PanelBounds = new Rect(-512f, -256f, 1024f, 512f);
         }
 
         public override void Tick()
@@ -46,8 +44,10 @@ namespace Mazing.UI
 
             _ticker.SoundSource = Player;
             _ticker.Tick( Player.HeldCoins, ValueText, DiffText, Player.HasExited, MazingGame.Current.TotalTreasureValue / 2 );
+            
+            PanelBounds = new Rect(-512f, -512f, 1024f, 512f);
 
-            Position = Player.Position + Vector3.Up * 192f;
+            Position = Player.Position + Vector3.Up * 128f;
             Rotation = camera.Rotation * Rotation.FromYaw( 180f );
 
             if ( _wasAlive != Player.IsAliveInMaze )
