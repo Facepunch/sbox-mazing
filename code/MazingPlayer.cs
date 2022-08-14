@@ -161,7 +161,7 @@ public partial class MazingPlayer : Sandbox.Player
         {
             if (streak >= 5)
             {
-                ChatBox.AddInformation($"{message}, losing a {streak} level streak and ${coins} coins!");
+                ChatBox.AddInformation($"{message}, losing a {streak} level streak and ${coins}!");
             }
             else
             {
