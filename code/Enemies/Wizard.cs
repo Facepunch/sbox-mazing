@@ -205,7 +205,7 @@ internal partial class Wizard : Enemy
 
 partial class WizardBolt : ModelEntity
 {
-    public float KillRange { get; } = 16f;
+    public const float KillRange = Enemy.KillRange;
 
     public float MoveSpeed { get; } = 160f;
 
