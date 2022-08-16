@@ -511,7 +511,7 @@ public partial class MazingGame : Sandbox.Game
             : enumerable.Select(x => (Entity: x, DistSq: (x.Position - pos).LengthSquared));
 
         return dists.OrderBy( x => x.DistSq )
-            .FirstOrDefault( x => x.DistSq <= maxRange * maxRange && x.Entity != except )
+            .FirstOrDefault( x => x.DistSq <= maxRange * maxRange && x.Entity != except && (!ignoreZ || x.Entity.Parent == null) )
             .Entity;
     }
 

@@ -194,6 +194,11 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         _sweatParticles?.Destroy();
         _sweatParticles = null;
 
+        if ( Parent is MazingPlayer holder )
+        {
+            holder.DropHeldItem();
+        }
+
         DropHeldItem();
 
         ((MazingWalkController)Controller).VaultCooldown = 0f;
