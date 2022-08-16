@@ -23,7 +23,16 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     public bool IsAliveInMaze => IsAlive && !HasExited;
 
     [Net]
-    public IHoldable HeldEntity { get; set; }
+    public Entity HeldEntityNetworked { get; set; }
+
+    public IHoldable HeldEntity
+    {
+        get => HeldEntityNetworked as IHoldable;
+        set => HeldEntityNetworked = value as Entity;
+    }
+
+    [Net]
+    public MazingPlayer ParentPlayer { get; set; }
 
     [Net, HideInEditor]
     public int HeldCoins { get; private set; }
@@ -100,7 +109,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
         IsAlive = true;
 
-        HeldEntity?.OnThrown( this.GetCellIndex() );
+        HeldEntity?.OnThrown( this.GetCellIndex(), this.GetFacingDirection() );
         HeldEntity = null;
 
         HeldCoins = 0;
@@ -116,7 +125,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     {
         base.OnDestroy();
 
-        HeldEntity?.OnThrown( this.GetCellIndex() );
+        HeldEntity?.OnThrown( this.GetCellIndex(), this.GetFacingDirection() );
         HeldEntity = null;
 
         _ragdoll?.Delete();
@@ -286,8 +295,8 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         if (HeldEntity != null)
         {
             var dropCell = this.GetCellIndex() + (GridCoord)this.GetFacingDirection() * 2;
-            if (Game.IsInMaze(dropCell))
-                ThrowItem(dropCell);
+            if ( Game.IsInMaze( dropCell ) )
+                ThrowItem( dropCell, this.GetFacingDirection() );
         }
     }
 
@@ -304,11 +313,12 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
             _sweatParticles = Particles.Create("particles/sweat_drops.vpcf", this, "hat");
         }
 
-        if ( Controller?.HasEvent( "vault_reset" ) ?? false )
+        if (_sweatParticles != null && Controller is MazingWalkController walkController && !walkController.IsVaultOnCooldown)
         {
             _sweatParticles?.Destroy();
             _sweatParticles = null;
 
+            Sound.FromEntity( "player.recharge", this );
         }
 
         //DropHeldItem();
@@ -316,7 +326,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     private void DropHeldItem()
     {
-        ThrowItem( this.GetCellIndex() );
+        ThrowItem( this.GetCellIndex(), this.GetFacingDirection() );
     }
 
     public void PickUp( IHoldable holdable )
@@ -346,13 +356,13 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         }
     }
 
-    public void ThrowItem( GridCoord cell )
+    public void ThrowItem( GridCoord cell, Direction direction )
     {
         if ( HeldEntity == null ) return;
 
         LastItemDrop = 0f;
-        
-        HeldEntity.OnThrown( cell );
+
+        HeldEntity.OnThrown( cell, direction );
         HeldEntity = null;
     }
 
@@ -403,27 +413,27 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     public void OnPickedUp( MazingPlayer holder )
     {
-        Parent = holder;
+        Parent = ParentPlayer = holder;
 
         EnableAllCollisions = false;
     }
 
-    public void OnThrown( GridCoord target )
+    public void OnThrown( GridCoord target, Direction direction )
     {
-        Parent = null;
+        Parent = ParentPlayer = null;
 
         EnableAllCollisions = true;
 
         if (HeldEntity != null)
         {
-            var nextCell = target + this.GetFacingDirection();
+            var nextCell = target + direction;
 
-            if (Game.IsInMaze(nextCell))
+            if ( Game.IsInMaze( nextCell ) )
             {
-                ThrowItem(nextCell);
+                ThrowItem( nextCell, direction );
             }
         }
 
-        (Controller as MazingWalkController)?.Vault( target );
+        (Controller as MazingWalkController)?.Vault( target, false );
     }
 }

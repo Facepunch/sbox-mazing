@@ -30,6 +30,7 @@ public partial class MazingWalkController : BasePlayerController
     public bool IsGhost => Pawn is MazingPlayer player && !player.IsAlive;
 
     public bool IsVaulting => SinceVault <= VaultTime;
+    public bool IsVaultOnCooldown => NextVault <= 0f;
 
     public bool IsPlayer => Pawn is MazingPlayer;
     public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot && player.HeldEntity is not MazingPlayer;
@@ -44,6 +45,9 @@ public partial class MazingWalkController : BasePlayerController
 
     [Net]
     public TimeSince SinceVault { get; set; }
+
+    [Net]
+    public TimeSince NextVault { get; set; }
 
     private bool _wasVaulting;
     private bool _wasVaultCooldown;
@@ -235,7 +239,7 @@ public partial class MazingWalkController : BasePlayerController
                 wishVelocityAdd += perp;
             }
 
-            if (!IsVaulting && !IsGhost && SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && !IsBot && Input.Down(InputButton.Jump))
+            if (!IsVaulting && !IsGhost && NextVault > 0f && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && !IsBot && Input.Down(InputButton.Jump))
             {
                 Vault(cell + delta);
             }
@@ -297,31 +301,33 @@ public partial class MazingWalkController : BasePlayerController
 
         EyeLocalPosition += TraceOffset;
 
-        if ( Pawn.Parent is MazingPlayer holdingPlayer )
+        if ( Pawn is MazingPlayer pawnPlayer && pawnPlayer.ParentPlayer != null )
         {
-            Position = Pawn.Parent.Position + Vector3.Up * Pawn.Parent.WorldSpaceBounds.Size.z;
-            Rotation = Pawn.Parent.Rotation;
-            EyeRotation = Pawn.Parent.Rotation;
-
             SetTag( "held" );
 
-            if ( SinceVault > VaultCooldown && Input.Down(InputButton.Jump) )
+            Position = pawnPlayer.ParentPlayer.Position + Vector3.Up * pawnPlayer.ParentPlayer.WorldSpaceBounds.Size.z;
+            Rotation = pawnPlayer.ParentPlayer.Rotation;
+            EyeRotation = pawnPlayer.ParentPlayer.Rotation;
+
+            if (NextVault > 0f && Input.Down(InputButton.Jump))
             {
                 var cell = Pawn.GetCellIndex();
                 var inputDir = new Vector3(-Input.Left, Input.Forward, 0);
 
-                if ( inputDir.Length < 0.25f )
+                if (inputDir.Length < 0.25f)
                 {
                     inputDir = EyeRotation.Forward;
                 }
 
-                var target = cell + MazeData.GetDirection( inputDir );
+                var dir = MazeData.GetDirection(inputDir);
+                var target = cell + dir;
 
-                if ( MazingGame.Current.IsInMaze( target ) )
+                if (MazingGame.Current.IsInMaze(target))
                 {
-                    holdingPlayer.ThrowItem( target );
+                    pawnPlayer.ParentPlayer.ThrowItem( target, dir );
                 }
             }
+
             return;
         }
 
@@ -360,11 +366,10 @@ public partial class MazingWalkController : BasePlayerController
             var (rowF, colF) = game.PositionToCell( Position );
             var cell = new GridCoord(rowF.FloorToInt(), colF.FloorToInt());
 
-            var vaultOnCooldown = SinceVault < VaultCooldown;
+            var vaultOnCooldown = NextVault < 0f;
 
             if ( !vaultOnCooldown && _wasVaultCooldown )
             {
-                Sound.FromEntity( "player.recharge", Pawn );
                 AddEvent( "vault_reset" );
             }
 
@@ -372,13 +377,6 @@ public partial class MazingWalkController : BasePlayerController
 
             if ( Debug )
             {
-                if ( SinceVault < VaultCooldown )
-                {
-                    DebugOverlay.Text( $"Vault: {VaultCooldown - SinceVault}", Position + Vector3.Up * 128f, 0,
-                        Color.Green, 0f,
-                        maxDistance: float.MaxValue );
-                }
-
                 DebugOverlay.Box( game.CellToPosition(cell), game.CellToPosition( cell.Row + 1f, cell.Col + 1f ),
                     new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
             }
@@ -487,6 +485,11 @@ public partial class MazingWalkController : BasePlayerController
 
     public virtual float GetWishSpeed()
     {
+        if ( Pawn is MazingPlayer player && player.HeldEntity is MazingPlayer )
+        {
+            return DefaultSpeed * 2f / 3f;
+        }
+
         return DefaultSpeed;
     }
 
@@ -501,9 +504,9 @@ public partial class MazingWalkController : BasePlayerController
         {
             var result = TraceBBox( Position, Position - Vector3.Up * 16f );
 
-            if ( result.Hit && result.Entity is MazingPlayer otherPlayer && result.Entity.Position.z < Position.z - 32f )
+            if ( result.Hit && result.Entity is MazingPlayer otherPlayer && !otherPlayer.IsVaulting && result.Entity.Position.z < Position.z - 32f )
             {
-                SinceVault = float.PositiveInfinity;
+                AddEvent( "vault_end" );
 
                 otherPlayer.PickUp( player );
             }
@@ -644,7 +647,7 @@ public partial class MazingWalkController : BasePlayerController
         }
     }
 
-    public virtual void Vault( GridCoord target )
+    public virtual void Vault( GridCoord target, bool withCooldown = true )
     {
         var game = MazingGame.Current;
 
@@ -657,6 +660,11 @@ public partial class MazingWalkController : BasePlayerController
         
         SinceVault = 0f;
         _wasVaultCooldown = true;
+
+        if ( withCooldown )
+        {
+            NextVault = -VaultCooldown;
+        }
 
         VaultOrigin = Position;
         VaultTarget = game.CellToPosition( target.Row + 0.5f, target.Col + 0.5f );
@@ -677,7 +685,10 @@ public partial class MazingWalkController : BasePlayerController
             (Pawn as MazingPlayer)?.OnVault();
         }
 
-        Sound.FromEntity( "player.vault", Pawn );
+        if ( Pawn != null )
+        {
+            Sound.FromEntity("player.vault", Pawn);
+        }
 
         AddEvent("vault");
     }

@@ -54,7 +54,7 @@ partial class Jumper : Enemy
         var controller = (MazingWalkController)Controller;
         if (!controller.IsVaulting && Game.CurrentMaze.GetWall(this.GetCellIndex(), dir.Direction))
         {
-            controller.Vault(TargetCell);
+            controller.Vault(TargetCell, false);
             LastVault = 0f;
             VaultDir = dir.Delta.Normal;
         }

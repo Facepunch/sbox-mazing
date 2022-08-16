@@ -13,7 +13,7 @@ public interface IHoldable
     Entity Parent { get; set; }
 
     void OnPickedUp( MazingPlayer holder );
-    void OnThrown( GridCoord target );
+    void OnThrown( GridCoord target, Direction direction );
 }
 
 public abstract partial class Holdable : AnimatedEntity, IHoldable
@@ -49,7 +49,7 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
         Sound.FromEntity("key.collect", this);
     }
 
-    public void OnThrown( GridCoord target )
+    public void OnThrown( GridCoord target, Direction direction )
     {
         Parent = null;
         TargetPosition = MazingGame.Current.CellCenterToPosition( target );
