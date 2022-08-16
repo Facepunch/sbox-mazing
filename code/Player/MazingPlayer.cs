@@ -355,7 +355,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     private void CheckExited()
     {
-        if ( !IsAliveInMaze || Controller is MazingWalkController walkController && walkController.IsVaulting )
+        if ( !IsAliveInMaze || Controller is MazingWalkController walkController && walkController.IsVaulting || Parent is MazingPlayer )
         {
             return;
         }
@@ -375,6 +375,8 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         HasExited = true;
         ExitTime = 0f;
         EnableAllCollisions = false;
+
+        DropHeldItem();
 
         ClientExitNotify( Client.Name, $"{Client.Name} has escaped", HeldCoins );
 
@@ -399,11 +401,15 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     public void OnPickedUp( MazingPlayer holder )
     {
         Parent = holder;
+
+        EnableAllCollisions = false;
     }
 
     public void OnThrown( GridCoord target )
     {
         Parent = null;
+
+        EnableAllCollisions = true;
 
         if (HeldEntity != null)
         {
