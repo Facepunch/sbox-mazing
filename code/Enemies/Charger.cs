@@ -2,7 +2,7 @@
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(3), ThreatValue(2)]
+[UnlockLevel(3), ThreatValue(3)]
 internal partial class Charger : Enemy
 {
     public override float MoveSpeed => IsCharging ? 163f : 85f;
