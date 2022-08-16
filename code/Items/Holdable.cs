@@ -8,7 +8,15 @@ using Sandbox;
 
 namespace Mazing.Items;
 
-public abstract partial class Holdable : AnimatedEntity
+public interface IHoldable
+{
+    Entity Parent { get; set; }
+
+    void OnPickedUp( MazingPlayer holder );
+    void OnThrown( GridCoord target );
+}
+
+public abstract partial class Holdable : AnimatedEntity, IHoldable
 {
     public bool IsHeld => Parent is MazingPlayer;
 
@@ -30,6 +38,21 @@ public abstract partial class Holdable : AnimatedEntity
 
         EnableDrawing = true;
         EnableSolidCollisions = true;
+    }
+
+    public void OnPickedUp( MazingPlayer holder )
+    {
+        Parent = holder;
+        LastHolder = holder;
+        TargetPosition = Vector3.Up * 64f + Vector3.Forward * 8f;
+        
+        Sound.FromEntity("key.collect", this);
+    }
+
+    public void OnThrown( GridCoord target )
+    {
+        Parent = null;
+        TargetPosition = MazingGame.Current.CellCenterToPosition( target );
     }
 
     [Event.Tick.Server]
@@ -70,7 +93,7 @@ public abstract partial class Holdable : AnimatedEntity
 
         if (closestPlayer != null && closestPlayer.CanPickUpItem)
         {
-            closestPlayer.PickUpItem(this);
+            closestPlayer.PickUp( this );
         }
     }
 }

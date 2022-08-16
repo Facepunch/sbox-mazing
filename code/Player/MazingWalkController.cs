@@ -32,7 +32,7 @@ public partial class MazingWalkController : BasePlayerController
     public bool IsVaulting => SinceVault <= VaultTime;
 
     public bool IsPlayer => Pawn is MazingPlayer;
-    public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot;
+    public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot && player.HeldEntity is not MazingPlayer;
     
     public Vector3 EnemyWishVelocity { get; set; }
 
@@ -55,7 +55,7 @@ public partial class MazingWalkController : BasePlayerController
         Unstuck = new Unstuck(this);
         SinceVault = float.MaxValue;
     }
-
+    
     /// <summary>
     /// This is temporary, get the hull size for the player's collision
     /// </summary>
@@ -297,9 +297,19 @@ public partial class MazingWalkController : BasePlayerController
 
         EyeLocalPosition += TraceOffset;
 
+        if ( Pawn.Parent != null )
+        {
+            Position = Pawn.Parent.Position + Vector3.Up * Pawn.Parent.WorldSpaceBounds.Size.z;
+            Rotation = Pawn.Parent.Rotation;
+            EyeRotation = Pawn.Parent.Rotation;
+
+            SetTag( "held" );
+            return;
+        }
+
         RestoreGroundPos();
 
-        if (Unstuck.TestAndFix())
+        if (!IsVaulting && Unstuck.TestAndFix())
             return;
 
         if (MazingGame.Current == null)
@@ -468,6 +478,18 @@ public partial class MazingWalkController : BasePlayerController
         var height = Math.Clamp( 1f - MathF.Pow( 2f * SinceVault / VaultTime - 1f, 2f ), 0f, 1f );
 
         Position = Vector3.Up * height * VaultHeight + groundPos + Vector3.Up;
+
+        if ( SinceVault > VaultTime * 0.75f && Host.IsServer && Pawn is MazingPlayer player )
+        {
+            var result = TraceBBox( Position, Position - Vector3.Up * 16f );
+
+            if ( result.Hit && result.Entity is MazingPlayer otherPlayer && result.Entity.Position.z < Position.z - 32f )
+            {
+                SinceVault = float.PositiveInfinity;
+
+                otherPlayer.PickUp( player );
+            }
+        }
     }
 
     public virtual void WalkMove()
@@ -606,9 +628,6 @@ public partial class MazingWalkController : BasePlayerController
 
     public virtual void Vault( GridCoord target )
     {
-        if (GroundEntity == null)
-            return;
-
         var game = MazingGame.Current;
 
         if ( Debug )

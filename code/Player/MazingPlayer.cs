@@ -7,7 +7,7 @@ using Sandbox.UI;
 
 namespace Mazing.Player;
 
-public partial class MazingPlayer : Sandbox.Player
+public partial class MazingPlayer : Sandbox.Player, IHoldable
 {
     public ClothingContainer Clothing { get; } = new();
 
@@ -23,7 +23,7 @@ public partial class MazingPlayer : Sandbox.Player
     public bool IsAliveInMaze => IsAlive && !HasExited;
 
     [Net]
-    public Holdable HeldItem { get; set; }
+    public IHoldable HeldEntity { get; set; }
 
     [Net, HideInEditor]
     public int HeldCoins { get; private set; }
@@ -46,7 +46,7 @@ public partial class MazingPlayer : Sandbox.Player
 
     public MazingGame Game => MazingGame.Current;
 
-    public bool CanPickUpItem => HeldItem == null && LastItemDrop > 0.6f && !IsVaulting;
+    public bool CanPickUpItem => HeldEntity == null || HeldEntity is MazingPlayer && LastItemDrop > 0.6f && !IsVaulting;
 
     public MazingPlayer()
     {
@@ -97,8 +97,8 @@ public partial class MazingPlayer : Sandbox.Player
 
         IsAlive = true;
 
-        HeldItem?.SetParent( null );
-        HeldItem = null;
+        HeldEntity?.OnThrown( this.GetCellIndex() );
+        HeldEntity = null;
 
         HeldCoins = 0;
         SurvivalStreak = Math.Min( SurvivalStreak, Game.LevelIndex );
@@ -113,8 +113,8 @@ public partial class MazingPlayer : Sandbox.Player
     {
         base.OnDestroy();
 
-        HeldItem?.SetParent(null);
-        HeldItem = null;
+        HeldEntity?.OnThrown( this.GetCellIndex() );
+        HeldEntity = null;
 
         _ragdoll?.Delete();
         _ragdoll = null;
@@ -242,17 +242,6 @@ public partial class MazingPlayer : Sandbox.Player
         HeldCoins += value;
     }
     
-    public override void Simulate( Client cl )
-    {
-        base.Simulate(cl);
-
-        if (IsServer)
-            return;
-
-        DebugOverlay.Line(EyePosition, EyePosition + ((GridCoord)Direction.North).Normal * 48f, Color.Red, depthTest: false);
-        DebugOverlay.Line(EyePosition, EyePosition + ((GridCoord)Direction.East).Normal * 48f, Color.Blue, depthTest: false);
-    }
-    
     [Event.Tick.Server]
     public void ServerTick()
     {
@@ -286,7 +275,7 @@ public partial class MazingPlayer : Sandbox.Player
 
     public void OnVault()
     {
-        if (HeldItem != null)
+        if (HeldEntity != null)
         {
             var dropCell = this.GetCellIndex() + (GridCoord)this.GetFacingDirection() * 2;
             if (Game.IsInMaze(dropCell))
@@ -322,31 +311,31 @@ public partial class MazingPlayer : Sandbox.Player
         ThrowItem( this.GetCellIndex() );
     }
 
-    public void PickUpItem( Holdable item )
+    public void PickUp( IHoldable holdable )
     {
+        if ( HeldEntity is MazingPlayer player )
+        {
+            player.PickUp( holdable );
+            return;
+        }
+
         if ( !CanPickUpItem )
         {
             return;
         }
 
-        HeldItem = item;
-
-        item.Parent = this;
-        item.LastHolder = this;
-        item.TargetPosition = Vector3.Up * 64f + Vector3.Forward * 8f;
-
-        Sound.FromEntity( "key.collect", this );
+        HeldEntity = holdable;
+        HeldEntity.OnPickedUp( this );
     }
 
     private void ThrowItem( GridCoord cell )
     {
-        if ( HeldItem == null ) return;
+        if ( HeldEntity == null ) return;
 
         LastItemDrop = 0f;
-
-        HeldItem.Parent = null;
-        HeldItem.TargetPosition = Game.CellCenterToPosition( cell );
-        HeldItem = null;
+        
+        HeldEntity.OnThrown( cell );
+        HeldEntity = null;
     }
 
     private void CheckExited()
@@ -390,5 +379,27 @@ public partial class MazingPlayer : Sandbox.Player
 
         Tags.Remove( "player" );
         Tags.Add( "exited" );
+    }
+
+    public void OnPickedUp( MazingPlayer holder )
+    {
+        Parent = holder;
+    }
+
+    public void OnThrown( GridCoord target )
+    {
+        Parent = null;
+
+        if (HeldEntity != null)
+        {
+            var nextCell = target + this.GetFacingDirection();
+
+            if (Game.IsInMaze(nextCell))
+            {
+                ThrowItem(nextCell);
+            }
+        }
+
+        (Controller as MazingWalkController)?.Vault( target );
     }
 }

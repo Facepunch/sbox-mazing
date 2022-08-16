@@ -70,7 +70,7 @@ partial class Keyhunter : Enemy
 
     private Vector3 GetLookPos()
     {
-        var player = Entity.All.OfType<MazingPlayer>().Where(x => x.HeldItem != null).FirstOrDefault();
+        var player = Entity.All.OfType<MazingPlayer>().Where(x => x.HeldEntity != null).FirstOrDefault();
 
         if (player != null)
         {

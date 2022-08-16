@@ -25,10 +25,11 @@ internal partial class MazingPlayerAnimator : PawnAnimator
         //
 		// Let the animation graph know some shit
 		//
-		bool sitting = HasTag("sitting");
+        bool held = HasTag( "held" );
+		bool sitting = HasTag("sitting") || held;
 		bool isGhost = !(player?.IsAlive ?? true);
 
-		SetAnimParameter("b_grounded", !isGhost && (GroundEntity != null || sitting));
+		SetAnimParameter("b_grounded", !isGhost && (GroundEntity != null || held));
 		SetAnimParameter("b_noclip", isGhost && Velocity.WithZ( 0f ).LengthSquared < 50f * 50f);
 		SetAnimParameter("b_sit", sitting);
 		SetAnimParameter("b_swim", Pawn.WaterLevel > 0.5f && !sitting);
@@ -38,7 +39,7 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 			SetAnimParameter("voice", Client.TimeSinceLastVoice < 0.5f ? Client.VoiceLevel : 0.0f);
 		}
 
-		if (HasTag("ducked")) duck = duck.LerpTo(1.0f, Time.Delta * 10.0f);
+		if (HasTag("ducked") || held) duck = duck.LerpTo(1.0f, Time.Delta * 10.0f);
 		else duck = duck.LerpTo(0.0f, Time.Delta * 5.0f);
 		SetAnimParameter("duck", duck);
 
@@ -48,7 +49,7 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 		{
 			lookPos = Pawn.EyePosition + EyeRotation.Forward * 200;
 
-			if ( player.HeldItem != null )
+			if ( player.HeldEntity != null )
 			{
 				/*
                 SetAnimParameter("holdtype", 4);
@@ -122,37 +123,46 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 	}
 
 	void DoWalk()
-	{
+    {
+        var velocity = Velocity;
+        var wishVelocity = WishVelocity;
+
+        if (HasTag("held"))
+        {
+            velocity = Vector3.Zero;
+            wishVelocity = Vector3.Zero;
+		}
+
 		// Move Speed
 		{
-			var dir = Velocity;
+			var dir = velocity;
 			var forward = Rotation.Forward.Dot(dir);
 			var sideward = Rotation.Right.Dot(dir);
 
 			var angle = MathF.Atan2(sideward, forward).RadianToDegree().NormalizeDegrees();
 
 			SetAnimParameter("move_direction", angle);
-			SetAnimParameter("move_speed", Velocity.Length);
-			SetAnimParameter("move_groundspeed", Velocity.WithZ(0).Length);
+			SetAnimParameter("move_speed", velocity.Length);
+			SetAnimParameter("move_groundspeed", velocity.WithZ(0).Length);
 			SetAnimParameter("move_y", sideward);
 			SetAnimParameter("move_x", forward);
-			SetAnimParameter("move_z", Velocity.z);
+			SetAnimParameter("move_z", velocity.z);
 		}
 
 		// Wish Speed
 		{
-			var dir = WishVelocity;
+			var dir = wishVelocity;
 			var forward = Rotation.Forward.Dot(dir);
 			var sideward = Rotation.Right.Dot(dir);
 
 			var angle = MathF.Atan2(sideward, forward).RadianToDegree().NormalizeDegrees();
 
 			SetAnimParameter("wish_direction", angle);
-			SetAnimParameter("wish_speed", WishVelocity.Length);
-			SetAnimParameter("wish_groundspeed", WishVelocity.WithZ(0).Length);
+			SetAnimParameter("wish_speed", wishVelocity.Length);
+			SetAnimParameter("wish_groundspeed", wishVelocity.WithZ(0).Length);
 			SetAnimParameter("wish_y", sideward);
 			SetAnimParameter("wish_x", forward);
-			SetAnimParameter("wish_z", WishVelocity.z);
+			SetAnimParameter("wish_z", wishVelocity.z);
 		}
 	}
 
