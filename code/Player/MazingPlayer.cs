@@ -37,6 +37,9 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     [Net]
     public float VaultCooldown { get; set; } = 3.5f;
 
+    [HideInEditor]
+    public int FirstSeenLevelIndex { get; set; }
+
     public NameplateRoot Nameplate { get; private set; }
 
     public bool IsVaulting => Controller is MazingWalkController controller && controller.IsVaulting;

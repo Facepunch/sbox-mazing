@@ -588,7 +588,10 @@ public partial class MazingGame : Sandbox.Game
 
 		// Create a pawn for this client to play with
 		var mazingPlayer = new MazingPlayer( client );
-		client.Pawn = mazingPlayer;
+
+        client.Pawn = mazingPlayer;
+
+        mazingPlayer.FirstSeenLevelIndex = LevelIndex;
 
         Log.Info( $"IsBot: {client.IsBot}" );
 
@@ -668,7 +671,11 @@ public partial class MazingGame : Sandbox.Game
                 {
                     foreach (var player in All.OfType<MazingPlayer>())
                     {
-                        if (player.Client == null) continue;
+                        if ( player.Client == null ) continue;
+                        if ( LevelIndex < player.FirstSeenLevelIndex * 2 )
+                        {
+                            Log.Info( $"Not submitting score for {player.Client.Name}" );
+                        }
 
                         GameServices.SubmitScore(player.Client.PlayerId, TotalCoins);
                     }
@@ -763,6 +770,8 @@ public partial class MazingGame : Sandbox.Game
 
         foreach ( var player in Players.ToArray() )
         {
+            player.FirstSeenLevelIndex = LevelIndex;
+
             RespawnPlayer( player );
         }
     }
