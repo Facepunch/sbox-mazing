@@ -1,4 +1,4 @@
-using Sandbox;
+﻿using Sandbox;
 using Sandbox.UI.Construct;
 using System;
 using System.Collections.Generic;
@@ -448,7 +448,7 @@ public partial class MazingGame : Sandbox.Game
 
                 }
 
-				if (col < CurrentMaze.Cols && CurrentMaze.GetWall((row, col), Direction.North))
+				if (col < CurrentMaze.Cols && CurrentMaze.GetWall((row, col), Direction.South))
 				{
                     var height = row <= 0 || row >= CurrentMaze.Rows ? outerWallHeight : innerWallHeight;
                     var wall = new Wall
@@ -457,14 +457,14 @@ public partial class MazingGame : Sandbox.Game
                         Rotation = Rotation.FromYaw( 90f )
                     };
 
-                    _walls.Add(((row, col), Direction.North), wall);
+                    _walls.Add(((row, col), Direction.South), wall);
                 }
 
 				var north = CurrentMaze.GetWall((row - 1, col), Direction.West);
 				var south = CurrentMaze.GetWall((row, col), Direction.West);
 
-				var west = CurrentMaze.GetWall((row, col - 1), Direction.North);
-				var east = CurrentMaze.GetWall((row, col), Direction.North);
+				var west = CurrentMaze.GetWall((row, col - 1), Direction.South);
+				var east = CurrentMaze.GetWall((row, col), Direction.South);
 
 				if (north != south || west != east || north && west)
 				{
@@ -741,9 +741,9 @@ public partial class MazingGame : Sandbox.Game
             dir = Direction.West;
             coord += (0, 1);
         }
-        else if ( dir == Direction.South )
+        else if ( dir == Direction.North )
         {
-            dir = Direction.North;
+            dir = Direction.South;
             coord += (1, 0);
         }
 

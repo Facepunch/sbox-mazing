@@ -167,11 +167,11 @@ public partial class MazingWalkController : BasePlayerController
             {
                 if (rowFrac > 0.5f)
                 {
-                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.South) || game.CurrentMaze.GetWall(cell + (1, 0), dir);
+                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.North) || game.CurrentMaze.GetWall(cell + (1, 0), dir);
                 }
                 else
                 {
-                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.North) || game.CurrentMaze.GetWall(cell - (1, 0), dir);
+                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.South) || game.CurrentMaze.GetWall(cell - (1, 0), dir);
                 }
             }
 

@@ -246,9 +246,11 @@ public partial class MazingPlayer : Sandbox.Player
     {
         base.Simulate(cl);
 
-        if (!IsServer)
+        if (IsServer)
             return;
-        
+
+        DebugOverlay.Line(EyePosition, EyePosition + ((GridCoord)Direction.North).Normal * 48f, Color.Red, depthTest: false);
+        DebugOverlay.Line(EyePosition, EyePosition + ((GridCoord)Direction.East).Normal * 48f, Color.Blue, depthTest: false);
     }
     
     [Event.Tick.Server]

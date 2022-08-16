@@ -236,9 +236,9 @@ public static class MazeGenerator
 					allWalls.Add( ((row, col), Direction.West, (row, col - 1)) );
 				}
 
-				if ( row > 0 && maze.GetWall( (row, col), Direction.North ) )
+				if ( row > 0 && maze.GetWall( (row, col), Direction.South ) )
 				{
-					allWalls.Add( ((row, col), Direction.North, (row - 1, col)) );
+					allWalls.Add( ((row, col), Direction.South, (row - 1, col)) );
 				}
 			}
 		}

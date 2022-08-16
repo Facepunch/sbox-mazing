@@ -11,9 +11,9 @@ namespace Mazing;
 
 public enum Direction
 {
-	North,
-	East,
 	South,
+	East,
+	North,
 	West
 }
 
@@ -156,7 +156,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 		var part = new MazeData( rows, cols );
         var specialCells = new List<(GridCoord Coord, char Char)>();
 
-		for ( var row = 0; row <= rows; ++row )
+		for ( var row = rows - 1; row >= -1; --row )
 		{
 			// Horizontal walls
 
@@ -179,7 +179,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 				part.SetWall( (row, col), Direction.North, horzWallsMatch.Groups[1].Captures[col].Value.Contains( '-' ) );
 			}
 
-			if ( row >= rows )
+			if ( row <= -1 )
 			{
 				break;
 			}
@@ -238,7 +238,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 				var relRow = row;
 				var relCol = col;
 				var relWest = Direction.West;
-				var relNorth = Direction.North;
+				var relNorth = Direction.South;
 
 				if ( flipX )
 				{
@@ -249,14 +249,14 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 				if ( flipY )
 				{
 					relRow = src.Rows - relRow - 1;
-					relNorth = Direction.South;
+					relNorth = Direction.North;
 				}
 
 				if ( transpose )
 				{
 					(relRow, relCol) = (relCol, relRow);
-					relWest = relWest == Direction.West ? Direction.North : Direction.South;
-					relNorth = relNorth == Direction.North ? Direction.West : Direction.East;
+					relWest = relWest == Direction.West ? Direction.South : Direction.North;
+					relNorth = relNorth == Direction.South ? Direction.West : Direction.East;
 				}
 
 				if ( src.GetWall( (srcRow + row, srcCol + col), Direction.West ) )
@@ -264,7 +264,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 					dst.SetWall( (dstRow + relRow, dstCol + relCol), relWest, true );
 				}
 
-				if ( src.GetWall( (srcRow + row, srcCol + col), Direction.North ) )
+				if ( src.GetWall( (srcRow + row, srcCol + col), Direction.South ) )
 				{
 					dst.SetWall( (dstRow + relRow, dstCol + relCol), relNorth, true );
 				}
@@ -290,8 +290,8 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 	{
 		for ( var i = 0; i < Cols; i++ )
 		{
-			SetWall( (0, i), Direction.North, isSolid );
-			SetWall( (Rows - 1, i), Direction.South, isSolid );
+			SetWall( (0, i), Direction.South, isSolid );
+			SetWall( (Rows - 1, i), Direction.North, isSolid );
 		}
 
 		for ( var i = 0; i < Rows; i++ )
@@ -305,8 +305,8 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 	{
 		switch ( dir )
 		{
-			case Direction.South:
-				dir = Direction.North;
+			case Direction.North:
+				dir = Direction.South;
                 coord += (1, 0);
 				break;
 			case Direction.East:
@@ -322,7 +322,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 
 		switch ( dir )
 		{
-			case Direction.North:
+			case Direction.South:
 				if (coord.Row < 0 || coord.Row > Rows || coord.Col < 0 || coord.Col >= Cols ) return false;
 
 				return _horzWalls[Cols * coord.Row + coord.Col];
@@ -343,7 +343,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 
 		switch ( dir )
 		{
-			case Direction.North:
+			case Direction.South:
                 if (coord.Row < 0 || coord.Row > Rows || coord.Col < 0 || coord.Col >= Cols)
 				{
 					throw new IndexOutOfRangeException();
@@ -380,9 +380,9 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 
     public static (Direction Direction, GridCoord Delta)[] Directions { get; } = new[]
     {
-        (Direction.North, new GridCoord( -1, 0 )),
+        (North: Direction.South, new GridCoord( -1, 0 )),
         (Direction.East, new GridCoord( 0, 1 )),
-        (Direction.South, new GridCoord( 1, 0 )),
+        (South: Direction.North, new GridCoord( 1, 0 )),
         (Direction.West, new GridCoord( 0, -1 ))
     };
 
@@ -393,7 +393,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
             return dCol > 0 ? Direction.East : Direction.West;
         }
 
-        return dRow > 0 ? Direction.North : Direction.South;
+        return dRow > 0 ? Direction.South : Direction.North;
     }
 
 	public static Direction GetDirection( Vector3 vec )
@@ -403,7 +403,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
             return vec.x > 0f ? Direction.East : Direction.West;
         }
 
-        return vec.y < 0f ? Direction.North : Direction.South;
+        return vec.y < 0f ? Direction.South : Direction.North;
     }
 
 	public int GetDistance( GridCoord a, GridCoord b )
@@ -445,7 +445,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 	{
 		for ( var row = 0; row <= Rows; ++row )
 		{
-			Log.Info( $"+{string.Join( "+", Enumerable.Range( 0, Cols ).Select( col => GetWall( (row, col), Direction.North ) ? "---" : "   " ) )}+" );
+			Log.Info( $"+{string.Join( "+", Enumerable.Range( 0, Cols ).Select( col => GetWall( (row, col), Direction.South ) ? "---" : "   " ) )}+" );
 
 			if ( row >= Rows ) break;
 			
