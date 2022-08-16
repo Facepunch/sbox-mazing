@@ -1,4 +1,4 @@
-﻿using Sandbox;
+using Sandbox;
 using Sandbox.UI.Construct;
 using System;
 using System.Collections.Generic;
@@ -604,14 +604,21 @@ public partial class MazingGame : Sandbox.Game
     {
         player.HasExited = false;
 
-        var index = Array.IndexOf( Players.ToArray(), player );
-
-        // Spawn in a random grid cell
-        var spawnCell = _playerSpawns[index % _playerSpawns.Length];
-
-        player.Position = CellToPosition(spawnCell.Row + 0.5f, spawnCell.Col + 0.5f) + Vector3.Up * 1024f;
         player.Respawn();
 	}
+
+    public override void MoveToSpawnpoint( Entity pawn )
+    {
+        if ( pawn is MazingPlayer player )
+        {
+            var index = Array.IndexOf(Players.ToArray(), player);
+
+            // Spawn in a random grid cell
+            var spawnCell = _playerSpawns[index % _playerSpawns.Length];
+
+            player.Position = CellToPosition(spawnCell.Row + 0.5f, spawnCell.Col + 0.5f) + Vector3.Up * 1024f;
+        }
+    }
 
     public override void DoPlayerNoclip( Client player )
     {
