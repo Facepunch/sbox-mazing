@@ -297,13 +297,31 @@ public partial class MazingWalkController : BasePlayerController
 
         EyeLocalPosition += TraceOffset;
 
-        if ( Pawn.Parent != null )
+        if ( Pawn.Parent is MazingPlayer holdingPlayer )
         {
             Position = Pawn.Parent.Position + Vector3.Up * Pawn.Parent.WorldSpaceBounds.Size.z;
             Rotation = Pawn.Parent.Rotation;
             EyeRotation = Pawn.Parent.Rotation;
 
             SetTag( "held" );
+
+            if ( SinceVault > VaultCooldown && Input.Down(InputButton.Jump) )
+            {
+                var cell = Pawn.GetCellIndex();
+                var inputDir = new Vector3(-Input.Left, Input.Forward, 0);
+
+                if ( inputDir.Length < 0.25f )
+                {
+                    inputDir = EyeRotation.Forward;
+                }
+
+                var target = cell + MazeData.GetDirection( inputDir );
+
+                if ( MazingGame.Current.IsInMaze( target ) )
+                {
+                    holdingPlayer.ThrowItem( target );
+                }
+            }
             return;
         }
 
@@ -477,7 +495,7 @@ public partial class MazingWalkController : BasePlayerController
         var groundPos = Vector3.Lerp( VaultOrigin, VaultTarget, SinceVault / VaultTime );
         var height = Math.Clamp( 1f - MathF.Pow( 2f * SinceVault / VaultTime - 1f, 2f ), 0f, 1f );
 
-        Position = Vector3.Up * height * VaultHeight + groundPos + Vector3.Up;
+        Position = Vector3.Up * height * VaultHeight + groundPos;
 
         if ( SinceVault > VaultTime * 0.75f && Host.IsServer && Pawn is MazingPlayer player )
         {

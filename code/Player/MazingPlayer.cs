@@ -313,22 +313,32 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     public void PickUp( IHoldable holdable )
     {
-        if ( HeldEntity is MazingPlayer player )
+        if ( HeldEntity is MazingPlayer heldPlayer )
         {
-            player.PickUp( holdable );
+            heldPlayer.PickUp( holdable );
             return;
         }
 
-        if ( !CanPickUpItem )
+        if (holdable is not MazingPlayer && !CanPickUpItem)
         {
             return;
         }
 
-        HeldEntity = holdable;
-        HeldEntity.OnPickedUp( this );
+        if ( holdable is MazingPlayer player && HeldEntity != null )
+        {
+            player.PickUp(HeldEntity);
+
+            HeldEntity = player;
+            HeldEntity.OnPickedUp( this );
+        }
+        else
+        {
+            HeldEntity = holdable;
+            HeldEntity.OnPickedUp( this );
+        }
     }
 
-    private void ThrowItem( GridCoord cell )
+    public void ThrowItem( GridCoord cell )
     {
         if ( HeldEntity == null ) return;
 
