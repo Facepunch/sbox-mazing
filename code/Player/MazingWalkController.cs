@@ -3,7 +3,7 @@ using System.Linq;
 using Mazing.Enemies;
 using Sandbox;
 
-namespace Mazing;
+namespace Mazing.Player;
 
 public partial class MazingWalkController : BasePlayerController
 {
@@ -31,7 +31,8 @@ public partial class MazingWalkController : BasePlayerController
 
     public bool IsVaulting => SinceVault <= VaultTime;
 
-    public bool IsPlayer => Pawn is Player;
+    public bool IsPlayer => Pawn is MazingPlayer;
+    public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot;
     
     public Vector3 EnemyWishVelocity { get; set; }
 
@@ -234,7 +235,7 @@ public partial class MazingWalkController : BasePlayerController
                 wishVelocityAdd += perp;
             }
 
-            if (!IsVaulting && !IsGhost && SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && Input.Down(InputButton.Jump))
+            if (!IsVaulting && !IsGhost && SinceVault > VaultCooldown && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && !IsBot && Input.Down(InputButton.Jump))
             {
                 Vault(cell + delta);
             }
@@ -360,7 +361,7 @@ public partial class MazingWalkController : BasePlayerController
                 {
                     WishVelocity = game.CellCenterToPosition( game.ExitCell ) - player.Position;
                 }
-                else
+                else if ( !IsBot )
                 {
                     WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
                 }

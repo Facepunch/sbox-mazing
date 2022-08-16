@@ -3,7 +3,7 @@ using System.Linq;
 using Sandbox;
 using Sandbox.Internal;
 
-namespace Mazing;
+namespace Mazing.Player;
 
 public class MazingCamera : CameraMode
 {

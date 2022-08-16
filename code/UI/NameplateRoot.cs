@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Mazing.Player;
 using Sandbox;
 using Sandbox.UI;
 
@@ -43,7 +44,7 @@ namespace Mazing.UI
 
             if ( Player == null || MazingGame.Current == null ) return;
 
-            var camera = (Local.Pawn as Player)?.CameraMode;
+            var camera = (Local.Pawn as MazingPlayer)?.CameraMode;
 
             if ( camera == null ) return;
 

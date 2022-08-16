@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Mazing.Items;
+using Mazing.Player;
 using Sandbox;
 
 namespace Mazing.Enemies;
@@ -63,8 +65,7 @@ partial class Keyhunter : Enemy
 
     public bool IsHuntingKey()
     {
-        var key = Entity.All.OfType<Key>().FirstOrDefault();
-        return (key == null || key.IsHeld);
+        return Game.Key == null || Game.Key.IsHeld;
     }
 
     private Vector3 GetLookPos()

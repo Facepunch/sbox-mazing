@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Mazing.Enemies;
 using Sandbox;
 
-namespace Mazing;
+namespace Mazing.Enemies;
 
 internal class PathFinder
 {

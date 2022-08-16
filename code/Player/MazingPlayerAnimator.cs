@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Sandbox;
 
-namespace Mazing;
+namespace Mazing.Player;
 
 internal partial class MazingPlayerAnimator : PawnAnimator
 {
@@ -94,7 +94,7 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 
 	public virtual void DoRotation( Rotation idealRotation )
 	{
-		var player = Pawn as Player;
+		var player = Pawn as MazingPlayer;
 
 		//
 		// Our ideal player model rotation is the way we're facing

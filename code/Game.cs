@@ -8,6 +8,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Mazing.Enemies;
+using Mazing.Items;
+using Mazing.Player;
 using Mazing.UI;
 using Sandbox.UI;
 
@@ -268,7 +270,7 @@ public partial class MazingGame : Sandbox.Game
 
         switch ( ent )
         {
-            case Player:
+            case MazingPlayer:
                 return false;
         }
 
@@ -287,7 +289,7 @@ public partial class MazingGame : Sandbox.Game
             {
                 switch ( entity )
                 {
-                    case Player:
+                    case MazingPlayer:
                         continue;
                 }
 
@@ -395,7 +397,7 @@ public partial class MazingGame : Sandbox.Game
             _enemies.Add( enemies[i] );
         }
 
-        TotalTreasureValue = generated.Coins.Length * Mazing.Treasure.GetValue( TreasureKind.Emerald );
+        TotalTreasureValue = generated.Coins.Length * Items.Treasure.GetValue( TreasureKind.Emerald );
 
         var possibleKinds = new List<TreasureKind>();
         var treasureIndex = 0;
@@ -408,7 +410,7 @@ public partial class MazingGame : Sandbox.Game
 
             foreach ( var kind in Enum.GetValues<TreasureKind>() )
             {
-                if ( Mazing.Treasure.GetValue( kind ) <= totalTreasureValue )
+                if ( Items.Treasure.GetValue( kind ) <= totalTreasureValue )
                 {
                     possibleKinds.Add( kind );
                 }
@@ -422,7 +424,7 @@ public partial class MazingGame : Sandbox.Game
                 Position = CellToPosition( coinCell.Row + 0.5f, coinCell.Col + 0.5f )
             };
 
-            totalTreasureValue -= Mazing.Treasure.GetValue( chosenKind );
+            totalTreasureValue -= Items.Treasure.GetValue( chosenKind );
         }
         
         Key = new Key
@@ -588,6 +590,8 @@ public partial class MazingGame : Sandbox.Game
 		var mazingPlayer = new MazingPlayer( client );
 		client.Pawn = mazingPlayer;
 
+        Log.Info( $"IsBot: {client.IsBot}" );
+
         RespawnPlayer( mazingPlayer );
 
         if ( LevelIndex > 0 )
@@ -655,7 +659,7 @@ public partial class MazingGame : Sandbox.Game
 
                 if ( !_hasCheated && !Host.IsToolsEnabled )
                 {
-                    foreach (var player in Player.All.OfType<MazingPlayer>())
+                    foreach (var player in All.OfType<MazingPlayer>())
                     {
                         if (player.Client == null) continue;
 
