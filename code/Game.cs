@@ -574,14 +574,20 @@ public partial class MazingGame : Sandbox.Game
         return true;
     }
 
+    [ClientRpc]
+    private void ClientJoinNotify( string name, long playerId )
+    {
+        ChatBox.AddInformation($"{name} has entered the maze", $"avatar:{playerId}");
+    }
+
     /// <summary>
     /// A client has joined the server. Make them a pawn to play with
     /// </summary>
     public override void ClientJoined( Client client )
-	{
-		base.ClientJoined( client );
+    {
+        Log.Info( $"\"{client.Name}\" has joined the game" );
 
-		if ( CurrentMaze == null )
+        if ( CurrentMaze == null )
 		{
 			GenerateMaze();
 		}
@@ -597,7 +603,11 @@ public partial class MazingGame : Sandbox.Game
 
         if ( LevelIndex > 0 )
         {
-            mazingPlayer.Kill( Vector3.Up, "{0} joined as a ghost", false );
+            mazingPlayer.Kill( Vector3.Up, "{0} has joined as a ghost", false );
+        }
+        else
+        {
+            ClientJoinNotify( client.Name, client.PlayerId );
         }
     }
 
