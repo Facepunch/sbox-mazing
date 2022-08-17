@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Mazing.Enemies;
 using Sandbox;
@@ -35,7 +36,7 @@ public partial class MazingWalkController : BasePlayerController
     public bool IsPlayer => Pawn is MazingPlayer;
     public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot && player.HeldEntity is not MazingPlayer;
     
-    public Vector3 EnemyWishVelocity { get; set; }
+    public Vector3 InputVector { get; set; }
 
     [Net, Predicted]
     public Vector3 VaultOrigin { get; set; }
@@ -110,13 +111,13 @@ public partial class MazingWalkController : BasePlayerController
             return;
         }
 
-        if (WishVelocity.LengthSquared <= 0.125f )
+        var dir = InputVector;
+
+        if ( dir.LengthSquared < 0.25f * 0.25f )
         {
             return;
         }
-
-        var dir = WishVelocity;
-
+        
         if ( Math.Abs(dir.x ) > Math.Abs(dir.y ) )
         {
             dir.y = 0f;
@@ -137,123 +138,104 @@ public partial class MazingWalkController : BasePlayerController
         UpdateEyeRotation();
     }
 
+    private readonly List<(Vector3 A, Vector3 B)> _wallSegments = new List<(Vector3 A, Vector3 B)>();
+
+    private void WallResponse( Vector3 normal, float radius, float dist )
+    {
+        Position += Math.Clamp( radius - dist, 0f, radius ) * normal;
+
+        var wishDot = Vector3.Dot( normal, WishVelocity );
+        var velDot = Vector3.Dot( normal, Velocity );
+
+        WishVelocity -= Math.Min( 0f, wishDot ) * normal;
+        Velocity -= Math.Min( 0f, velDot ) * normal;
+    }
+
     private void WallCollision()
     {
         var game = MazingGame.Current;
         var (rowF, colF) = game.PositionToCell(Position);
         var cell = new GridCoord(rowF.FloorToInt(), colF.FloorToInt());
+        
+        const float cellSize = 48f;
+        const float radius = cellSize * 0.5f;
 
-        var wishVelocityAdd = Vector3.Zero;
-        var velocityAdd = Vector3.Zero;
-        var positionAdd = Vector3.Zero;
+        // Find wall segments that we could collide with
 
-        var rowFrac = rowF - cell.Row;
-        var colFrac = colF - cell.Col;
+        _wallSegments.Clear();
 
-        foreach (var (dir, delta) in MazeData.Directions)
+        for ( var r = cell.Row - 1; r <= cell.Row + 1; ++r )
         {
-            var directWall = game.CurrentMaze.GetWall(cell, dir);
-
-            bool endWall = false;
-
-            if (delta.Row != 0 && Math.Abs(colFrac - 0.5f) > 0.2f)
+            for (var c = cell.Col - 1; c <= cell.Col + 1; ++c)
             {
-                if (colFrac > 0.5f)
+                if ( c <= cell.Col && game.CurrentMaze.GetWall( (r, c), Direction.East ) )
                 {
-                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.East) || game.CurrentMaze.GetWall(cell + (0, 1), dir);
+                    _wallSegments.Add( (game.CellToPosition( r, c + 1f ), game.CellToPosition( r + 1f, c + 1f )) );
                 }
-                else
+
+                if ( r <= cell.Row && game.CurrentMaze.GetWall( (r, c), Direction.North ) )
                 {
-                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.West) || game.CurrentMaze.GetWall(cell - (0, 1), dir);
+                    _wallSegments.Add( (game.CellToPosition( r + 1f, c ), game.CellToPosition( r + 1f, c + 1f )) );
                 }
             }
-            else if (delta.Col != 0 && Math.Abs(rowFrac - 0.5f) > 0.2f)
-            {
-                if (rowFrac > 0.5f)
-                {
-                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.North) || game.CurrentMaze.GetWall(cell + (1, 0), dir);
-                }
-                else
-                {
-                    endWall = game.CurrentMaze.GetWall(cell + delta, Direction.South) || game.CurrentMaze.GetWall(cell - (1, 0), dir);
-                }
-            }
+        }
+        
+        // First pass, push directly out of walls we are between the ends of
 
-            if (!directWall && !endWall)
+        foreach ( var segment in _wallSegments )
+        {
+            var tangent = (segment.B - segment.A).Normal;
+            var normal = new Vector3( -tangent.y, tangent.x );
+
+            var along = Vector3.Dot( tangent, Position - segment.A );
+
+            if ( along < 0f || along > cellSize )
             {
                 continue;
             }
 
-            var mid = (game.CellToPosition(cell.Row + 0.5f, cell.Col + 0.5f) + game.CellToPosition(cell.Row + delta.Row + 0.5f, cell.Col + delta.Col + 0.5f)) * 0.5f;
-            var diff = game.CellToPosition(cell + delta) - game.CellToPosition(cell);
-            var normal = diff.Normal;
-            var size = new Vector3(Math.Abs(diff.y) + 6f, Math.Abs(diff.x) + 6f, 0f);
+            var across = Vector3.Dot( normal, Position - segment.A );
 
-            var canVault = directWall && (delta.Row == 0 || cell.Row + delta.Row >= 0 && cell.Row + delta.Row < game.CurrentMaze.Rows)
-                           && (delta.Col == 0 || cell.Col + delta.Col >= 0 && cell.Col + delta.Col < game.CurrentMaze.Cols);
-
-            var playerDist = Vector3.Dot(mid - Position, normal) - 24f;
-
-            var moveDot = Vector3.Dot(WishVelocity, normal);
-
-            //
-            // If you're too close to a wall, immediately move back and cancel any velocity
-            // in that direction
-            //
-            if (playerDist < 0f)
+            if (across < -radius || across > radius)
             {
-                if (Velocity.Length > 15f) // hack so slow movement doesn't jitter
-                    positionAdd += playerDist * normal;
-
-                var velDot = Vector3.Dot(Velocity, normal);
-
-                if (directWall && velDot > 0f)
-                {
-                    velocityAdd -= velDot * normal;
-                }
+                continue;
             }
 
-            var perpMoveDot = Math.Abs(Vector3.Dot(WishVelocity, new Vector3(normal.y, -normal.x)));
-
-            //
-            // If you're trying to walk into a wall, cancel that movement if either:
-            //   1) you are also moving in a perpendicular direction
-            //   2) you aren't currently facing that direction
-            //
-            if (moveDot > 0f && (perpMoveDot > 0.5f || Vector3.Dot(normal, EyeRotation.Forward) > 0.5f))
-            {
-                wishVelocityAdd -= moveDot * normal * Math.Clamp(1f - playerDist, 0f, 1f);
-            }
-
-            //
-            // If you're walking towards a gap between walls, but you're not cleanly going through
-            // the middle, walk perpendicular so you'll be in the middle of the gap
-            //
-            if (!directWall && moveDot > 0f)
-            {
-                var perp = delta.Row != 0 ? colFrac > 0.5f
-                        ? new Vector3(-1f, 0f)
-                        : new Vector3(1f, 0f)
-                    : rowFrac > 0.5f ? new Vector3(0f, -1f) : new Vector3(0f, 1f);
-
-                wishVelocityAdd += perp;
-            }
-
-            if (!IsVaulting && !IsGhost && NextVault > 0f && canVault && Vector3.Dot(EyeRotation.Forward, normal) > 0.6f && IsPlayer && !IsBot && Input.Down(InputButton.Jump))
-            {
-                Vault(cell + delta);
-            }
-
-            if (Debug)
-            {
-                DebugOverlay.Box(mid - size * 0.5f, mid + size * 0.5f, canVault ? Color.Blue : Color.Red,
-                    depthTest: false);
-            }
+            WallResponse( across >= 0f ? normal : -normal, radius, Math.Abs( across ) );
         }
+        
+        // Second pass, push directly out of wall ends
 
-        Position += positionAdd;
-        WishVelocity += wishVelocityAdd;
-        Velocity += velocityAdd;
+        foreach ( var segment in _wallSegments )
+        {
+            var tangent = (segment.B - segment.A).Normal;
+            var normal = new Vector3( -tangent.y, tangent.x );
+
+            var along = Vector3.Dot( tangent, Position - segment.A );
+
+            if ( along > 0f && along < cellSize || along < -radius || along > cellSize + radius )
+            {
+                continue;
+            }
+
+            var across = Vector3.Dot( normal, Position - segment.A );
+
+            if ( across < -radius || across > radius )
+            {
+                continue;
+            }
+
+            var corner = along < cellSize * 0.5f ? segment.A : segment.B;
+
+            var distsq = (Position - corner).LengthSquared;
+
+            if ( distsq > radius * radius )
+            {
+                continue;
+            }
+
+            WallResponse( (Position - corner).Normal, radius, MathF.Sqrt( distsq ) );
+        }
     }
 
     public void KeepInBounds()
@@ -389,17 +371,28 @@ public partial class MazingWalkController : BasePlayerController
                 }
                 else if ( !IsBot )
                 {
-                    WishVelocity = new Vector3(-Input.Left, Input.Forward, 0);
+                    WishVelocity = InputVector = new Vector3(-Input.Left, Input.Forward, 0);
                 }
             }
             else
             {
-                WishVelocity = EnemyWishVelocity;
+                WishVelocity = InputVector;
             }
 
             if ( !IsGhost )
             {
                 WallCollision();
+
+                if ( !IsVaultOnCooldown && IsPlayer && Input.Down( InputButton.Jump ) )
+                {
+                    var dir = Pawn.GetFacingDirection();
+                    var next = cell + dir;
+
+                    if ( game.CurrentMaze.GetWall( cell, dir ) && game.IsInMaze( next ) )
+                    {
+                        Vault( next, true );
+                    }
+                }
             }
             else
             {

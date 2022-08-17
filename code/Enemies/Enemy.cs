@@ -222,7 +222,7 @@ public abstract partial class Enemy : AnimatedEntity
             //    new Color(0f, 1f, 0f, 0.1f), depthTest: false);
 
 
-            walkController.EnemyWishVelocity = dir;
+            walkController.InputVector = dir;
         }
 
         //DebugOverlay.Text(Velocity.Length.ToString(), EyePosition, 0f, float.MaxValue);
