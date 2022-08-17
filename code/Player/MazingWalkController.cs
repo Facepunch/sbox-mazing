@@ -140,15 +140,23 @@ public partial class MazingWalkController : BasePlayerController
 
     private readonly List<(Vector3 A, Vector3 B)> _wallSegments = new List<(Vector3 A, Vector3 B)>();
 
-    private void WallResponse( Vector3 normal, float radius, float dist )
+    private void WallResponse( Vector3 normal, float radius, float dist, bool keepVelocity )
     {
         Position += Math.Clamp( radius - dist, 0f, radius ) * normal;
 
-        var wishDot = Vector3.Dot( normal, WishVelocity );
-        var velDot = Vector3.Dot( normal, Velocity );
+        var wishDot = Math.Min( 0f, Vector3.Dot( normal, WishVelocity ) );
+        var velDot = Math.Min( 0f, Vector3.Dot( normal, Velocity ) );
 
-        WishVelocity -= Math.Min( 0f, wishDot ) * normal;
-        Velocity -= Math.Min( 0f, velDot ) * normal;
+        if ( keepVelocity )
+        {
+            var tangent = new Vector3( normal.y, -normal.x );
+
+            WishVelocity -= tangent * wishDot * MathF.Sign( Vector3.Dot( tangent, WishVelocity ) );
+            Velocity -= tangent * velDot * MathF.Sign( Vector3.Dot( tangent, Velocity ) );
+        }
+
+        WishVelocity -= wishDot * normal;
+        Velocity -= velDot * normal;
     }
 
     private void WallCollision()
@@ -201,7 +209,7 @@ public partial class MazingWalkController : BasePlayerController
                 continue;
             }
 
-            WallResponse( across >= 0f ? normal : -normal, radius, Math.Abs( across ) );
+            WallResponse( across >= 0f ? normal : -normal, radius, Math.Abs( across ), false );
         }
         
         // Second pass, push directly out of wall ends
@@ -234,7 +242,7 @@ public partial class MazingWalkController : BasePlayerController
                 continue;
             }
 
-            WallResponse( (Position - corner).Normal, radius, MathF.Sqrt( distsq ) );
+            WallResponse( (Position - corner).Normal, radius, MathF.Sqrt( distsq ), true );
         }
     }
 
