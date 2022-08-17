@@ -593,8 +593,6 @@ public partial class MazingGame : Sandbox.Game
 
         mazingPlayer.FirstSeenLevelIndex = LevelIndex;
 
-        Log.Info( $"IsBot: {client.IsBot}" );
-
         RespawnPlayer( mazingPlayer );
 
         if ( LevelIndex > 0 )

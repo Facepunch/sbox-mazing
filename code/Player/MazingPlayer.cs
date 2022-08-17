@@ -150,42 +150,38 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     }
 
     [ClientRpc]
-    public static void ClientDeathNotify( string name, string message, int coins, int streak )
+    public static void ClientDeathNotify( long playerId, string message, int coins, int streak )
     {
         if ( coins == 0 )
         {
-            if ( streak >= 5 )
-            {
-                ChatBox.AddInformation($"{message}, losing a {streak} level streak!");
-            }
-            else
-            {
-                ChatBox.AddInformation($"{message}!");
-            }
+            ChatBox.AddInformation(
+                streak >= 5
+                    ? $"{message}, losing a {streak} level streak!"
+                    : $"{message}!",
+                avatar: $"avatar:{playerId}" );
         }
         else
         {
-            if (streak >= 5)
-            {
-                ChatBox.AddInformation($"{message}, losing a {streak} level streak and ${coins}!");
-            }
-            else
-            {
-                ChatBox.AddInformation($"{message}, losing ${coins}!");
-            }
+            ChatBox.AddInformation(
+                streak >= 5
+                    ? $"{message}, losing a {streak} level streak and ${coins}!"
+                    : $"{message}, losing ${coins}!",
+                avatar: $"avatar:{playerId}" );
         }
     }
 
     [ClientRpc]
-    public static void ClientExitNotify( string name, string message, int coins )
+    public static void ClientExitNotify( long playerId, string message, int coins )
     {
         if (coins == 0)
         {
-            ChatBox.AddInformation($"{message}!");
+            ChatBox.AddInformation($"{message}!",
+                avatar: $"avatar:{playerId}");
         }
         else
         {
-            ChatBox.AddInformation($"{message}, banking ${coins}!");
+            ChatBox.AddInformation($"{message}, banking ${coins}!",
+                avatar: $"avatar:{playerId}");
         }
     }
 
@@ -196,7 +192,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
             return;
         }
 
-        ClientDeathNotify( Client.Name, string.Format( message, Client.Name ), HeldCoins, SurvivalStreak );
+        ClientDeathNotify( Client.PlayerId, string.Format( message, Client.Name ), HeldCoins, SurvivalStreak );
 
         IsAlive = false;
 
@@ -391,7 +387,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
         DropHeldItem();
 
-        ClientExitNotify( Client.Name, $"{Client.Name} has escaped", HeldCoins );
+        ClientExitNotify( Client.PlayerId, $"{Client.Name} has escaped", HeldCoins );
 
         if ( Game.PlayersAliveInMaze.Any() )
         {

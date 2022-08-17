@@ -30,11 +30,11 @@ public partial class Hatch : AnimatedEntity
     }
 
     [ClientRpc]
-    public static void ClientOpenNotify( string name )
+    public static void ClientOpenNotify( long playerId, string name )
     {
         if (!string.IsNullOrEmpty(name))
         {
-            ChatBox.AddInformation( $"{name} has unlocked the exit hatch!" );
+            ChatBox.AddInformation( $"{name} has unlocked the exit hatch!", $"avatar:{playerId}" );
         }
         else
         {
@@ -49,9 +49,9 @@ public partial class Hatch : AnimatedEntity
             return;
         }
 
-        ClientOpenNotify( MazingGame.Current.Key?.LastHolder != null
-            ? MazingGame.Current.Key.LastHolder.Client.Name
-            : null );
+        var lastHolder = MazingGame.Current.Key?.LastHolder?.Client;
+
+        ClientOpenNotify( lastHolder?.PlayerId ?? 0, lastHolder?.Name );
 
         Sound.FromEntity( "hatch.open", this );
 
