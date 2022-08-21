@@ -94,18 +94,15 @@ public abstract partial class Enemy : AnimatedEntity
     {
         base.Spawn();
 
-        SetModel("models/citizen/citizen.vmdl");
+        SetModel(ModelPath);
 
-        Controller = new MazingWalkController
-        {
-            DefaultSpeed = MoveSpeed
-        };
+        Controller = OnCreateController();
 
         Tags.Add( "enemy" );
 
         Rotation = EyeRotation = Rotation.FromYaw( Rand.Int( 0, 3 ) * 90f );
 
-        Animator = new MazingPlayerAnimator();
+        Animator = OnCreateAnimator();
 
         EnableAllCollisions = true;
         EnableDrawing = true;
@@ -113,6 +110,21 @@ public abstract partial class Enemy : AnimatedEntity
         EnableShadowInFirstPerson = true;
 
         TargetCell = this.GetCellIndex();
+    }
+
+    protected virtual string ModelPath => "models/citizen/citizen.vmdl";
+
+    protected virtual PawnController OnCreateController()
+    {
+        return new MazingWalkController
+        {
+            DefaultSpeed = MoveSpeed
+        };
+    }
+
+    protected virtual PawnAnimator OnCreateAnimator()
+    {
+        return new MazingPlayerAnimator();
     }
 
     private TimeSince _lastFootstep;

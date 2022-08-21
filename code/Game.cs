@@ -128,7 +128,7 @@ public partial class MazingGame : Sandbox.Game
     {
         if ( levelIndex == 0 )
         {
-            //yield return typeof(Wizard);
+            //yield return typeof(SpikeTrap);
             //yield break;
         }
 
@@ -159,11 +159,18 @@ public partial class MazingGame : Sandbox.Game
             (alreadyUnlocked[i], alreadyUnlocked[index]) = (alreadyUnlocked[index], alreadyUnlocked[i]);
         }
 
+        // Make sure wanderers aren't first, so we don't get a 100% wanderer level
+        if ( alreadyUnlocked.Length > 1 && alreadyUnlocked[0].Type == typeof(Wanderer) )
+        {
+            var index = rand.Next(0, alreadyUnlocked.Length);
+            (alreadyUnlocked[0], alreadyUnlocked[index]) = (alreadyUnlocked[index], alreadyUnlocked[0]);
+        }
+
         // Choose which types of enemies will spawn:
         // * Any that have just unlocked are guaranteed to spawn
         // * Pick at least one other type too, if possible
 
-        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : rand.Next(1, alreadyUnlocked.Length);
+        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : rand.Next(justUnlocked.Length > 0 ? 0 : 1, Math.Max(1, (alreadyUnlocked.Length * 3) / 4));
 
         var usedTypes = justUnlocked
             .Concat( alreadyUnlocked.Take( extraTypeCount ) )
