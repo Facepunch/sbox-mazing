@@ -380,9 +380,9 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 
     public static (Direction Direction, GridCoord Delta)[] Directions { get; } = new[]
     {
-        (North: Direction.South, new GridCoord( -1, 0 )),
+        (Direction.South, new GridCoord( -1, 0 )),
         (Direction.East, new GridCoord( 0, 1 )),
-        (South: Direction.North, new GridCoord( 1, 0 )),
+        (Direction.North, new GridCoord( 1, 0 )),
         (Direction.West, new GridCoord( 0, -1 ))
     };
 
