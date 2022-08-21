@@ -247,6 +247,8 @@ partial class WizardBolt : ModelEntity
     {
         base.OnDestroy();
 
+        _isDespawning = true;
+
         _particles?.Destroy();
         _particles = null;
     }
@@ -274,9 +276,9 @@ partial class WizardBolt : ModelEntity
 
         Position += dir.Normal * Time.Delta * MoveSpeed;
 
-        var player = MazingGame.Current.GetClosestPlayer( Position, KillRange );
+        var player = MazingGame.Current.GetClosestPlayer( Position.WithZ( 0f ), KillRange, ignoreZ: false );
 
-        if ( player != null )
+        if ( player != null && !player.IsVaulting )
         {
             Sound.FromEntity("wizard.boltkill", this);
             player.Kill( ((GridCoord)Direction).Normal, "{0} was zapped by a Wizard" );
