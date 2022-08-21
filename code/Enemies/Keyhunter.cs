@@ -12,16 +12,19 @@ namespace Mazing.Enemies;
 [UnlockLevel(9), ThreatValue(4)]
 partial class Keyhunter : Enemy
 {
-    public override float MoveSpeed => IsHuntingKey() ? 99f : 60f;
+    private const float HuntStartDelay = 0.5f;
+
+    public override float MoveSpeed => IsHuntingKey() && _huntStartTime > HuntStartDelay ? 99f : 60f;
 
     protected override int HoldType => IsHuntingKey() ? 4 : 0;
 
     public override Vector3 LookPos => GetLookPos();
 
-    private Color _colorNormal = new Color(0.66f, 0.66f, 0.3f);
+    private Color _colorNormal = new Color(0.3f, 0.3f, 0.1f);
     private Color _colorHunting = new Color(1f, 1f, 0f);
 
     private bool _wasHuntingKey;
+    private TimeSince _huntStartTime;
 
     public override void Spawn()
     {
@@ -37,7 +40,7 @@ partial class Keyhunter : Enemy
 
     protected override void OnReachTarget()
     {
-        if ( Game.Key?.IsHeld ?? false )
+        if ( (Game.Key?.IsHeld ?? false) && _huntStartTime > HuntStartDelay )
         {
             TargetCell = GetNextInPathTo( Game.Key.Position );
         }
@@ -56,11 +59,14 @@ partial class Keyhunter : Enemy
         if ( huntingKey && !_wasHuntingKey )
         {
             Sound.FromEntity( "keyhunter.alert", this );
+            _huntStartTime = 0f;
+
+            OnReachTarget();
         }
 
         _wasHuntingKey = huntingKey;
 
-        RenderColor = huntingKey ? _colorHunting : _colorNormal;
+        RenderColor = Color.Lerp( _colorNormal, _colorHunting, huntingKey ? _huntStartTime / HuntStartDelay : 0f );
     }
 
     public bool IsHuntingKey()
