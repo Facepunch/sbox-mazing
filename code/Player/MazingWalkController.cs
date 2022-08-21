@@ -31,7 +31,7 @@ public partial class MazingWalkController : BasePlayerController
     public bool IsGhost => Pawn is MazingPlayer player && !player.IsAlive;
 
     public bool IsVaulting => SinceVault <= VaultTime;
-    public bool IsVaultOnCooldown => NextVault <= 0f;
+    public bool IsVaultOnCooldown => NextVault <= 0f || _localSinceVault <= VaultTime;
 
     public bool IsPlayer => Pawn is MazingPlayer;
     public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot && player.HeldEntity is not MazingPlayer;
@@ -44,14 +44,16 @@ public partial class MazingWalkController : BasePlayerController
     [Net, Predicted]
     public Vector3 VaultTarget { get; set; }
 
-    [Net]
+    [Net, Predicted]
     public TimeSince SinceVault { get; set; }
 
-    [Net]
+    [Net, Predicted]
     public TimeSince NextVault { get; set; }
 
     private bool _wasVaulting;
     private bool _wasVaultCooldown;
+
+    private TimeSince _localSinceVault;
 
     public Unstuck Unstuck;
     
@@ -59,6 +61,7 @@ public partial class MazingWalkController : BasePlayerController
     {
         Unstuck = new Unstuck(this);
         SinceVault = float.MaxValue;
+        _localSinceVault = float.MaxValue;
     }
     
     /// <summary>
@@ -496,12 +499,14 @@ public partial class MazingWalkController : BasePlayerController
 
     public void VaultMove()
     {
-        var groundPos = Vector3.Lerp( VaultOrigin, VaultTarget, SinceVault / VaultTime );
-        var height = Math.Clamp( 1f - MathF.Pow( 2f * SinceVault / VaultTime - 1f, 2f ), 0f, 1f );
+        var sinceVault = SinceVault;
+
+        var groundPos = Vector3.Lerp( VaultOrigin, VaultTarget, sinceVault / VaultTime );
+        var height = Math.Clamp( 1f - MathF.Pow( 2f * sinceVault / VaultTime - 1f, 2f ), 0f, 1f );
 
         Position = Vector3.Up * height * VaultHeight + groundPos;
 
-        if ( SinceVault > VaultTime * 0.75f && Host.IsServer && Pawn is MazingPlayer player )
+        if ( Host.IsServer && sinceVault > VaultTime * 0.75f && Host.IsServer && Pawn is MazingPlayer player )
         {
             var result = TraceBBox( Position, Position - Vector3.Up * 16f );
 
@@ -660,6 +665,8 @@ public partial class MazingWalkController : BasePlayerController
         }
         
         SinceVault = 0f;
+
+        _localSinceVault = 0;
         _wasVaultCooldown = true;
 
         if ( withCooldown )
