@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Mazing.Enemies;
@@ -302,7 +302,7 @@ public partial class MazingWalkController : BasePlayerController
             Rotation = pawnPlayer.ParentPlayer.Rotation;
             EyeRotation = pawnPlayer.ParentPlayer.Rotation;
 
-            if (NextVault > 0f && Input.Down(InputButton.Jump))
+            if (NextVault > 0f && !IsBot && Input.Down(InputButton.Jump))
             {
                 var cell = Pawn.GetCellIndex();
                 var inputDir = new Vector3(-Input.Left, Input.Forward, 0);
@@ -390,11 +390,21 @@ public partial class MazingWalkController : BasePlayerController
                 WishVelocity = InputVector;
             }
 
+            //
+            // Work out wish velocity.. just take input, rotate it to view, clamp to -1, 1
+            //
+            var inSpeed = WishVelocity.Length.Clamp(0, 1);
+
+            WishVelocity = WishVelocity.WithZ(0);
+
+            WishVelocity = WishVelocity.Normal * inSpeed;
+            WishVelocity *= GetWishSpeed();
+
             if ( !IsGhost )
             {
                 WallCollision();
 
-                if ( !IsVaultOnCooldown && IsPlayer && Input.Down( InputButton.Jump ) )
+                if ( !IsVaultOnCooldown && IsPlayer && !IsBot && Input.Down( InputButton.Jump ) )
                 {
                     var dir = Pawn.GetFacingDirection();
                     var next = cell + dir;
@@ -409,6 +419,8 @@ public partial class MazingWalkController : BasePlayerController
             {
                 KeepInBounds();
             }
+
+            UpdateEyeRotation();
 
             // Fricion is handled before we add in any base velocity. That way, if we are on a conveyor,
             //  we don't slow when standing still, relative to the conveyor.
@@ -426,17 +438,6 @@ public partial class MazingWalkController : BasePlayerController
                     ApplyFriction( GroundFriction * SurfaceFriction );
                 }
             }
-
-            //
-            // Work out wish velocity.. just take input, rotate it to view, clamp to -1, 1
-            //
-            var inSpeed = WishVelocity.Length.Clamp( 0, 1 );
-
-            WishVelocity = WishVelocity.WithZ( 0 );
-            UpdateEyeRotation();
-
-            WishVelocity = WishVelocity.Normal * inSpeed;
-            WishVelocity *= GetWishSpeed();
 
             if (IsGhost)
             {
