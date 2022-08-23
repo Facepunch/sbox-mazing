@@ -17,6 +17,7 @@ namespace Mazing.Enemies
         public const float StabEnd = 2f;
 
         private TimeSince _lastStab;
+        private float _lastTimeSinceStab;
 
         public override float MoveSpeed => _lastStab > StabStart && _lastStab < StabEnd ? 200f : 10f;
 
@@ -40,6 +41,8 @@ namespace Mazing.Enemies
             base.OnSequenceFinished( looped );
 
             _lastStab = 0f;
+
+            Sound.FromEntity( "spiketrap.initiate", this );
         }
 
         protected override void OnServerTick()
@@ -53,7 +56,17 @@ namespace Mazing.Enemies
                 CurrentSequence.Time = 0f;
                 PlaybackRate = 1f;
 
-                // TODO: stab sound
+                Sound.FromEntity( "spiketrap.initiate", this );
+            }
+
+            if ( _lastStab >= StabStart && _lastTimeSinceStab < StabStart )
+            {
+                Sound.FromEntity("spiketrap.trigger", this);
+            }
+
+            if (_lastStab >= StabEnd && _lastTimeSinceStab < StabEnd)
+            {
+                Sound.FromEntity("spiketrap.retract", this);
             }
 
             if (_lastStab > StabStart && _lastStab < StabEnd )
@@ -63,11 +76,13 @@ namespace Mazing.Enemies
                 if (closestPlayer != null && !closestPlayer.IsVaulting)
                 {
                     // TODO: player stabbed sound
-                    // Sound.FromEntity("enemy.punch", this);
+                    Sound.FromEntity("spiketrap.hitplayer", this);
 
                     closestPlayer.Kill( Vector3.Up, DeathMessage, this );
                 }
             }
+
+            _lastTimeSinceStab = _lastStab;
         }
     }
 }
