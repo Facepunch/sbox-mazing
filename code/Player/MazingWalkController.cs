@@ -16,7 +16,7 @@ public partial class MazingWalkController : BasePlayerController
     [Net] public float GroundAngle { get; set; } = 46.0f;
     [Net] public float StepSize { get; set; } = 8.0f;
     [Net] public float MaxNonJumpVelocity { get; set; } = 140.0f;
-    [Net] public float BodyGirth { get; set; } = 36.0f;
+    [Net] public float BodyGirth { get; set; } = 38.0f;
     [Net] public float BodyHeight { get; set; } = 72.0f;
     [Net] public float EyeHeight { get; set; } = 64.0f;
     [Net] public float BaseGravity { get; set; } = 800.0f;
@@ -30,7 +30,7 @@ public partial class MazingWalkController : BasePlayerController
 
     public bool IsGhost => Pawn is MazingPlayer player && !player.IsAlive;
 
-    public bool IsVaulting => SinceVault <= VaultTime;
+    public bool IsVaulting => SinceVault <= VaultTime && Pawn.Parent is not MazingPlayer;
     public bool IsVaultOnCooldown => NextVault <= 0f || _localSinceVault <= VaultTime;
 
     public bool IsPlayer => Pawn is MazingPlayer;
@@ -401,10 +401,10 @@ public partial class MazingWalkController : BasePlayerController
         {
             var result = TraceBBox( Position, Position - Vector3.Up * 16f );
 
-            if ( result.Hit && result.Entity is MazingPlayer otherPlayer && !otherPlayer.IsVaulting && result.Entity.Position.z < Position.z - 32f )
+            if ( result.Hit && result.Entity is MazingPlayer otherPlayer
+                            && !otherPlayer.IsVaulting && result.Entity.Position.z < Position.z - 32f
+                            && (otherPlayer.Position - Position).WithZ( 0f ).LengthSquared <= 24f * 24f)
             {
-                AddEvent( "vault_end" );
-
                 otherPlayer.PickUp( player );
             }
         }
