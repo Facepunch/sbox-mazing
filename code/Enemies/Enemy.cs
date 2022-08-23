@@ -267,7 +267,7 @@ public abstract partial class Enemy : AnimatedEntity
 
             Sound.FromEntity( "enemy.punch", this );
 
-            closestPlayer.Kill( (closestPlayer.Position - Position).WithZ( 0f ), DeathMessage );
+            closestPlayer.Kill( (closestPlayer.Position - Position).WithZ( 0f ), DeathMessage, this );
         }
     }
 

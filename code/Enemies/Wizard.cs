@@ -281,7 +281,7 @@ partial class WizardBolt : ModelEntity
         if ( player != null && !player.IsVaulting )
         {
             Sound.FromEntity("wizard.boltkill", this);
-            player.Kill( ((GridCoord)Direction).Normal, "{0} was zapped by a Wizard" );
+            player.Kill( ((GridCoord)Direction).Normal, "{0} was zapped by a Wizard", this );
         }
 
         if ( this.GetCellIndex() != cell )

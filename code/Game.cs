@@ -13,16 +13,7 @@ using Mazing.Player;
 using Mazing.UI;
 using Sandbox.UI;
 
-//
-// You don't need to put things in a namespace, but it doesn't hurt.
-//
 namespace Mazing;
-
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class PrecacheMethodAttribute : Attribute
-{
-
-}
 
 /// <summary>
 /// This is your game class. This is an entity that is created serverside when
@@ -93,11 +84,6 @@ public partial class MazingGame : Sandbox.Game
 
 	public MazingGame()
 	{
-        foreach ( var method in TypeLibrary.FindStaticMethods<PrecacheMethodAttribute>() )
-        {
-            method.Invoke( null );
-        }
-
         if ( IsClient )
         {
             new HudRoot();
@@ -287,6 +273,11 @@ public partial class MazingGame : Sandbox.Game
 	public void GenerateMaze( int seed = -1 )
 	{
 		Host.AssertServer();
+
+        if ( LevelIndex == 0 )
+        {
+            GameServices.StartGame();
+        }
 
         if ( _firstSpawn )
         {
@@ -610,7 +601,7 @@ public partial class MazingGame : Sandbox.Game
 
         if ( LevelIndex > 0 )
         {
-            mazingPlayer.Kill( Vector3.Up, "{0} has joined as a ghost", false );
+            mazingPlayer.Kill( Vector3.Up, "{0} has joined as a ghost", this, false );
         }
         else
         {
@@ -664,6 +655,8 @@ public partial class MazingGame : Sandbox.Game
 
                 LevelIndex = 0;
                 TotalCoins = 0;
+
+                GameServices.EndGame();
 
                 _hasCheated = false;
                 

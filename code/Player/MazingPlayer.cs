@@ -185,7 +185,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         }
     }
 
-    public void Kill( Vector3 damageDir, string message, bool ragdoll = true )
+    public void Kill( Vector3 damageDir, string message, Entity attacker, bool ragdoll = true )
     {
         if ( !IsServer || !IsAlive )
         {
@@ -195,6 +195,11 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         ClientDeathNotify( Client.PlayerId, string.Format( message, Client.Name ), HeldCoins, SurvivalStreak );
 
         IsAlive = false;
+
+        if ( !Client.IsBot )
+        {
+            GameServices.RecordEvent( Client, $"killed ({attacker?.GetType().Name ?? "unknown"})", HeldCoins );
+        }
 
         HeldCoins = 0;
         SurvivalStreak = 0;
@@ -399,6 +404,11 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         }
 
         Game.TotalCoins += HeldCoins;
+
+        if ( !Client.IsBot )
+        {
+            GameServices.RecordEvent( Client, "escaped", HeldCoins );
+        }
 
         HeldCoins = 0;
         SurvivalStreak += 1;
