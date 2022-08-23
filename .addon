@@ -85,7 +85,7 @@
         {
           "a": "wall",
           "b": "player",
-          "r": "Ignore"
+          "r": "Collide"
         },
         {
           "a": "wall",

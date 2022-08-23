@@ -121,6 +121,18 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         base.Respawn();
     }
 
+    public override void CreateHull()
+    {
+        var controller = (MazingWalkController)Controller;
+
+        var capsule = Capsule.FromHeightAndRadius( controller.BodyHeight, controller.BodyGirth * 0.5f );
+        var phys = SetupPhysicsFromCapsule( PhysicsMotionType.Keyframed, capsule );
+
+        // TODO - investigate this? if we don't set movetype then the lerp is too much. Can we control lerp amount?
+        // if so we should expose that instead, that would be awesome.
+        EnableHitboxes = true;
+    }
+
     protected override void OnDestroy()
     {
         base.OnDestroy();

@@ -14,9 +14,9 @@ public partial class MazingWalkController : BasePlayerController
     [Net] public float GroundFriction { get; set; } = 8.0f;
     [Net] public float StopSpeed { get; set; } = 100.0f;
     [Net] public float GroundAngle { get; set; } = 46.0f;
-    [Net] public float StepSize { get; set; } = 18.0f;
+    [Net] public float StepSize { get; set; } = 8.0f;
     [Net] public float MaxNonJumpVelocity { get; set; } = 140.0f;
-    [Net] public float BodyGirth { get; set; } = 32.0f;
+    [Net] public float BodyGirth { get; set; } = 36.0f;
     [Net] public float BodyHeight { get; set; } = 72.0f;
     [Net] public float EyeHeight { get; set; } = 64.0f;
     [Net] public float BaseGravity { get; set; } = 800.0f;
@@ -34,7 +34,7 @@ public partial class MazingWalkController : BasePlayerController
     public bool IsVaultOnCooldown => NextVault <= 0f || _localSinceVault <= VaultTime;
 
     public bool IsPlayer => Pawn is MazingPlayer;
-    public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot && player.HeldEntity is not MazingPlayer;
+    public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot != Input.Down( InputButton.Walk );
     
     public Vector3 InputVector { get; set; }
 
@@ -139,114 +139,6 @@ public partial class MazingWalkController : BasePlayerController
         base.FrameSimulate();
 
         UpdateEyeRotation();
-    }
-
-    private readonly List<(Vector3 A, Vector3 B)> _wallSegments = new List<(Vector3 A, Vector3 B)>();
-
-    private void WallResponse( Vector3 normal, float radius, float dist, bool keepVelocity )
-    {
-        Position += Math.Clamp( radius - dist, 0f, radius ) * normal;
-
-        var wishDot = Math.Min( 0f, Vector3.Dot( normal, WishVelocity ) );
-        var velDot = Math.Min( 0f, Vector3.Dot( normal, Velocity ) );
-
-        if ( keepVelocity )
-        {
-            var tangent = new Vector3( normal.y, -normal.x );
-
-            WishVelocity -= tangent * wishDot * MathF.Sign( Vector3.Dot( tangent, WishVelocity ) );
-            Velocity -= tangent * velDot * MathF.Sign( Vector3.Dot( tangent, Velocity ) );
-        }
-
-        WishVelocity -= wishDot * normal;
-        Velocity -= velDot * normal;
-    }
-
-    private void WallCollision()
-    {
-        var game = MazingGame.Current;
-        var (rowF, colF) = game.PositionToCell(Position);
-        var cell = new GridCoord(rowF.FloorToInt(), colF.FloorToInt());
-        
-        const float cellSize = 48f;
-        const float radius = cellSize * 0.5f;
-
-        // Find wall segments that we could collide with
-
-        _wallSegments.Clear();
-
-        for ( var r = cell.Row - 1; r <= cell.Row + 1; ++r )
-        {
-            for (var c = cell.Col - 1; c <= cell.Col + 1; ++c)
-            {
-                if ( c <= cell.Col && game.CurrentMaze.GetWall( (r, c), Direction.East ) )
-                {
-                    _wallSegments.Add( (game.CellToPosition( r, c + 1f ), game.CellToPosition( r + 1f, c + 1f )) );
-                }
-
-                if ( r <= cell.Row && game.CurrentMaze.GetWall( (r, c), Direction.North ) )
-                {
-                    _wallSegments.Add( (game.CellToPosition( r + 1f, c ), game.CellToPosition( r + 1f, c + 1f )) );
-                }
-            }
-        }
-        
-        // First pass, push directly out of walls we are between the ends of
-
-        foreach ( var segment in _wallSegments )
-        {
-            var tangent = (segment.B - segment.A).Normal;
-            var normal = new Vector3( -tangent.y, tangent.x );
-
-            var along = Vector3.Dot( tangent, Position - segment.A );
-
-            if ( along < 0f || along > cellSize )
-            {
-                continue;
-            }
-
-            var across = Vector3.Dot( normal, Position - segment.A );
-
-            if (across < -radius || across > radius)
-            {
-                continue;
-            }
-
-            WallResponse( across >= 0f ? normal : -normal, radius, Math.Abs( across ), false );
-        }
-        
-        // Second pass, push directly out of wall ends
-
-        foreach ( var segment in _wallSegments )
-        {
-            var tangent = (segment.B - segment.A).Normal;
-            var normal = new Vector3( -tangent.y, tangent.x );
-
-            var along = Vector3.Dot( tangent, Position - segment.A );
-
-            if ( along > 0f && along < cellSize || along < -radius || along > cellSize + radius )
-            {
-                continue;
-            }
-
-            var across = Vector3.Dot( normal, Position - segment.A );
-
-            if ( across < -radius || across > radius )
-            {
-                continue;
-            }
-
-            var corner = along < cellSize * 0.5f ? segment.A : segment.B;
-
-            var distsq = (Position - corner).LengthSquared;
-
-            if ( distsq > radius * radius )
-            {
-                continue;
-            }
-
-            WallResponse( (Position - corner).Normal, radius, MathF.Sqrt( distsq ), true );
-        }
     }
 
     public void KeepInBounds()
@@ -397,13 +289,13 @@ public partial class MazingWalkController : BasePlayerController
 
             WishVelocity = WishVelocity.WithZ(0);
 
+            UpdateEyeRotation();
+
             WishVelocity = WishVelocity.Normal * inSpeed;
             WishVelocity *= GetWishSpeed();
 
             if ( !IsGhost )
             {
-                WallCollision();
-
                 if ( !IsVaultOnCooldown && IsPlayer && !IsBot && Input.Down( InputButton.Jump ) )
                 {
                     var dir = Pawn.GetFacingDirection();
@@ -419,8 +311,6 @@ public partial class MazingWalkController : BasePlayerController
             {
                 KeepInBounds();
             }
-
-            UpdateEyeRotation();
 
             // Fricion is handled before we add in any base velocity. That way, if we are on a conveyor,
             //  we don't slow when standing still, relative to the conveyor.
@@ -576,9 +466,14 @@ public partial class MazingWalkController : BasePlayerController
 
     public virtual void StepMove()
     {
-        MoveHelper mover = new MoveHelper(Position, Velocity);
-        mover.Trace = mover.Trace.Size(mins, maxs).Ignore(Pawn);
-        mover.MaxStandableAngle = GroundAngle;
+        MoveHelper mover = new MoveHelper(Position, Velocity)
+        {
+            Trace = Trace.Capsule(Capsule.FromHeightAndRadius(BodyHeight, BodyGirth * 0.5f), 0, 0)
+                .WorldAndEntities()
+                .WithAnyTags("solid", "playerclip", "passbullets", "player", "wall")
+                .Ignore(Pawn),
+            MaxStandableAngle = GroundAngle
+        };
 
         mover.TryMoveWithStep(Time.Delta, StepSize);
 
@@ -588,8 +483,15 @@ public partial class MazingWalkController : BasePlayerController
 
     public virtual void Move()
     {
-        MoveHelper mover = new MoveHelper(Position, Velocity);
-        
+        MoveHelper mover = new MoveHelper(Position, Velocity)
+        {
+            Trace = Trace.Capsule(Capsule.FromHeightAndRadius(BodyHeight, BodyGirth * 0.5f), 0, 0)
+                .WorldAndEntities()
+                .WithAnyTags("solid", "playerclip", "passbullets", "player", "wall")
+                .Ignore(Pawn),
+            MaxStandableAngle = GroundAngle
+        };
+
         mover.Trace = mover.Trace.Size(mins, maxs).Ignore(Pawn);
         mover.MaxStandableAngle = GroundAngle;
 
@@ -833,8 +735,7 @@ public partial class MazingWalkController : BasePlayerController
             maxs = maxs.WithZ(maxs.z - liftFeet);
         }
 
-        var trace = Trace.Ray( start + TraceOffset, end + TraceOffset )
-            .Size( mins, maxs )
+        var trace = Trace.Capsule( Capsule.FromHeightAndRadius( BodyHeight, BodyGirth * 0.5f ), start + TraceOffset, end + TraceOffset )
             .WithAnyTags( "playerclip", "passbullets" )
             .Ignore( Pawn );
 

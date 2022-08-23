@@ -29,7 +29,7 @@ public partial class Wall : ModelEntity
 
 		SetModel( "models/wall.vmdl" );
 
-        Tags.Add("wall");
+        //Tags.Add("wall");
 
         UsePhysicsCollision = true;
 
@@ -46,7 +46,9 @@ public partial class Post : ModelEntity
 
         SetModel( "models/post.vmdl" );
 
-        Tags.Add("wall");
+        SetupPhysicsFromCapsule( PhysicsMotionType.Static, Capsule.FromHeightAndRadius( 256f, 4f ) );
+
+        //Tags.Add("wall");
         
         UsePhysicsCollision = true;
 
