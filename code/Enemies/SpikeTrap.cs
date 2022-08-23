@@ -29,6 +29,8 @@ namespace Mazing.Enemies
         {
             base.Spawn();
 
+            Rotation = EyeRotation = Rotation.FromYaw(0f);
+
             PlaybackRate = 0f;
             CurrentSequence.Time = 0f;
         }
@@ -63,7 +65,7 @@ namespace Mazing.Enemies
                     // TODO: player stabbed sound
                     // Sound.FromEntity("enemy.punch", this);
 
-                    closestPlayer.Kill( Vector3.Up, DeathMessage );
+                    closestPlayer.Kill( Vector3.Up, DeathMessage, this );
                 }
             }
         }
