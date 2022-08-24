@@ -464,9 +464,9 @@ public partial class MazingWalkController : BasePlayerController
         StayOnGround();
     }
 
-    public virtual void StepMove()
+    protected virtual MoveHelper CreateMoveHelper()
     {
-        MoveHelper mover = new MoveHelper(Position, Velocity)
+        return new MoveHelper(Position, Velocity)
         {
             Trace = Trace.Capsule(Capsule.FromHeightAndRadius(BodyHeight, BodyGirth * 0.5f), 0, 0)
                 .WorldAndEntities()
@@ -474,7 +474,11 @@ public partial class MazingWalkController : BasePlayerController
                 .Ignore(Pawn),
             MaxStandableAngle = GroundAngle
         };
+    }
 
+    public virtual void StepMove()
+    {
+        var mover = CreateMoveHelper();
         mover.TryMoveWithStep(Time.Delta, StepSize);
 
         Position = mover.Position;
@@ -483,16 +487,7 @@ public partial class MazingWalkController : BasePlayerController
 
     public virtual void Move()
     {
-        MoveHelper mover = new MoveHelper(Position, Velocity)
-        {
-            Trace = Trace.Capsule(Capsule.FromHeightAndRadius(BodyHeight, BodyGirth * 0.5f), 0, 0)
-                .WorldAndEntities()
-                .WithAnyTags("solid", "playerclip", "passbullets", "player", "wall")
-                .Ignore(Pawn),
-            MaxStandableAngle = GroundAngle
-        };
-
-        mover.Trace = mover.Trace.Size(mins, maxs).Ignore(Pawn);
+        var mover = CreateMoveHelper();
         mover.MaxStandableAngle = GroundAngle;
 
         mover.TryMove(Time.Delta);
@@ -735,7 +730,7 @@ public partial class MazingWalkController : BasePlayerController
             maxs = maxs.WithZ(maxs.z - liftFeet);
         }
 
-        var trace = Trace.Capsule( Capsule.FromHeightAndRadius( BodyHeight, BodyGirth * 0.5f ), start + TraceOffset, end + TraceOffset )
+        var trace = Trace.Capsule( Capsule.FromHeightAndRadius( BodyHeight, BodyGirth * 0.5f ), start, end )
             .WithAnyTags( "playerclip", "passbullets" )
             .Ignore( Pawn );
 
@@ -762,8 +757,6 @@ public partial class MazingWalkController : BasePlayerController
         }
 
         var tr = trace.Run();
-
-        tr.EndPosition -= TraceOffset;
 
         return tr;
     }

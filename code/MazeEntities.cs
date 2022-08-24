@@ -29,7 +29,7 @@ public partial class Wall : ModelEntity
 
 		SetModel( "models/wall.vmdl" );
 
-        //Tags.Add("wall");
+        Tags.Add("solid");
 
         UsePhysicsCollision = true;
 
@@ -46,9 +46,10 @@ public partial class Post : ModelEntity
 
         SetModel( "models/post.vmdl" );
 
-        SetupPhysicsFromCapsule( PhysicsMotionType.Static, Capsule.FromHeightAndRadius( 256f, 4f ) );
+        // This seems to cause prediction issues
+        // SetupPhysicsFromCapsule( PhysicsMotionType.Static, Capsule.FromHeightAndRadius( 256f, 4f ) );
 
-        //Tags.Add("wall");
+        Tags.Add("solid");
         
         UsePhysicsCollision = true;
 
