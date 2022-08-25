@@ -342,21 +342,21 @@ public partial class MazingGame : Sandbox.Game
 
         var typesToSpawn = GetSpawningEnemyTypes( LevelIndex, seed )
             .ToArray();
-
-        var enemies = typesToSpawn.Select( x => (Enemy)TypeLibrary.Create<Enemy>( x ) )
-            .ToArray();
         
         var (rows, cols) = GetLevelSize( LevelIndex, seed );
         
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
-            : MazeGenerator.Generate( seed, rows, cols, MaxPlayers, enemies.Length,
+            : MazeGenerator.Generate( seed, rows, cols, MaxPlayers, typesToSpawn.Length,
                 LevelIndex * 2 + 2 );
 
         CurrentMaze = generated.MazeData;
         CurrentMaze.WriteNetworkData();
 
         _playerSpawns = generated.Players;
+        
+        var enemies = typesToSpawn.Select(x => (Enemy)TypeLibrary.Create<Enemy>(x))
+            .ToArray();
 
         ExitCell = generated.Exit;
 

@@ -65,6 +65,8 @@ public abstract partial class Enemy : AnimatedEntity
 
     public ClothingContainer Clothing { get; set; } = new();
 
+    private bool _firstRandomTarget = true;
+
     private static readonly (string Verb, float Weight)[] _sDeathVerbs = new (string Verb, float Weight)[]
     {
         ("killed", 10f),
@@ -104,7 +106,10 @@ public abstract partial class Enemy : AnimatedEntity
 
         Tags.Add( "enemy" );
 
-        Rotation = EyeRotation = Rotation.FromYaw( Rand.Int( 0, 3 ) * 90f );
+        var direction = MazeData.Directions
+            .MinBy( x => (CanWalkInDirection(x.Direction) ? 0f : 10f) + Rand.Float() );
+
+        Rotation = EyeRotation = Rotation.LookAt( direction.Delta.Normal, Vector3.Up );
 
         Animator = OnCreateAnimator();
 
@@ -331,6 +336,18 @@ public abstract partial class Enemy : AnimatedEntity
     protected GridCoord GetRandomNeighborCell()
     {
         var cell = this.GetCellIndex();
+
+        if ( _firstRandomTarget )
+        {
+            _firstRandomTarget = false;
+
+            // Try just walking forwards after spawning, to not surprise players
+
+            if ( CanWalkInDirection( this.GetFacingDirection() ) )
+            {
+                return cell + this.GetFacingDirection();
+            }
+        }
 
         var dir = MazeData.Directions.Where( x => CanWalkInDirection( x.Direction ) )
             .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell + x.Delta ) + GetCost( cell + x.Delta ) )
