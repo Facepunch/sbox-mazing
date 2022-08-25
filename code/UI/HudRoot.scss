@@ -128,3 +128,13 @@ text.diff {
 text.diff.negative {
     color: red;
 }
+
+.editor-warning {
+    position: absolute;
+    top: 1vh;
+    width: 100%;
+    color: rgba(255, 255, 255, 0.25);
+    text-shadow: 2px 2px 4px black;
+    font-size: 4vh;
+    text-align: center;
+}

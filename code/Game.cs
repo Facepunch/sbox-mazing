@@ -1,4 +1,4 @@
-﻿using Sandbox;
+using Sandbox;
 using Sandbox.UI.Construct;
 using System;
 using System.Collections.Generic;
@@ -56,6 +56,9 @@ public partial class MazingGame : Sandbox.Game
     [Net]
     public Hatch Hatch { get; set; }
 
+    [Net]
+    public bool IsEditorMode { get; set; }
+
     private bool _hasCheated;
 
     private int _nextLevelSeed = -1;
@@ -87,6 +90,10 @@ public partial class MazingGame : Sandbox.Game
         if ( IsClient )
         {
             new HudRoot();
+        }
+        else
+        {
+            IsEditorMode = Host.IsToolsEnabled;
         }
 
         RestartCountdown = float.PositiveInfinity;
@@ -749,7 +756,7 @@ public partial class MazingGame : Sandbox.Game
             ClientNotifyFinalScore( TotalCoins );
         }
     }
-
+    
     [ClientRpc]
     public void ClientNotifyFinalScore( int score )
     {

@@ -23,6 +23,8 @@ namespace Mazing.UI
 
         public Label LevelNumberText { get; set; }
 
+        public Label EditorWarning { get; set; }
+
         private readonly ValueTicker _totalCoinsTicker = new ValueTicker( "${0:N0}" );
 
         private Panel _overlay;
@@ -46,6 +48,8 @@ namespace Mazing.UI
             {
                 return;
             }
+
+            EditorWarning.Style.Display = game.IsEditorMode ? DisplayMode.Flex : DisplayMode.None;
 
             _totalCoinsTicker.SoundSource = game.Hatch;
             
