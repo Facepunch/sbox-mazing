@@ -275,6 +275,17 @@ public abstract partial class Enemy : AnimatedEntity
         }
     }
 
+    [Event.Tick.Client]
+    public void ClientTick()
+    {
+        OnClientTick();
+    }
+
+    protected virtual void OnClientTick()
+    {
+
+    }
+
     public bool CanWalkInDirection( Vector3 dir )
     {
         return CanWalkInDirection( MazeData.GetDirection( dir ) );
