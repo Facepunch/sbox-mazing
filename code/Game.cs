@@ -123,10 +123,17 @@ public partial class MazingGame : Sandbox.Game
         var totalThreat = levelIndex == 0 ? 1 : levelIndex + 2;
 
         var unlocked = TypeLibrary.GetTypes<Enemy>()
-            .Select( x => (
-                Type: x,
-                FirstLevel: TypeLibrary.GetAttribute<UnlockLevelAttribute>( x )?.Level ?? int.MaxValue,
-                Threat: TypeLibrary.GetAttribute<ThreatValueAttribute>( x )?.Value ?? 1) )
+            .Select( x =>
+            {
+                var threatAttrib = TypeLibrary.GetAttribute<ThreatValueAttribute>( x );
+
+                return (
+                    Type: x,
+                    FirstLevel: TypeLibrary.GetAttribute<UnlockLevelAttribute>( x )?.Level ?? int.MaxValue,
+                    Threat: threatAttrib?.Value ?? 1,
+                    PerThreat: threatAttrib?.PerThreat ?? 1,
+                    CanBeOnlyEnemy: threatAttrib?.CanBeOnlyEnemy ?? true);
+            } )
             .Where( x => x.FirstLevel <= levelIndex )
             .ToArray();
 
@@ -145,18 +152,23 @@ public partial class MazingGame : Sandbox.Game
             (alreadyUnlocked[i], alreadyUnlocked[index]) = (alreadyUnlocked[index], alreadyUnlocked[i]);
         }
 
-        // Make sure wanderers aren't first, so we don't get a 100% wanderer level
-        if ( alreadyUnlocked.Length > 1 && alreadyUnlocked[0].Type == typeof(Wanderer) )
+        // Make sure first enemy in list can be the only enemy in the level
+        var canBeOnlyIndex = Array.FindIndex( alreadyUnlocked, x => x.CanBeOnlyEnemy );
+
+        if ( canBeOnlyIndex > 0 )
         {
-            var index = rand.Next(0, alreadyUnlocked.Length);
-            (alreadyUnlocked[0], alreadyUnlocked[index]) = (alreadyUnlocked[index], alreadyUnlocked[0]);
+            (alreadyUnlocked[0], alreadyUnlocked[canBeOnlyIndex]) = (alreadyUnlocked[canBeOnlyIndex], alreadyUnlocked[0]);
         }
 
         // Choose which types of enemies will spawn:
         // * Any that have just unlocked are guaranteed to spawn
         // * Pick at least one other type too, if possible
 
-        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : rand.Next(justUnlocked.Length > 0 ? 0 : 1, Math.Max(1, (alreadyUnlocked.Length * 3) / 4));
+        var canBeOnlyJustUnlocked = justUnlocked.Length > 1
+            || justUnlocked.Length == 1 && justUnlocked[0].CanBeOnlyEnemy
+            || alreadyUnlocked.Length == 0;
+
+        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : rand.Next(canBeOnlyJustUnlocked ? 0 : 1, Math.Max(1, (alreadyUnlocked.Length * 3) / 4));
 
         var usedTypes = justUnlocked
             .Concat( alreadyUnlocked.Take( extraTypeCount ) )
@@ -174,7 +186,10 @@ public partial class MazingGame : Sandbox.Game
 
             totalThreat -= type.Threat;
 
-            yield return type.Type;
+            for ( var j = 0; j < type.PerThreat; ++j )
+            {
+                yield return type.Type;
+            }
         }
 
         // Spawn other random enemies until the total threat is reached
@@ -189,7 +204,11 @@ public partial class MazingGame : Sandbox.Game
             }
 
             totalThreat -= type.Threat;
-            yield return type.Type;
+
+            for (var j = 0; j < type.PerThreat; ++j)
+            {
+                yield return type.Type;
+            }
         }
 
         // Spawn wanderers if there's still spare threat
@@ -312,7 +331,7 @@ public partial class MazingGame : Sandbox.Game
             seed = Rand.Int(1, int.MaxValue - 1);
         }
 
-		Log.Info( $"Generating maze with seed {seed:x8} ");
+		Log.Info( $"Generating level {LevelIndex + 1} with seed {seed:x8} ");
 
         var typesToSpawn = GetSpawningEnemyTypes( LevelIndex, seed )
             .ToArray();

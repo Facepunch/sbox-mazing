@@ -29,10 +29,14 @@ public sealed class UnlockLevelAttribute : Attribute
 public sealed class ThreatValueAttribute : Attribute
 {
     public int Value { get; }
+    public int PerThreat { get; }
+    public bool CanBeOnlyEnemy { get; }
 
-    public ThreatValueAttribute( int value )
+    public ThreatValueAttribute( int value, int perThreat = 1, bool canBeOnlyEnemy = true )
     {
         Value = value;
+        PerThreat = perThreat;
+        CanBeOnlyEnemy = canBeOnlyEnemy;
     }
 }
 

@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing.Enemies
 {
-    [ThreatValue(1), UnlockLevel(14)]
+    [ThreatValue(1, 2, false), UnlockLevel(14)]
     public partial class SpikeTrap : Enemy
     {
         public new const float KillRange = 24f;
