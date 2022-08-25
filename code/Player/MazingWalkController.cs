@@ -483,12 +483,15 @@ public partial class MazingWalkController : BasePlayerController
 
     protected virtual MoveHelper CreateMoveHelper()
     {
+        var trace = Trace.Capsule( Capsule.FromHeightAndRadius( BodyHeight, BodyGirth * 0.5f ), 0, 0 )
+            .WorldAndEntities()
+            .Ignore( Pawn );
+
+        ConfigureTraceTags( ref trace );
+
         return new MoveHelper(Position, Velocity)
         {
-            Trace = Trace.Capsule(Capsule.FromHeightAndRadius(BodyHeight, BodyGirth * 0.5f), 0, 0)
-                .WorldAndEntities()
-                .WithAnyTags("solid", "playerclip", "passbullets", "player", "wall")
-                .Ignore(Pawn),
+            Trace = trace,
             MaxStandableAngle = GroundAngle
         };
     }
@@ -738,6 +741,31 @@ public partial class MazingWalkController : BasePlayerController
         return TraceBBox(start, end, mins, maxs, liftFeet);
     }
 
+    private void ConfigureTraceTags( ref Trace trace )
+    {
+        if (!IsVaulting)
+        {
+            trace = trace.WithAnyTags("solid");
+        }
+
+        if (Pawn is MazingPlayer player)
+        {
+            if (player.IsAliveInMaze)
+            {
+                trace = trace.WithAnyTags("player", "trap");
+            }
+            else if (!player.IsAlive)
+            {
+                trace = trace.WithAnyTags("exit");
+            }
+        }
+        else if (Pawn is Enemy)
+        {
+            trace = trace.WithAnyTags("enemy");
+            trace = trace.WithAnyTags("exit");
+        }
+    }
+
     public override TraceResult TraceBBox( Vector3 start, Vector3 end, Vector3 mins, Vector3 maxs, float liftFeet = 0.0f )
     {
         if (liftFeet > 0)
@@ -749,28 +777,8 @@ public partial class MazingWalkController : BasePlayerController
         var trace = Trace.Capsule( Capsule.FromHeightAndRadius( BodyHeight, BodyGirth * 0.5f ), start, end )
             .WithAnyTags( "playerclip", "passbullets" )
             .Ignore( Pawn );
-
-        if ( !IsVaulting )
-        {
-            trace = trace.WithAnyTags( "solid" );
-        }
-
-        if ( Pawn is MazingPlayer player )
-        {
-            if ( player.IsAliveInMaze )
-            {
-                trace = trace.WithAnyTags( "player" );
-            }
-            else if ( !player.IsAlive )
-            {
-                trace = trace.WithAnyTags( "exit" );
-            }
-        }
-        else if ( Pawn is Enemy )
-        {
-            trace = trace.WithAnyTags( "enemy" );
-            trace = trace.WithAnyTags( "exit" );
-        }
+        
+        ConfigureTraceTags( ref trace );
 
         var tr = trace.Run();
 

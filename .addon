@@ -44,7 +44,8 @@
         "ghost": "Ignore",
         "enemy": "Unset",
         "exited": "Ignore",
-        "exit": "Ignore"
+        "exit": "Ignore",
+        "trap": "Unset"
       },
       "Pairs": [
         {
@@ -230,6 +231,31 @@
         {
           "a": "ragdoll",
           "b": "exit",
+          "r": "Ignore"
+        },
+        {
+          "a": "player",
+          "b": "trap",
+          "r": "Collide"
+        },
+        {
+          "a": "enemy",
+          "b": "trap",
+          "r": "Ignore"
+        },
+        {
+          "a": "ghost",
+          "b": "trap",
+          "r": "Ignore"
+        },
+        {
+          "a": "exited",
+          "b": "trap",
+          "r": "Ignore"
+        },
+        {
+          "a": "ragdoll",
+          "b": "trap",
           "r": "Ignore"
         }
       ]

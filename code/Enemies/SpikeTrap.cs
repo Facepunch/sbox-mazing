@@ -45,7 +45,8 @@ namespace Mazing.Enemies
             SetupPhysicsFromAABB( PhysicsMotionType.Static, new Vector3( -boundsWidth * 0.5f, -boundsWidth * 0.5f, 0f ),
                 new Vector3(boundsWidth * 0.5f, boundsWidth * 0.5f, 64f ) );
 
-            Tags.Add( "solid" );
+            Tags.Add( "trap" );
+            Tags.Remove( "enemy" );
 
             EnableAllCollisions = false;
 
