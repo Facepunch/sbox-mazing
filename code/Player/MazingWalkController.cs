@@ -50,9 +50,6 @@ public partial class MazingWalkController : BasePlayerController
     [Net, Predicted]
     public TimeSince NextVault { get; set; }
 
-    private bool _wasVaulting;
-    private bool _wasVaultCooldown;
-
     private TimeSince _localSinceVault;
 
     public Unstuck Unstuck;
@@ -233,13 +230,6 @@ public partial class MazingWalkController : BasePlayerController
         WishVelocity = default;
 
         BaseVelocity = BaseVelocity.WithZ(0);
-
-        if ( !IsVaulting && _wasVaulting )
-        {
-            AddEvent( "vault_end" );
-        }
-
-        _wasVaulting = IsVaulting;
         
         if ( IsVaulting )
         {
@@ -250,15 +240,6 @@ public partial class MazingWalkController : BasePlayerController
             var game = MazingGame.Current;
             var (rowF, colF) = game.PositionToCell( Position );
             var cell = new GridCoord(rowF.FloorToInt(), colF.FloorToInt());
-
-            var vaultOnCooldown = NextVault < 0f;
-
-            if ( !vaultOnCooldown && _wasVaultCooldown )
-            {
-                AddEvent( "vault_reset" );
-            }
-
-            _wasVaultCooldown = vaultOnCooldown;
 
             if ( Debug )
             {
@@ -601,7 +582,6 @@ public partial class MazingWalkController : BasePlayerController
         SinceVault = 0f;
 
         _localSinceVault = 0;
-        _wasVaultCooldown = true;
 
         if ( withCooldown )
         {

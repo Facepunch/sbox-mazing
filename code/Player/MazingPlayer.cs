@@ -54,6 +54,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     public bool IsVaulting => Controller is MazingWalkController controller && controller.IsVaulting;
 
     private Particles _sweatParticles;
+    private Particles _burstParticles;
     private ModelEntity _ragdoll;
 
     public MazingGame Game => MazingGame.Current;
@@ -324,18 +325,26 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
             return;
         }
 
-        if ( (Controller?.HasEvent( "vault_end" ) ?? false) && IsAlive )
+        if ( Controller is not MazingWalkController walkController )
         {
-            _sweatParticles?.Destroy();
+            return;
+        }
+
+        if ( IsAlive && _sweatParticles == null && walkController.IsVaultOnCooldown )
+        {
             _sweatParticles = Particles.Create("particles/sweat_drops.vpcf", this, "hat");
         }
 
-        if (_sweatParticles != null && Controller is MazingWalkController walkController && !walkController.IsVaultOnCooldown)
+        if ( _sweatParticles != null && !walkController.IsVaultOnCooldown )
         {
             _sweatParticles?.Destroy();
             _sweatParticles = null;
 
-            Sound.FromEntity( "player.recharge", this );
+            _burstParticles?.Destroy();
+            _burstParticles = Particles.Create("particles/sweat_burst.vpcf", this, "hat");
+
+            Sound.FromEntity( To.Multiple( Client.All.Except( new [] { Client } ) ), "player.recharge", this );
+            Sound.FromEntity( To.Single( Client ), "player.rechargeself", this );
         }
 
         //DropHeldItem();
