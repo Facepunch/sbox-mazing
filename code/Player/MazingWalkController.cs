@@ -291,6 +291,11 @@ public partial class MazingWalkController : BasePlayerController
 
             UpdateEyeRotation();
 
+            if ( !IsGhost )
+            {
+                WallGapAssist();
+            }
+
             WishVelocity = WishVelocity.Normal * inSpeed;
             WishVelocity *= GetWishSpeed();
 
@@ -376,6 +381,37 @@ public partial class MazingWalkController : BasePlayerController
             DebugOverlay.ScreenText($"    WishVelocity: {WishVelocity}", lineOffset + 5);
         }
 
+    }
+
+    private void WallGapAssist()
+    {
+        // Only if moving in a cardinal direction
+        if ( MathF.Abs( WishVelocity.x ) >= 0.25f == MathF.Abs( WishVelocity.y ) >= 0.25f ) return;
+
+        var game = MazingGame.Current;
+
+        var dir = MazeData.GetDirection(WishVelocity);
+        var cell = Pawn.GetCellIndex();
+
+        // Only if not moving directly into a wall
+        if ( game.CurrentMaze.GetWall( cell, dir ) ) return;
+
+        var normal = ((GridCoord)dir).Normal;
+        var tangent = new Vector3( -normal.y, normal.x );
+
+        var frac = Vector3.Dot( tangent, Pawn.Position ) / 48f - 0.5f;
+
+        frac -= MathF.Floor( frac ) + 0.5f;
+
+        // Only if not already in the middle of a tile
+        if ( MathF.Abs( frac ) < 1f / 32f ) return;
+
+        var sideDir = MazeData.GetDirection( tangent * frac );
+
+        if ( game.CurrentMaze.GetWall( cell + sideDir, dir ) || game.CurrentMaze.GetWall( cell + dir, sideDir ) )
+        {
+            WishVelocity -= tangent * frac;
+        }
     }
 
     public virtual float GetWishSpeed()
