@@ -40,6 +40,8 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     [Net, HideInEditor]
     public int SurvivalStreak { get; set; }
 
+    public const int MaxBonusSurvivalStreak = 5;
+
     [Net]
     public TimeSince LastItemDrop { get; set; }
 
@@ -278,11 +280,23 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         RenderColor = new Color( 1f, 1f, 1f, 0.25f );
     }
 
+    public float GetSurvivalStreakBonus()
+    {
+        var streak = Math.Min( MaxBonusSurvivalStreak, SurvivalStreak );
+
+        return streak < 1 ? 1f : streak < 2 ? 2f : streak;
+    }
+
+    public Color GetSurvivalStreakColor()
+    {
+        return SurvivalStreak < MaxBonusSurvivalStreak ? Color.White : Color.FromRgb( 0xFFD700 );
+    }
+
     public void AddCoins( int value, bool applyBonus = true )
     {
         if ( applyBonus )
         {
-            value = value * (5 + Math.Max( 0, SurvivalStreak )) / 5;
+            value = (int) MathF.Round( GetSurvivalStreakBonus() * value );
         }
 
         HeldCoins += value;

@@ -62,8 +62,10 @@ namespace Mazing.UI
 
                 if ( player.SurvivalStreak > 0 )
                 {
-                    StreakBonusText.Text = $"{1f + player.SurvivalStreak / 5f:F1}x";
+                    StreakBonusText.Text = $"{player.GetSurvivalStreakBonus():F1}x";
                 }
+
+                StreakBonusText.Style.FontColor = player.GetSurvivalStreakColor();
 
                 StreakBonusParent.Style.Opacity = player.SurvivalStreak > 0 ? 1f : 0f;
                 StreakBonusLabel.Style.Opacity = 0.25f;

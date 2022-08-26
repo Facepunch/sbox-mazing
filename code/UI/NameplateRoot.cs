@@ -60,6 +60,7 @@ namespace Mazing.UI
 
             _streakTicker.Tick( Player.SurvivalStreak, StreakText, null, false );
 
+            StreakText.Style.FontColor = Player.GetSurvivalStreakColor();
             StreakText.Style.Opacity = Math.Min( Player.SurvivalStreak / 5f, 1f );
 
             PanelBounds = new Rect(-512f, -512f, 1024f, 512f);
