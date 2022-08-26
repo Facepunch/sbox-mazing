@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Mazing.Enemies;
 using Sandbox;
 
 namespace Mazing.Player;
@@ -75,9 +76,7 @@ internal partial class MazingPlayerAnimator : PawnAnimator
 		} 
 		else
         {
-			var enemy = Pawn as Mazing.Enemies.Enemy;
-
-			if (enemy != null)
+            if (Pawn is Enemy enemy)
             {
 				lookPos = enemy.LookPos;
 			} 

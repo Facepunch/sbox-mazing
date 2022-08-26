@@ -13,7 +13,15 @@ partial class Seeker : Enemy
     public override float MoveSpeed => 81f;
 
     //protected override int HoldType => 4;
-    public override Vector3 LookPos => GetLookPos();
+    public override Vector3 LookPos
+    {
+        get
+        {
+            var player = Game.GetClosestPlayer(Position);
+
+            return player != null ? player.EyePosition.WithZ(player.EyePosition.z * 0.5f) : base.LookPos;
+        }
+    }
 
     public override void Spawn()
     {
@@ -38,20 +46,6 @@ partial class Seeker : Enemy
         else
         {
             TargetCell = GetNextInPathTo( player.Position );
-        }
-    }
-
-    private Vector3 GetLookPos()
-    {
-        var player = Game.GetClosestPlayer(Position);
-
-        if (player != null)
-        {
-            return player.EyePosition.WithZ(player.EyePosition.z * 0.5f);
-        }
-        else
-        {
-            return EyePosition + EyeRotation.Forward * 200;
         }
     }
 }

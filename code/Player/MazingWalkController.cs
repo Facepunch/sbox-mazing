@@ -113,7 +113,7 @@ public partial class MazingWalkController : BasePlayerController
             return;
         }
 
-        var dir = InputVector + WishVelocity;
+        var dir = (InputVector + WishVelocity).WithZ( 0f );
 
         if ( dir.LengthSquared < 0.25f * 0.25f )
         {

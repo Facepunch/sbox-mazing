@@ -94,7 +94,9 @@ public abstract partial class Enemy : AnimatedEntity
     protected virtual string DeathMessage => $"{{0}} was {GetRandomDeathVerb()} by a {GetType().Name.ToTitleCase()}";
 
     protected virtual int HoldType => 5;
-    public virtual Vector3 LookPos => EyePosition + EyeRotation.Forward * 200;
+
+    public virtual Vector3 LookPos =>
+        EyePosition + EyeRotation.Forward * 200 + Vector3.Up * Math.Clamp( AwakeTime, -1f, 0f ) * 800f;
 
     public override void Spawn()
     {
@@ -110,6 +112,8 @@ public abstract partial class Enemy : AnimatedEntity
             .MinBy( x => (CanWalkInDirection(x.Direction) ? 0f : 10f) + Rand.Float() );
 
         Rotation = EyeRotation = Rotation.LookAt( direction.Delta.Normal, Vector3.Up );
+
+        Log.Info( $"Direction: {direction.Direction}, {direction.Delta.Normal}" );
 
         Animator = OnCreateAnimator();
 

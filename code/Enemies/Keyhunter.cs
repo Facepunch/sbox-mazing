@@ -18,7 +18,14 @@ partial class Keyhunter : Enemy
 
     protected override int HoldType => IsHuntingKey() ? 4 : 0;
 
-    public override Vector3 LookPos => GetLookPos();
+    public override Vector3 LookPos 
+    {
+        get
+        {
+            var player = All.OfType<MazingPlayer>().FirstOrDefault( x => x.HeldEntity != null );
+            return player != null ? player.EyePosition.WithZ(player.EyePosition.z * 0.25f) : base.LookPos;
+        }
+    }
 
     private Color _colorNormal = new Color(0.3f, 0.3f, 0.1f);
     private Color _colorHunting = new Color(1f, 1f, 0f);
@@ -72,19 +79,5 @@ partial class Keyhunter : Enemy
     public bool IsHuntingKey()
     {
         return Game.Key == null || Game.Key.IsHeld;
-    }
-
-    private Vector3 GetLookPos()
-    {
-        var player = Entity.All.OfType<MazingPlayer>().Where(x => x.HeldEntity != null).FirstOrDefault();
-
-        if (player != null)
-        {
-            return player.EyePosition.WithZ(player.EyePosition.z * 0.25f);
-        }
-        else
-        {
-            return EyePosition + EyeRotation.Forward * 200;
-        }
     }
 }
