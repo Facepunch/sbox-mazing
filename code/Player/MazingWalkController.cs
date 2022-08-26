@@ -108,7 +108,7 @@ public partial class MazingWalkController : BasePlayerController
 
     private void UpdateEyeRotation()
     {
-        if ( IsVaulting )
+        if ( IsVaulting || Pawn is Enemy enemy && !enemy.IsAwake )
         {
             return;
         }

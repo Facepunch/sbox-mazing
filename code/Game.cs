@@ -414,9 +414,8 @@ public partial class MazingGame : Sandbox.Game
         for ( var i = 0; i < enemies.Length; i++ )
         {
             var enemyCell = generated.Enemies[i % generated.Enemies.Length];
-
-            enemies[i].Index = i;
-            enemies[i].Position = CellToPosition(enemyCell.Row + 0.5f, enemyCell.Col + 0.5f);
+            
+            enemies[i].PostSpawn( i, CellToPosition( enemyCell.Row + 0.5f, enemyCell.Col + 0.5f ) );
 
             _enemies.Add( enemies[i] );
         }

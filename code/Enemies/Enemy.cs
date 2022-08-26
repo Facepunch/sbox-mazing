@@ -61,7 +61,7 @@ public abstract partial class Enemy : AnimatedEntity
 
     public bool IsAwake => AwakeTime > 0f;
 
-    public int Index { get; set; }
+    public int Index { get; private set; }
 
     public ClothingContainer Clothing { get; set; } = new();
 
@@ -108,12 +108,6 @@ public abstract partial class Enemy : AnimatedEntity
 
         Tags.Add( "enemy" );
 
-        var direction = MazeData.Directions
-            .MinBy( x => (CanWalkInDirection(x.Direction) ? 0f : 10f) + Rand.Float() );
-
-        Rotation = EyeRotation = Rotation.LookAt( direction.Delta.Normal, Vector3.Up );
-
-        Log.Info( $"Direction: {direction.Direction}, {direction.Delta.Normal}" );
 
         Animator = OnCreateAnimator();
 
@@ -123,6 +117,22 @@ public abstract partial class Enemy : AnimatedEntity
         EnableShadowInFirstPerson = true;
 
         TargetCell = this.GetCellIndex();
+    }
+
+    public void PostSpawn( int index, Vector3 pos )
+    {
+        Index = index;
+        Position = pos;
+
+        OnPostSpawn();
+    }
+
+    protected virtual void OnPostSpawn()
+    {
+        var direction = MazeData.Directions
+            .MinBy(x => (CanWalkInDirection(x.Direction) ? 0f : 10f) + Rand.Float());
+
+        EyeRotation = Rotation = Rotation.LookAt(direction.Delta.Normal, Vector3.Up);
     }
 
     protected virtual string ModelPath => "models/citizen/citizen.vmdl";

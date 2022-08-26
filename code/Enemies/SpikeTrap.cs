@@ -38,8 +38,6 @@ namespace Mazing.Enemies
         {
             base.Spawn();
 
-            Rotation = EyeRotation = Rotation.FromYaw(0f);
-
             const float boundsWidth = 32f;
 
             SetupPhysicsFromAABB( PhysicsMotionType.Static, new Vector3( -boundsWidth * 0.5f, -boundsWidth * 0.5f, 0f ),
@@ -56,7 +54,12 @@ namespace Mazing.Enemies
 
             _lastStab = StabPhase;
         }
-        
+
+        protected override void OnPostSpawn()
+        {
+            EyeRotation = Rotation = Rotation.FromYaw(0f);
+        }
+
         protected override void OnServerTick()
         {
             if ( AwakeTime < 0f ) return;
