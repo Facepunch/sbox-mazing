@@ -33,6 +33,8 @@ public partial class MazingWalkController : BasePlayerController
     public bool IsVaulting => SinceVault <= VaultTime && Pawn.Parent is not MazingPlayer;
     public bool IsVaultOnCooldown => NextVault <= 0f || _localSinceVault <= VaultTime;
 
+    public float UntilNextVault => Math.Max( -NextVault, VaultTime - _localSinceVault );
+
     public bool IsPlayer => Pawn is MazingPlayer;
     public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot != Input.Down( InputButton.Walk );
     
@@ -608,11 +610,6 @@ public partial class MazingWalkController : BasePlayerController
         if ( Host.IsServer )
         {
             (Pawn as MazingPlayer)?.OnVault();
-        }
-
-        if ( Pawn != null )
-        {
-            Sound.FromEntity("player.vault", Pawn);
         }
 
         AddEvent("vault");

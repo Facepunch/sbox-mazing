@@ -49,6 +49,9 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     [HideInEditor]
     public int FirstSeenLevelIndex { get; set; }
 
+    [Net]
+    public Entity SoundEmitter { get; set; }
+
     public NameplateRoot Nameplate { get; private set; }
 
     public bool IsVaulting => Controller is MazingWalkController controller && controller.IsVaulting;
@@ -69,6 +72,14 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     public MazingPlayer( Client cl )
     {
         Clothing.LoadFromClient(cl);
+
+        SoundEmitter = new Entity();
+        SoundEmitter.SetParent( this, "eyes", Transform.Zero );
+    }
+
+    public Sound EmitSound( string name )
+    {
+        return Sound.FromEntity( name, this );
     }
 
     public override void ClientSpawn()
@@ -305,7 +316,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     [Event.Tick.Client]
     public void ClientTick()
     {
-
+        CheckForVault();
     }
 
     public void OnVault()
@@ -316,38 +327,56 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
             if ( Game.IsInMaze( dropCell ) )
                 ThrowItem( dropCell, this.GetFacingDirection() );
         }
+
+        EmitSound( "player.vault" );
     }
+
+    private float _lastUntilVault;
 
     private void CheckForVault()
     {
-        if (!IsServer)
+        if (Controller is not MazingWalkController walkController)
         {
             return;
         }
 
-        if ( Controller is not MazingWalkController walkController )
+        //if ( IsClient && Client.IsOwnedByLocalClient )
+        if ( IsServer )
         {
-            return;
+            if ( _lastUntilVault > 0f && walkController.UntilNextVault <= 0f )
+            {
+                Sound.FromScreen( To.Single( Client ), "player.recharge2" );
+            }
+            else if ( _lastUntilVault > 1f && walkController.UntilNextVault <= 1f )
+            {
+                Sound.FromScreen( To.Single( Client ), "player.recharge1" );
+            }
+            else if ( _lastUntilVault > 2f && walkController.UntilNextVault <= 2f )
+            {
+                Sound.FromScreen( To.Single( Client ), "player.recharge1quiet" );
+            }
+
+            _lastUntilVault = walkController.UntilNextVault;
         }
 
-        if ( IsAlive && _sweatParticles == null && walkController.IsVaultOnCooldown )
+        if ( IsServer )
         {
-            _sweatParticles = Particles.Create("particles/sweat_drops.vpcf", this, "hat");
+            if (IsAlive && _sweatParticles == null && walkController.IsVaultOnCooldown)
+            {
+                _sweatParticles = Particles.Create("particles/sweat_drops.vpcf", this, "hat");
+            }
+
+            if (_sweatParticles != null && !walkController.IsVaultOnCooldown)
+            {
+                _sweatParticles?.Destroy();
+                _sweatParticles = null;
+
+                _burstParticles?.Destroy();
+                _burstParticles = Particles.Create("particles/sweat_burst.vpcf", this, "hat");
+
+                EmitSound("player.recharge");
+            }
         }
-
-        if ( _sweatParticles != null && !walkController.IsVaultOnCooldown )
-        {
-            _sweatParticles?.Destroy();
-            _sweatParticles = null;
-
-            _burstParticles?.Destroy();
-            _burstParticles = Particles.Create("particles/sweat_burst.vpcf", this, "hat");
-
-            Sound.FromEntity( To.Multiple( Client.All.Except( new [] { Client } ) ), "player.recharge", this );
-            Sound.FromEntity( To.Single( Client ), "player.rechargeself", this );
-        }
-
-        //DropHeldItem();
     }
 
     private void DropHeldItem()
