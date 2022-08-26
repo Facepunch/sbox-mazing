@@ -30,7 +30,7 @@ public partial class MazingWalkController : BasePlayerController
 
     public bool IsGhost => Pawn is MazingPlayer player && !player.IsAlive;
 
-    public bool IsVaulting => SinceVault <= VaultTime && Pawn.Parent is not MazingPlayer;
+    public bool IsVaulting => SinceVault <= VaultTime && Pawn?.Parent is not MazingPlayer;
     public bool IsVaultOnCooldown => NextVault <= 0f || _localSinceVault <= VaultTime;
 
     public float UntilNextVault => Math.Max( -NextVault, VaultTime - _localSinceVault );
@@ -208,7 +208,13 @@ public partial class MazingWalkController : BasePlayerController
 
                 if (MazingGame.Current.IsInMaze(target))
                 {
-                    pawnPlayer.ParentPlayer.ThrowItem( target, dir );
+                    if ( Host.IsServer )
+                    {
+                        pawnPlayer.ParentPlayer.ThrowItem(target, dir);
+                    }
+                    
+                    _localSinceVault = 0f;
+                    NextVault = -VaultCooldown;
                 }
             }
 
@@ -284,7 +290,7 @@ public partial class MazingWalkController : BasePlayerController
 
             if ( !IsGhost )
             {
-                if ( !IsVaultOnCooldown && IsPlayer && !IsBot && Input.Down( InputButton.Jump ) )
+                if ( !IsVaultOnCooldown && IsPlayer && ((MazingPlayer) Pawn).IsAliveInMaze && !IsBot && Input.Down( InputButton.Jump ) )
                 {
                     var dir = Pawn.GetFacingDirection();
                     var next = cell + dir;
@@ -586,10 +592,9 @@ public partial class MazingWalkController : BasePlayerController
         
         SinceVault = 0f;
 
-        _localSinceVault = 0;
-
         if ( withCooldown )
         {
+            _localSinceVault = 0;
             NextVault = -VaultCooldown;
         }
 

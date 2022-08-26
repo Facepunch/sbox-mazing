@@ -340,33 +340,35 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
             return;
         }
 
+        var untilNextVault = walkController.IsVaulting && walkController.UntilNextVault >= 3f ? 0f : walkController.UntilNextVault;
+
         //if ( IsClient && Client.IsOwnedByLocalClient )
-        if ( IsServer )
+        if ( IsServer && IsAliveInMaze && untilNextVault > -0.5f )
         {
-            if ( _lastUntilVault > 0f && walkController.UntilNextVault <= 0f )
+            if ( _lastUntilVault > 0f && untilNextVault <= 0f )
             {
                 Sound.FromScreen( To.Single( Client ), "player.recharge2" );
             }
-            else if ( _lastUntilVault > 1f && walkController.UntilNextVault <= 1f )
+            else if ( _lastUntilVault > 1f && untilNextVault <= 1f )
             {
                 Sound.FromScreen( To.Single( Client ), "player.recharge1" );
             }
-            else if ( _lastUntilVault > 2f && walkController.UntilNextVault <= 2f )
+            else if ( _lastUntilVault > 2f && untilNextVault <= 2f )
             {
                 Sound.FromScreen( To.Single( Client ), "player.recharge1quiet" );
             }
-
-            _lastUntilVault = walkController.UntilNextVault;
         }
+
+        _lastUntilVault = untilNextVault;
 
         if ( IsServer )
         {
-            if (IsAlive && _sweatParticles == null && walkController.IsVaultOnCooldown)
+            if (IsAliveInMaze && _sweatParticles == null && walkController.IsVaultOnCooldown)
             {
                 _sweatParticles = Particles.Create("particles/sweat_drops.vpcf", this, "hat");
             }
 
-            if (_sweatParticles != null && !walkController.IsVaultOnCooldown)
+            if (_sweatParticles != null && (!walkController.IsVaultOnCooldown || !IsAliveInMaze))
             {
                 _sweatParticles?.Destroy();
                 _sweatParticles = null;
