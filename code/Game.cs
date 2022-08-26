@@ -710,7 +710,8 @@ public partial class MazingGame : Sandbox.Game
                             Log.Info( $"Not submitting score for {player.Client.Name}" );
                         }
 
-                        GameServices.SubmitScore(player.Client.PlayerId, TotalCoins);
+                        GameServices.UpdateLeaderboard(player.Client.PlayerId, TotalCoins, "money");
+                        GameServices.UpdateLeaderboard(player.Client.PlayerId, LevelIndex, "depth");
                     }
                 }
 
