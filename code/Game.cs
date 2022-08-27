@@ -282,7 +282,7 @@ public partial class MazingGame : Sandbox.Game
             return false;
         }
 
-        if ( ent.GetType().FullName == "Sandbox.ClientEntity" )
+        if ( ent.GetType().ToString() == "Sandbox.ClientEntity" )
         {
             return false;
         }
