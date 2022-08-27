@@ -659,6 +659,11 @@ public partial class MazingGame : Sandbox.Game
         Log.Info( $"Noclip is disabled" );
     }
 
+    public override void DoPlayerSuicide( Client cl )
+    {
+        Log.Info( $"Suicide is disabled" );
+    }
+
     [Event.Tick.Server]
     public void ServerTick()
     {
