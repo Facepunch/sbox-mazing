@@ -566,6 +566,12 @@ public partial class MazingGame : Sandbox.Game
             .Any( x => x.GetCellIndex() == coord );
     }
 
+    public MazingPlayer GetPlayerInCell(GridCoord coord)
+    {
+        return PlayersAliveInMaze
+            .FirstOrDefault(x => x.GetCellIndex() == coord);
+    }
+
     public bool IsEnemyInCell(GridCoord coord)
     {
         // TODO: optimize
