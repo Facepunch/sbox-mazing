@@ -160,7 +160,7 @@ internal partial class EliteWizard : Enemy
                 _spawnParticles = null;
 
                 _popParticles?.Destroy();
-                _popParticles = Particles.Create("particles/wizard_spawn_end.vpcf", Position);
+                _popParticles = Particles.Create("particles/wizard_spawn_end_elite.vpcf", Position);
             }
         }
         else
@@ -193,7 +193,7 @@ internal partial class EliteWizard : Enemy
                 _spawnParticles = null;
 
                 _popParticles?.Destroy();
-                _popParticles = Particles.Create("particles/wizard_spawn_end.vpcf", Position);
+                _popParticles = Particles.Create("particles/wizard_spawn_end_elite.vpcf", Position);
 
                 _teleportCell = Game.GetRandomEmptyCell();
 
@@ -205,7 +205,7 @@ internal partial class EliteWizard : Enemy
                 Position = Game.CellCenterToPosition(_teleportCell);
                 TargetCell = _teleportCell;
 
-                _spawnParticles = Particles.Create( "particles/wizard_spawn.vpcf", Game.CellCenterToPosition( _teleportCell ) );
+                _spawnParticles = Particles.Create( "particles/wizard_spawn_elite.vpcf", Game.CellCenterToPosition( _teleportCell ) );
 
                 _playedPortalSound = false;
 
