@@ -544,6 +544,12 @@ public partial class MazingGame : Sandbox.Game
         return GetClosest( players, pos, maxRange, ignoreZ, except );
     }
 
+    public MazingPlayer GetClosestDeadPlayer(Vector3 pos, float maxRange = float.PositiveInfinity, bool ignoreZ = true, MazingPlayer except = null)
+    {
+        var players = Players.Where(x => !x.IsAliveInMaze);
+        return GetClosest(players, pos, maxRange, ignoreZ, except);
+    }
+
     public Enemy GetClosestEnemy( Vector3 pos, float maxRange = float.PositiveInfinity, bool ignoreZ = true, Enemy except = null )
     {
         return GetClosest( Enemies, pos, maxRange, ignoreZ, except );

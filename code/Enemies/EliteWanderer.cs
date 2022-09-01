@@ -33,7 +33,7 @@ partial class EliteWanderer : Enemy
 
         RenderColor = new Color(0.5f, 0f, 0f, 0.0f);
 
-        Scale = 1.1f;
+        Scale = 1.2f;
     }
 
     protected override void OnServerTick()
@@ -43,20 +43,27 @@ partial class EliteWanderer : Enemy
         _invisTimer -= Time.Delta;
         if (_invisTimer <= 0f)
         {
-            var player = Game.GetClosestPlayer(Position);
+            var highestOpacity = 0.0f;
+
+            var player = Game.GetClosestPlayer(Position, aliveInMaze: true);
             if (player != null)
             {
                 var dist = (player.Position.WithZ(0) - Position.WithZ(0)).Length;
-                //var opacity = Map(dist, 0f, 175f, 1.0f, 0.185f);
-                var opacity = Map(dist, 0f, 180f, 1.0f, 0.15f);
-                //RenderColor = new Color(0.5f, 0f, 0f, 0.0f);
+                highestOpacity = MathF.Max(Map(dist, 0f, 180f, 1.0f, 0.15f), highestOpacity);
+            }
 
-                foreach (var child in Children.ToArray())
+            var deadPlayer = Game.GetClosestDeadPlayer(Position);
+            if(deadPlayer != null)
+            {
+                var dist = ((deadPlayer.Position.WithZ(0) + new Vector3(0f, 60f, 0f)) - Position.WithZ(0)).Length;
+                highestOpacity = MathF.Max(Map(dist, 0f, 160f, 0.25f, 0.1f), highestOpacity);
+            }
+
+            foreach (var child in Children.ToArray())
+            {
+                if (child is ModelEntity e && e.Tags.Has("clothes"))
                 {
-                    if (child is ModelEntity e && e.Tags.Has("clothes"))
-                    {
-                        e.RenderColor = new Color(0.3f, 0.3f, 1f, opacity);
-                    }
+                    e.RenderColor = new Color(0.3f, 0.3f, 1f, highestOpacity);
                 }
             }
 
