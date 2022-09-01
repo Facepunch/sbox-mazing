@@ -20,7 +20,7 @@ internal class PathFinder
     public float ClosedHatchCost { get; set; } = 1f;
     public float OpenHatchCost { get; set; } = 100f;
     public float PlayerCost { get; set; } = 10f;
-    public float EnemyCost { get; set; } = 100f;
+    public float EnemyCost { get; set; } = 10f;
 
     private static float Heuristic( GridCoord from, GridCoord to )
     {
