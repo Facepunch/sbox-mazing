@@ -15,7 +15,7 @@
 						[
 							{
 								from = "floor.vmat"
-								to = "textures/metal_panels_a/oilrig_floor1.vmat"
+								to = "materials/generic/floor_steel_diamond_plate_a.vmat"
 							},
 							{
 								from = "spike.vmat"
