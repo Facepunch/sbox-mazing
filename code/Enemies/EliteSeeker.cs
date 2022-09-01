@@ -11,6 +11,7 @@ namespace Mazing.Enemies;
 //[UnlockLevel(0), ThreatValue(1)]
 partial class EliteSeeker : Enemy
 {
+    public override string NounPhrase => "an Elite Seeker";
     public override float MoveSpeed => 80.6f;
     public TimeSince LastVault { get; set; }
     public Vector3 VaultDir { get; set; }

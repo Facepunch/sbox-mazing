@@ -69,8 +69,20 @@ public abstract partial class Enemy : AnimatedEntity
 
     private static readonly (string Verb, float Weight)[] _sDeathVerbs = new (string Verb, float Weight)[]
     {
-        ("killed", 10f),
+        ("killed", 15f),
+        ("slain", 3f),
+        ("murdered", 2f),
+        ("eliminated", 2f),
+        ("defeated", 2f),
         ("slapped", 1f),
+        ("wasted", 1f),
+        ("thwarted", 1f),
+        ("slaughtered", 1f),
+        ("whacked", 0.5f),
+        ("taken out", 0.5f),
+        ("put down", 0.5f),
+        ("assassinated", 0.5f),
+        ("humiliated", 0.5f),
     };
 
     private static string GetRandomDeathVerb()
@@ -91,7 +103,9 @@ public abstract partial class Enemy : AnimatedEntity
         return "killed";
     }
 
-    protected virtual string DeathMessage => $"{{0}} was {GetRandomDeathVerb()} by a {GetType().Name.ToTitleCase()}";
+    //protected virtual string DeathMessage => $"{{0}} was {GetRandomDeathVerb()} by a {GetType().Name.ToTitleCase()}";
+    protected virtual string DeathMessage => $"{{0}} was {GetRandomDeathVerb()} by {NounPhrase}";
+    public virtual string NounPhrase => "an enemy";
 
     protected virtual int HoldType => 5;
 

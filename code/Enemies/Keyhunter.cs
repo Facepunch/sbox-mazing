@@ -12,6 +12,8 @@ namespace Mazing.Enemies;
 [UnlockLevel(9), ThreatValue(4)]
 partial class Keyhunter : Enemy
 {
+    public override string NounPhrase => "a Keyhunter";
+
     private const float HuntStartDelay = 0.5f;
 
     public override float MoveSpeed => IsHuntingKey() && _huntStartTime > HuntStartDelay ? 99f : 60f;

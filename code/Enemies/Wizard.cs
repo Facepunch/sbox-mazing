@@ -7,6 +7,8 @@ namespace Mazing.Enemies;
 [UnlockLevel(5), ThreatValue(2)]
 internal partial class Wizard : Enemy
 {
+    public override string NounPhrase => "a Wizard";
+
     public override float MoveSpeed => 20f;
 
     protected override int HoldType => FiredBolt && !IsTeleporting && _firedBoltTime > 0.15f ? (_firedBoltTime > 2.75f ? _teleportHoldType : 0) : 5;

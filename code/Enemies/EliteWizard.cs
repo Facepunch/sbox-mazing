@@ -4,9 +4,10 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(0), ThreatValue(1)]
+[UnlockLevel(25), ThreatValue(3)]
 internal partial class EliteWizard : Enemy
 {
+    public override string NounPhrase => "an Elite Wizard";
     public override float MoveSpeed => 20f;
 
     protected override int HoldType => FiredBolt && !IsTeleporting && _firedBoltTime > 0.15f ? (_firedBoltTime > 2.75f ? _teleportHoldType : 0) : 5;

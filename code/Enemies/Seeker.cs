@@ -10,6 +10,8 @@ namespace Mazing.Enemies;
 [UnlockLevel(1), ThreatValue(2)]
 partial class Seeker : Enemy
 {
+    public override string NounPhrase => "a Seeker";
+
     public override float MoveSpeed => 81f;
 
     //protected override int HoldType => 4;

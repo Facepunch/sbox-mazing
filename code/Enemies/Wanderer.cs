@@ -10,6 +10,7 @@ namespace Mazing.Enemies;
 [UnlockLevel(0), ThreatValue(1, canBeOnlyEnemy: false)]
 partial class Wanderer : Enemy
 {
+    public override string NounPhrase => "a Wanderer";
     public override float MoveSpeed => 82f;
 
     protected override int HoldType => 4;

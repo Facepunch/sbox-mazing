@@ -5,6 +5,8 @@ namespace Mazing.Enemies;
 [UnlockLevel(20), ThreatValue(5)]
 internal partial class EliteCharger : Enemy
 {
+    public override string NounPhrase => "an Elite Charger";
+
     public override float MoveSpeed => IsCharging || IsHunting ? 163f : 85f;
 
     private bool _isHunting;

@@ -11,6 +11,8 @@ namespace Mazing.Enemies
     [ThreatValue(1, 2, false), UnlockLevel(14)]
     public partial class SpikeTrap : Enemy
     {
+        public override string NounPhrase => "a Spike Trap";
+
         public new const float KillRange = 32f;
         
         public const float StabStart = 0.9f;
