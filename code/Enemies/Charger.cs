@@ -2,7 +2,7 @@
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(3), ThreatValue(3)]
+[UnlockLevel(4), ThreatValue(3)]
 internal partial class Charger : Enemy
 {
     public override string NounPhrase => "a Charger";

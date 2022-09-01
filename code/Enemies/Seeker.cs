@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(1), ThreatValue(2)]
+[UnlockLevel(2), ThreatValue(2)]
 partial class Seeker : Enemy
 {
     public override string NounPhrase => "a Seeker";

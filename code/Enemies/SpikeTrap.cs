@@ -8,7 +8,7 @@ using Sandbox;
 
 namespace Mazing.Enemies
 {
-    [ThreatValue(1, 2, false), UnlockLevel(14)]
+    [ThreatValue(1, 2), UnlockLevel(10), CantBeOnlyEnemy]
     public partial class SpikeTrap : Enemy
     {
         public override string NounPhrase => "a Spike Trap";

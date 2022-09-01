@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Linq;
 using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(5), ThreatValue(2)]
+[UnlockLevel(6), ThreatValue(2)]
 internal partial class Wizard : Enemy
 {
     public override string NounPhrase => "a Wizard";

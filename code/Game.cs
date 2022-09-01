@@ -68,6 +68,9 @@ public partial class MazingGame : Sandbox.Game
 
     private readonly List<Enemy> _enemies = new();
 
+    private readonly Dictionary<TypeDescription, int> _enemyTypeLastSpawnLevel
+        = new Dictionary<TypeDescription, int>();
+
     public IEnumerable<MazingPlayer> Players => Client.All
         .Select( x => x.Pawn )
         .OfType<MazingPlayer>();
@@ -117,47 +120,72 @@ public partial class MazingGame : Sandbox.Game
         Current.NextLevelCountdown = -1.5f;
     }
 
-    public IEnumerable<Type> GetSpawningEnemyTypes( int levelIndex, int seed )
-    {
-        if ( levelIndex == 0 )
-        {
-            //yield return typeof(SpikeTrap);
-            //yield break;
-        }
+    private record struct EnemyType(
+        TypeDescription Type,
+        int FirstLevel,
+        int Threat,
+        int SpawnCount,
+        bool CanBeOnlyEnemy,
+        TypeDescription Replaces,
+        int FullyReplaceLevel );
 
+    [ConCmd.Client("mazing_spawntest")]
+    public static void EnemyTypeTest()
+    {
+        var lastSpawnLevels = new Dictionary<TypeDescription, int>();
+
+        for (var i = 0; i < 50; ++i)
+        {
+            var seed = Rand.Int(int.MaxValue - 1);
+            var types = GetSpawningEnemyTypes(i, seed, lastSpawnLevels)
+                .GroupBy( x => x )
+                .OrderByDescending(x => x.Count())
+                .Select( x => $"{x.Key.Name} x{x.Count()}")
+                .ToArray();
+
+            Log.Info($"Level {i + 1}: {string.Join(", ", types)}");
+        }
+    }
+
+    public static IEnumerable<TypeDescription> GetSpawningEnemyTypes( int levelIndex, int seed, Dictionary<TypeDescription, int> lastSpawnLevels )
+    {
         var rand = new Random( seed );
 
         var totalThreat = levelIndex == 0 ? 1 : levelIndex + 2;
+        var levelNumber = levelIndex + 1;
 
-        var unlocked = TypeLibrary.GetTypes<Enemy>()
+        var unlocked = TypeLibrary.GetDescriptions<Enemy>()
             .Select( x =>
             {
-                var threatAttrib = TypeLibrary.GetAttribute<ThreatValueAttribute>( x );
+                var threatAttrib = x.GetAttribute<ThreatValueAttribute>();
+                var replacesAttrib = x.GetAttribute<ReplacesAttribute>();
 
-                return (
+                var firstLevel = x.GetAttribute<UnlockLevelAttribute>()?.Level ?? int.MaxValue;
+                
+                return new EnemyType(
                     Type: x,
-                    FirstLevel: TypeLibrary.GetAttribute<UnlockLevelAttribute>( x )?.Level ?? int.MaxValue,
+                    FirstLevel: firstLevel,
                     Threat: threatAttrib?.Value ?? 1,
-                    PerThreat: threatAttrib?.PerThreat ?? 1,
-                    CanBeOnlyEnemy: threatAttrib?.CanBeOnlyEnemy ?? true);
+                    SpawnCount: threatAttrib?.SpawnCount ?? 1,
+                    CanBeOnlyEnemy: x.GetAttribute<CantBeOnlyEnemyAttribute>() == null,
+                    Replaces: replacesAttrib?.ReplacedType != null ? TypeLibrary.GetDescription( replacesAttrib.ReplacedType ) : null,
+                    FullyReplaceLevel: firstLevel == int.MaxValue ? int.MaxValue : firstLevel + replacesAttrib?.LevelsUntilFullyReplaced ?? 0);
             } )
-            .Where( x => x.FirstLevel <= levelIndex )
+            .Where( x => x.FirstLevel <= levelNumber)
             .ToArray();
 
+        var replacedBy = unlocked
+            .Where(x => x.Replaces != null)
+            .ToDictionary(x => x.Replaces, x => x);
+
         var justUnlocked = unlocked
-            .Where( x => x.FirstLevel == levelIndex )
+            .Where( x => x.FirstLevel == levelNumber)
             .ToArray();
 
         var alreadyUnlocked = unlocked
-            .Where( x => x.FirstLevel < levelIndex )
+            .Where( x => x.FirstLevel < levelNumber && !replacedBy.ContainsKey(x.Type) )
+            .OrderByDescending( x => rand.NextSingle() * Math.Max(1, lastSpawnLevels.TryGetValue(x.Type, out var lastLevel) ? levelIndex + 1 - lastLevel : 1))
             .ToArray();
-
-        // Shuffle already unlocked types
-        for ( var i = 0; i < alreadyUnlocked.Length; ++i )
-        {
-            var index = rand.Next( i, alreadyUnlocked.Length );
-            (alreadyUnlocked[i], alreadyUnlocked[index]) = (alreadyUnlocked[index], alreadyUnlocked[i]);
-        }
 
         // Make sure first enemy in list can be the only enemy in the level
         var canBeOnlyIndex = Array.FindIndex( alreadyUnlocked, x => x.CanBeOnlyEnemy );
@@ -175,11 +203,34 @@ public partial class MazingGame : Sandbox.Game
             || justUnlocked.Length == 1 && justUnlocked[0].CanBeOnlyEnemy
             || alreadyUnlocked.Length == 0;
 
-        var extraTypeCount = alreadyUnlocked.Length == 0 ? 0 : rand.Next(canBeOnlyJustUnlocked ? 0 : 1, Math.Max(1, (alreadyUnlocked.Length * 3) / 4));
+        var totalCount = canBeOnlyJustUnlocked
+            ? rand.Next(justUnlocked.Length, Math.Max(justUnlocked.Length, 3) + 1)
+            : rand.Next(justUnlocked.Length + 1, Math.Max(justUnlocked.Length + 1, 3) + 1);
+
+        if (unlocked.Length > 1 && rand.NextSingle() < 0.8f)
+        {
+            totalCount = Math.Max(2, totalCount);
+        }
 
         var usedTypes = justUnlocked
-            .Concat( alreadyUnlocked.Take( extraTypeCount ) )
+            .Concat( alreadyUnlocked.Take(totalCount - justUnlocked.Length) )
+            .Select(x => (x.Type, x.Threat, x.SpawnCount, x.Replaces,
+                Weight: x.Replaces == null || x.FullyReplaceLevel <= levelNumber ? 1f
+                : (levelNumber - x.FirstLevel + 1f) / (x.FullyReplaceLevel - x.FirstLevel + 1)))
             .ToList();
+
+        for (var i = usedTypes.Count - 1; i >= 0; --i)
+        {
+            var replacer = usedTypes[i];
+            if (replacer.Replaces == null || replacer.Weight >= 1f) continue;
+
+            var replaced = unlocked.FirstOrDefault(x => x.Type == replacer.Replaces);
+            if (replaced.Type == null) continue;
+
+            usedTypes.Add((replaced.Type, replaced.Threat, replaced.SpawnCount, null, Weight: 1f - replacer.Weight));
+        }
+        
+        var spawned = new List<TypeDescription>();
 
         // Make sure at least one enemy of each chosen type spawns
         for ( var i = 0; totalThreat > 0 && i < usedTypes.Count; ++i )
@@ -192,38 +243,37 @@ public partial class MazingGame : Sandbox.Game
             }
 
             totalThreat -= type.Threat;
+            lastSpawnLevels[type.Type] = levelIndex;
 
-            for ( var j = 0; j < type.PerThreat; ++j )
+            for ( var j = 0; j < type.SpawnCount; ++j )
             {
-                yield return type.Type;
+                spawned.Add(type.Type);
             }
         }
 
-        // Spawn other random enemies until the total threat is reached
-        while ( totalThreat > 0 && usedTypes.Count > 0 )
-        {
-            var type = usedTypes[Rand.Int( 0, usedTypes.Count - 1 )];
-
-            if ( type.Threat > totalThreat )
-            {
-                usedTypes.Remove( type );
-                continue;
-            }
-
-            totalThreat -= type.Threat;
-
-            for (var j = 0; j < type.PerThreat; ++j)
-            {
-                yield return type.Type;
-            }
-        }
-
-        // Spawn wanderers if there's still spare threat
+        // Spawn other enemies until the total threat is reached
         while ( totalThreat > 0 )
         {
-            totalThreat -= 1;
-            yield return typeof(Wanderer);
+            var next = usedTypes
+                .Where(x => x.Threat <= totalThreat)
+                .OrderBy(x => spawned.Count(y => y == x.Type) * x.Threat * x.SpawnCount / x.Weight)
+                .FirstOrDefault();
+
+            if (next.Type == null)
+            {
+                next = usedTypes.MinBy(x => x.Threat + Rand.Float() * 0.5f);
+            }
+
+            totalThreat -= next.Threat;
+            lastSpawnLevels[next.Type] = levelIndex;
+
+            for (var j = 0; j < next.SpawnCount; ++j)
+            {
+                spawned.Add(next.Type);
+            }
         }
+
+        return spawned;
     }
 
     private static float GetLevelSizeScore( int length, int cross, int targetArea )
@@ -244,7 +294,7 @@ public partial class MazingGame : Sandbox.Game
     public (int Rows, int Cols) GetLevelSize( int levelIndex, int seed )
     {
         var rand = new Random( seed );
-        var targetArea = 64 + (levelIndex < 2 ? 0 : (levelIndex - 2) * 4);
+        var targetArea = 64 + (levelIndex < 2 ? 0 : (MathF.Sqrt(levelIndex - 1f) * 10f).FloorToInt());
         var minLength = 4;
         var maxLength = MathF.Sqrt(targetArea).FloorToInt();
 
@@ -305,6 +355,14 @@ public partial class MazingGame : Sandbox.Game
             GameServices.StartGame();
         }
 
+        foreach (var pair in _enemyTypeLastSpawnLevel.ToArray())
+        {
+            if (pair.Value > LevelIndex)
+            {
+                _enemyTypeLastSpawnLevel[pair.Key] = LevelIndex;
+            }
+        }
+
         if ( _firstSpawn )
         {
             _firstSpawn = false;
@@ -340,7 +398,7 @@ public partial class MazingGame : Sandbox.Game
 
 		Log.Info( $"Generating level {LevelIndex + 1} with seed {seed:x8} ");
 
-        var typesToSpawn = GetSpawningEnemyTypes( LevelIndex, seed )
+        var typesToSpawn = GetSpawningEnemyTypes( LevelIndex, seed, _enemyTypeLastSpawnLevel )
             .ToArray();
         
         var (rows, cols) = GetLevelSize( LevelIndex, seed );
@@ -355,7 +413,7 @@ public partial class MazingGame : Sandbox.Game
 
         _playerSpawns = generated.Players;
         
-        var enemies = typesToSpawn.Select(x => (Enemy)TypeLibrary.Create<Enemy>(x))
+        var enemies = typesToSpawn.Select(x => x.Create<Enemy>())
             .ToArray();
 
         ExitCell = generated.Exit;

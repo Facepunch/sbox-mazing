@@ -2,7 +2,7 @@
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(20), ThreatValue(5)]
+[UnlockLevel(25), ThreatValue(5), Replaces(typeof(Charger), 15)]
 internal partial class EliteCharger : Enemy
 {
     public override string NounPhrase => "an Elite Charger";

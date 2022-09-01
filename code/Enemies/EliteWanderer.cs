@@ -7,7 +7,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(35), ThreatValue(2, canBeOnlyEnemy: false)]
+[UnlockLevel(15), ThreatValue(2), Replaces(typeof(Wanderer), 15)]
 partial class EliteWanderer : Enemy
 {
     public override string NounPhrase => "an Elite Wanderer";

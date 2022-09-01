@@ -29,14 +29,46 @@ public sealed class UnlockLevelAttribute : Attribute
 public sealed class ThreatValueAttribute : Attribute
 {
     public int Value { get; }
-    public int PerThreat { get; }
-    public bool CanBeOnlyEnemy { get; }
 
-    public ThreatValueAttribute( int value, int perThreat = 1, bool canBeOnlyEnemy = true )
+    public int SpawnCount { get; }
+
+    public ThreatValueAttribute( int value, int spawnCount = 1 )
     {
         Value = value;
-        PerThreat = perThreat;
-        CanBeOnlyEnemy = canBeOnlyEnemy;
+        SpawnCount = spawnCount;
+    }
+}
+
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class CantBeOnlyEnemyAttribute : Attribute
+{
+
+}
+
+/// <summary>
+/// Specify that this enemy type replaces another one.
+/// The replacement will start after this type's <see cref="UnlockLevelAttribute"/>,
+/// starting with 1 instance being replaced, until <see cref="LevelsUntilFullyReplaced"/>
+/// is reached. At that point, the replaced type will not occur at all.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class ReplacesAttribute : Attribute
+{
+    /// <summary>
+    /// Which type should be replaced by this enemy type.
+    /// </summary>
+    public Type ReplacedType { get; }
+    
+    /// <summary>
+    /// How many levels after this type first unlocks will the replaced type be
+    /// 100% replaced.
+    /// </summary>
+    public int LevelsUntilFullyReplaced { get; }
+    
+    public ReplacesAttribute( Type replacedType, int levelsUntilFullyReplaced )
+    {
+        ReplacedType = replacedType;
+        LevelsUntilFullyReplaced = levelsUntilFullyReplaced;
     }
 }
 
@@ -69,7 +101,7 @@ public abstract partial class Enemy : AnimatedEntity
 
     private static readonly (string Verb, float Weight)[] _sDeathVerbs = new (string Verb, float Weight)[]
     {
-        ("killed", 15f),
+        ("killed", 25f),
         ("slain", 3f),
         ("murdered", 2f),
         ("eliminated", 2f),
@@ -101,6 +133,21 @@ public abstract partial class Enemy : AnimatedEntity
         }
 
         return "killed";
+    }
+
+    [ConCmd.Client("mazing_deathtest")]
+    public static void TestDeathVerbs()
+    {
+        var verbs = Enumerable.Range(0, 1000)
+            .Select(x => GetRandomDeathVerb())
+            .GroupBy(x => x)
+            .OrderByDescending(x => x.Count())
+            .ToArray();
+
+        foreach (var verb in verbs)
+        {
+            Log.Info($"{verb.Key}: {verb.Count()}");
+        }
     }
 
     //protected virtual string DeathMessage => $"{{0}} was {GetRandomDeathVerb()} by a {GetType().Name.ToTitleCase()}";

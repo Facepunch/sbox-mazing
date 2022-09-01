@@ -9,7 +9,7 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(40), ThreatValue(6)]
+[UnlockLevel(35), ThreatValue(6), Replaces(typeof(Keyhunter), 15)]
 partial class EliteKeyhunter : Enemy
 {
     public override string NounPhrase => "an Elite Keyhunter";
