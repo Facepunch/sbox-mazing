@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using Sandbox;
 
@@ -156,7 +156,7 @@ internal partial class Wizard : Enemy
 
                 _firedBoltTime = 0f;
 
-                var bolt = new WizardBolt
+                var bolt = new WizardBolt(false)
                 {
                     Direction = this.GetFacingDirection(),
                     Position = Position + Vector3.Up * 48f
@@ -220,29 +220,40 @@ partial class WizardBolt : ModelEntity
 
     private Particles _particles;
 
-    public bool IsElite { get; set; } = false;
+    [Net]
+    public bool IsElite { get; private set; }
 
-    public override void Spawn()
+    public WizardBolt()
     {
-        base.Spawn();
 
-        SetModel( "models/wizard_bolt.vmdl" );
+    }
 
-        Tags.Add( "projectile" );
+    public WizardBolt(bool isElite)
+    {
+        IsElite = isElite;
 
-        if ( IsServer )
+        SetModel(IsElite ? "models/wizard_bolt_elite.vmdl" : "models/wizard_bolt.vmdl");
+
+        if (IsServer)
         {
             _light = new PointLightEntity
             {
-                Color = new Color32( 190, 146, 255, 255 ),
+                Color = IsElite ? Color.FromRgb(0x91b6ff) : new Color32(190, 146, 255),
                 Range = 128f,
                 Brightness = 1f,
                 Parent = this,
                 LocalPosition = default
             };
 
-            _particles = Particles.Create( "particles/wizard_bolt.vpcf", this );
+            _particles = Particles.Create(IsElite ? "particles/wizard_bolt_elite.vpcf" : "particles/wizard_bolt.vpcf", this);
         }
+    }
+
+    public override void Spawn()
+    {
+        base.Spawn();
+        
+        Tags.Add("projectile");
 
         EnableDrawing = true;
     }

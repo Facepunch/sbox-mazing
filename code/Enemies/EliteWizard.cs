@@ -173,13 +173,11 @@ internal partial class EliteWizard : Enemy
 
                 _firedBoltTime = 0f;
 
-                var bolt = new WizardBolt
+                var bolt = new WizardBolt(true)
                 {
                     Direction = this.GetFacingDirection(),
                     Position = Position + Vector3.Up * 48f,
-                    IsElite = true,
                     Scale = 1.375f,
-                    RenderColor = new Color(0.225f, 0.225f, 1f),
                 };
                 
                 Sound.FromEntity( "wizard.shoot", this );
