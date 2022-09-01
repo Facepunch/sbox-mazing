@@ -300,20 +300,36 @@ partial class WizardBolt : ModelEntity
             player.Kill(((GridCoord)Direction).Normal, IsElite ? "{0} was zapped by an Elite Wizard" : "{0} was zapped by a Wizard", this);
         }
 
-        if ( this.GetCellIndex() != cell )
+        if (this.GetCellIndex() == cell) return;
+
+        var hitWall = game.CurrentMaze.GetWall(cell, Direction);
+        var outOfBounds = !game.IsInMaze(this.GetCellIndex());
+        if (!hitWall && !outOfBounds) return;
+        
+        var forward = ((GridCoord)Direction).Normal;
+
+        const float particleBoundsRadius = 128f;
+
+        var splash1 = Particles.Create(IsElite
+            ? "particles/wizard_bolt_splash_elite.vpcf"
+            : "particles/wizard_bolt_splash.vpcf", Position - forward * 6f);
+        
+        splash1.SetPosition(1, Position - forward * (6f + particleBoundsRadius));
+
+        Sound.FromEntity("wizard.bolthitwall", this)
+            .SetPitch(IsElite ? 1.25f : 1f);
+
+        if (!outOfBounds && IsElite)
         {
-            if ( (game.CurrentMaze.GetWall( cell, Direction ) && !IsElite) || !game.IsInMaze(this.GetCellIndex()) )
-            {
-                RenderColor = Color.Transparent;
-
-                _particles?.Destroy();
-                _particles = null;
-
-                Sound.FromEntity( "wizard.bolthitwall", this );
-
-                _isDespawning = true;
-                _despawnTime = 0f;
-            }
+            return;
         }
+
+        RenderColor = Color.Transparent;
+
+        _particles?.Destroy();
+        _particles = null;
+
+        _isDespawning = true;
+        _despawnTime = 0f;
     }
 }
