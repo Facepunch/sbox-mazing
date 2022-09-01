@@ -7,13 +7,13 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(0), ThreatValue(1)]
+[UnlockLevel(30), ThreatValue(4)]
+//[UnlockLevel(0), ThreatValue(1)]
 partial class EliteSeeker : Enemy
 {
-    public override float MoveSpeed => 80.4f;
-
-    private float _invisTimer;
-    private const float INVIS_DELAY = 0.2f;
+    public override float MoveSpeed => 80.6f;
+    public TimeSince LastVault { get; set; }
+    public Vector3 VaultDir { get; set; }
 
     //protected override int HoldType => 4;
     public override Vector3 LookPos
@@ -31,69 +31,66 @@ partial class EliteSeeker : Enemy
         base.Spawn();
 
         Clothing = new ClothingContainer();
-        AddClothingItem("models/citizen_clothes/skin05.clothing");
-        //AddClothingItem("models/citizen_clothes/hair/hair_balding/hair_baldinggrey.clothing");
-        AddClothingItem("models/citizen_clothes/necklace/necklace/necklace.clothing");
+        AddClothingItem("models/citizen_clothes/skin01.clothing");
+        AddClothingItem("models/citizen_clothes/trousers/LegArmour/leg_armour.clothing");
+        AddClothingItem("models/citizen_clothes/shoes/Boots/army_boots.clothing");
         Clothing.DressEntity(this);
 
-        Scale = 0.65f;
-    }
+        RenderColor = new Color(1f, 0.3f, 0.7f, 1f);
 
-    protected override void OnServerTick()
-    {
-        base.OnServerTick();
-
-        _invisTimer -= Time.Delta;
-        if (_invisTimer <= 0f)
+        foreach (var child in Children.ToArray())
         {
-            var player = Game.GetClosestPlayer(Position);
-            if (player != null)
+            if (child is ModelEntity e && e.Tags.Has("clothes"))
             {
-                var dist = (player.Position.WithZ(0) - Position.WithZ(0)).Length;
-                var opacity = Map(dist, 40f, 175f, 1.0f, 0.0f);
-                RenderColor = new Color(0.5f, 0f, 0f, opacity);
+                e.RenderColor = new Color(1f, 0f, 0f, 0f);
             }
-
-            _invisTimer = INVIS_DELAY;
         }
+
+        Scale = 1f;
     }
+
+    //protected override void OnServerTick()
+    //{
+    //    base.OnServerTick();
+
+    //    var player = Game.GetClosestPlayer(Position);
+    //    if (player != null)
+    //    {
+    //        DebugOverlay.Text(GetPathLengthTo(player.Position).ToString() + "\n" + (player.Position.WithZ(0) - Position.WithZ(0)).Length + " \n" + (this.GetCellIndex() - player.GetCellIndex()).Distance.ToString() + " \n" + MazeData.GetDirection(player.Position.WithZ(0) - Position.WithZ(0)).ToString(), EyePosition, 0f, float.MaxValue);
+    //    }
+    //}
 
     protected override void OnReachTarget()
     {
-        var player = Game.GetClosestPlayer( Position );
+        var player = Game.GetClosestPlayer(Position);
 
-        if ( player == null )
+        if (LastVault > 3f && player != null && (player.Position.WithZ(0) - Position.WithZ(0)).Length < 95f && GetPathLengthTo(player.Position) > 3)
+        //if (LastVault > 3f && player != null && (this.GetCellIndex() - player.GetCellIndex()).Distance == 1 && GetPathLengthTo(player.Position) > 3)
+        {
+            var cell = this.GetCellIndex();
+            var dir = MazeData.GetDirection(player.Position.WithZ(0) - Position.WithZ(0));
+            TargetCell = this.GetCellIndex() + dir;
+
+            var controller = (Mazing.Player.MazingWalkController)Controller;
+            if (!controller.IsVaulting && Game.CurrentMaze.GetWall(this.GetCellIndex(), dir))
+            {
+                controller.Vault(TargetCell, false);
+                LastVault = 0f;
+                VaultDir = MazeData.Directions[(int)dir].Delta.Normal;
+
+                Sound.FromEntity("player.vault", this);
+            }
+
+            return;
+        }
+
+        if (player == null)
         {
             TargetCell = GetRandomNeighborCell();
         }
         else
         {
-            TargetCell = GetNextInPathTo( player.Position );
+            TargetCell = GetNextInPathTo(player.Position);
         }
-    }
-
-    private float Map(float value, float inputMin, float inputMax, float outputMin, float outputMax, bool clamp = true)
-    {
-        if (inputMin.Equals(inputMax) || outputMin.Equals(outputMax))
-            return outputMin;
-
-        if (clamp)
-        {
-            if (inputMax > inputMin)
-            {
-                if (value < inputMin) value = inputMin;
-                else if (value > inputMax) value = inputMax;
-            }
-            else if (inputMax < inputMin)
-            {
-                if (value > inputMin) value = inputMin;
-                else if (value < inputMax) value = inputMax;
-            }
-        }
-
-        var ratio = (value - inputMin) / (inputMax - inputMin);
-        var outVal = outputMin + ratio * (outputMax - outputMin);
-
-        return outVal;
     }
 }

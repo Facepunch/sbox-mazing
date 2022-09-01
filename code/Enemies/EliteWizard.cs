@@ -4,8 +4,8 @@ using Sandbox;
 
 namespace Mazing.Enemies;
 
-[UnlockLevel(5), ThreatValue(2)]
-internal partial class Wizard : Enemy
+[UnlockLevel(0), ThreatValue(1)]
+internal partial class EliteWizard : Enemy
 {
     public override float MoveSpeed => 20f;
 
@@ -34,19 +34,32 @@ internal partial class Wizard : Enemy
         base.Spawn();
 
         Clothing = new ClothingContainer();
-        AddClothingItem("models/citizen_clothes/skin05.clothing");
+        AddClothingItem("models/citizen_clothes/skin01.clothing");
         AddClothingItem("models/citizen_clothes/dress/Skirt/skirt.clothing");
-        AddClothingItem("models/citizen_clothes/necklace/necklace/necklace.clothing");
-        AddClothingItem("models/citizen_clothes/hair/hair_balding/hair_baldinggrey.clothing");
+        //AddClothingItem("models/citizen_clothes/vest/Tactical_Vest/Models/tactical_vest.clothing");
+        //AddClothingItem("models/citizen_clothes/hair/hair_balding/hair_baldinggrey.clothing");
+        //AddClothingItem("models/citizen_clothes/hair/hair_looseblonde/hair.loose.grey.clothing");
+        AddClothingItem("models/citizen_clothes/hair/hair_longbrown/Models/hair_longgrey.clothing");
+        AddClothingItem("models/citizen_clothes/gloves/long_white_gloves/long_white_gloves.clothing");
         AddClothingItem("models/citizen_clothes/hair/scruffy_beard/scruffy_beard_grey.clothing");
         Clothing.DressEntity(this);
 
-        RenderColor = new Color(0.75f, 0f, 0.75f);
+        foreach (var child in Children.ToArray())
+        {
+            if (child is ModelEntity e && e.Tags.Has("clothes"))
+            {
+                e.RenderColor = new Color(0f, 0.5f, 1f, 1f);
+            }
+        }
+
+        RenderColor = new Color(0f, 0f, 1f, 0.45f);
 
         //_teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
         _teleportHoldType = 3;
 
         _teleportTimer = 0f;
+
+        Scale = 1.15f;
     }
 
 
@@ -112,8 +125,13 @@ internal partial class Wizard : Enemy
 
                 foreach ( var (dir, delta) in MazeData.Directions )
                 {
-                    var wallCell = Game.CurrentMaze.RayCast(cell, dir );
-                    var dist = (wallCell - cell).Distance;
+                    var currCell = cell;
+                    var dist = 0;
+                    while(Game.IsInMaze(currCell))
+                    {
+                        currCell += delta;
+                        dist++;
+                    }
 
                     _dirDistances[(int)dir] = dist;
                     totalDist += dist;
@@ -157,7 +175,10 @@ internal partial class Wizard : Enemy
                 var bolt = new WizardBolt
                 {
                     Direction = this.GetFacingDirection(),
-                    Position = Position + Vector3.Up * 48f
+                    Position = Position + Vector3.Up * 48f,
+                    IsElite = true,
+                    Scale = 1.375f,
+                    RenderColor = new Color(0.225f, 0.225f, 1f),
                 };
                 
                 Sound.FromEntity( "wizard.shoot", this );
@@ -200,107 +221,5 @@ internal partial class Wizard : Enemy
     protected override void OnReachTarget()
     {
         
-    }
-}
-
-partial class WizardBolt : ModelEntity
-{
-    public const float KillRange = Enemy.KillRange;
-
-    public float MoveSpeed { get; } = 160f;
-
-    [Net]
-    public Direction Direction { get; set; }
-
-    private bool _isDespawning;
-    private PointLightEntity _light;
-    private TimeSince _despawnTime;
-
-    private Particles _particles;
-
-    public bool IsElite { get; set; } = false;
-
-    public override void Spawn()
-    {
-        base.Spawn();
-
-        SetModel( "models/wizard_bolt.vmdl" );
-
-        Tags.Add( "projectile" );
-
-        if ( IsServer )
-        {
-            _light = new PointLightEntity
-            {
-                Color = new Color32( 190, 146, 255, 255 ),
-                Range = 128f,
-                Brightness = 1f,
-                Parent = this,
-                LocalPosition = default
-            };
-
-            _particles = Particles.Create( "particles/wizard_bolt.vpcf", this );
-        }
-
-        EnableDrawing = true;
-    }
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-
-        _isDespawning = true;
-
-        _particles?.Destroy();
-        _particles = null;
-    }
-
-    [Event.Tick.Server]
-    private void ServerTick()
-    {
-        if (_isDespawning)
-        {
-            _light.Brightness = Math.Max( 1f - _despawnTime * 4f, 0f );
-
-            if ( _despawnTime > 0.5f )
-            {
-                Delete();
-            }
-
-            return;
-        }
-
-        var game = MazingGame.Current;
-        var cell = this.GetCellIndex();
-
-        var dir = game.CellCenterToPosition( cell + Direction ) -
-                  game.CellCenterToPosition( cell );
-
-        Position += dir.Normal * Time.Delta * MoveSpeed;
-
-        var player = MazingGame.Current.GetClosestPlayer( Position.WithZ( 0f ), KillRange, ignoreZ: false );
-
-        if ( player != null && !player.IsVaulting )
-        {
-            Sound.FromEntity("wizard.boltkill", this);
-
-            player.Kill(((GridCoord)Direction).Normal, IsElite ? "{0} was zapped by an Elite Wizard" : "{0} was zapped by a Wizard", this);
-        }
-
-        if ( this.GetCellIndex() != cell )
-        {
-            if ( (game.CurrentMaze.GetWall( cell, Direction ) && !IsElite) || !game.IsInMaze(this.GetCellIndex()) )
-            {
-                RenderColor = Color.Transparent;
-
-                _particles?.Destroy();
-                _particles = null;
-
-                Sound.FromEntity( "wizard.bolthitwall", this );
-
-                _isDespawning = true;
-                _despawnTime = 0f;
-            }
-        }
     }
 }
