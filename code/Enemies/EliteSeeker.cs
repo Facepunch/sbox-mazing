@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Mazing.Player;
 using Sandbox;
 
 namespace Mazing.Enemies;
@@ -10,6 +11,8 @@ namespace Mazing.Enemies;
 [UnlockLevel(20), ThreatValue(3), Replaces(typeof(Seeker), 15)]
 partial class EliteSeeker : Enemy
 {
+    public const float VaultPeriod = 4f;
+
     public override string NounPhrase => "an Elite Seeker";
     public override float MoveSpeed => 80.6f;
     public TimeSince LastVault { get; set; }
@@ -47,6 +50,7 @@ partial class EliteSeeker : Enemy
         }
 
         Scale = 1f;
+        LastVault = -Rand.Float(2f, 2f + VaultPeriod);
     }
 
     //protected override void OnServerTick()
@@ -64,33 +68,49 @@ partial class EliteSeeker : Enemy
     {
         var player = Game.GetClosestPlayer(Position);
 
-        if (LastVault > 3f && player != null && (player.Position.WithZ(0) - Position.WithZ(0)).Length < 95f && GetPathLengthTo(player.Position) > 3)
-        //if (LastVault > 3f && player != null && (this.GetCellIndex() - player.GetCellIndex()).Distance == 1 && GetPathLengthTo(player.Position) > 3)
-        {
-            var cell = this.GetCellIndex();
-            var dir = MazeData.GetDirection(player.Position.WithZ(0) - Position.WithZ(0));
-            TargetCell = this.GetCellIndex() + dir;
-
-            var controller = (Mazing.Player.MazingWalkController)Controller;
-            if (!controller.IsVaulting && Game.CurrentMaze.GetWall(this.GetCellIndex(), dir))
-            {
-                controller.Vault(TargetCell, false);
-                LastVault = 0f;
-                VaultDir = MazeData.Directions[(int)dir].Delta.Normal;
-
-                Sound.FromEntity("player.vault", this);
-            }
-
-            return;
-        }
-
         if (player == null)
         {
             TargetCell = GetRandomNeighborCell();
+            return;
         }
-        else
+
+        var cell = this.GetCellIndex();
+
+        if ( LastVault >= VaultPeriod)
         {
-            TargetCell = GetNextInPathTo(player.Position);
+            var baseDist = GetPathLengthTo(player.Position);
+
+            Direction? bestVaultDir = null;
+            var bestVaultDist = baseDist;
+
+            foreach (var (dir, delta) in MazeData.Directions)
+            {
+                if (!Game.CurrentMaze.GetWall(cell, dir)) continue;
+                if (!IsInBounds(cell + delta)) continue;
+
+                var dist = GetPathLengthTo(player.Position, cell + delta);
+
+                if (dist < bestVaultDist)
+                {
+                    bestVaultDist = dist;
+                    bestVaultDir = dir;
+                }
+            }
+
+            if (bestVaultDir != null && Controller is MazingWalkController walkController)
+            {
+                TargetCell = this.GetCellIndex() + bestVaultDir.Value;
+
+                walkController.Vault(TargetCell, false);
+
+                LastVault = 0f;
+                VaultDir = ((GridCoord)bestVaultDir.Value).Normal;
+
+                Sound.FromEntity("player.vault", this);
+                return;
+            }
         }
+        
+        TargetCell = GetNextInPathTo(player.Position);
     }
 }

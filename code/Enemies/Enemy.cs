@@ -458,9 +458,9 @@ public abstract partial class Enemy : AnimatedEntity
         }
     }
 
-    protected GridCoord GetNextInPathTo( GridCoord coord )
+    protected GridCoord GetNextInPathTo( GridCoord coord, GridCoord? from = null )
     {
-        var cell = this.GetCellIndex();
+        var cell = from ?? this.GetCellIndex();
 
         _pathFinder ??= new PathFinder();
         _path.Clear();
@@ -478,9 +478,9 @@ public abstract partial class Enemy : AnimatedEntity
         return _path.Skip( 1 ).First();
     }
 
-    public int GetPathLengthTo(Vector3 pos)
+    public int GetPathLengthTo( Vector3 pos, GridCoord? from = null )
     {
-        var cell = this.GetCellIndex();
+        var cell = from ?? this.GetCellIndex();
         var targetCell = Game.PositionToCellIndex(pos);
 
         _pathFinder ??= new PathFinder();
