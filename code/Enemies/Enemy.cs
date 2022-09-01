@@ -417,6 +417,22 @@ public abstract partial class Enemy : AnimatedEntity
         return _path.Skip( 1 ).First();
     }
 
+    public int GetPathLengthTo(Vector3 pos)
+    {
+        var cell = this.GetCellIndex();
+        var targetCell = Game.PositionToCellIndex(pos);
+
+        _pathFinder ??= new PathFinder();
+        _path.Clear();
+
+        if (!_pathFinder.FindPath(cell, targetCell, _path))
+        {
+            return 99999;
+        }
+
+        return _path.Count;
+    }
+
     protected void AddClothingItem(string itemName)
     {
         if (ResourceLibrary.TryGet(itemName, out Clothing item))
