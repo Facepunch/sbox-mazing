@@ -18,7 +18,7 @@ partial class EliteKeyhunter : Enemy
 
     public override float MoveSpeed => (IsHuntingPlayer || Game.Key == null) && _huntStartTime > HuntStartDelay ? 99f : 70f;
 
-    protected override int HoldType => (IsHuntingPlayer || Game.Key == null) ? 4 : 0;
+    protected override int HoldType => IsHuntingPlayer || Game.Key == null ? 4 : 0;
 
     public bool IsHuntingPlayer { get; private set; }
     private Mazing.Player.MazingPlayer _huntedPlayer;
@@ -34,8 +34,7 @@ partial class EliteKeyhunter : Enemy
 
     private Color _colorNormal = new Color(0.3f, 0f, 0.1f);
     private Color _colorHunting = new Color(1f, 0.25f, 0.66f);
-
-    private bool _wasHuntingKey;
+    
     private TimeSince _huntStartTime;
 
     public override void Spawn()
@@ -62,7 +61,7 @@ partial class EliteKeyhunter : Enemy
 
     protected override void OnReachTarget()
     {
-        if ( IsHuntingPlayer && _huntedPlayer != null && _huntStartTime > HuntStartDelay )
+        if ( IsHuntingPlayer && _huntedPlayer != null && _huntedPlayer.IsValid && _huntStartTime > HuntStartDelay )
         {
             TargetCell = GetNextInPathTo(_huntedPlayer.Position );
         }
@@ -76,23 +75,23 @@ partial class EliteKeyhunter : Enemy
     {
         base.OnServerTick();
 
-        if (Game.Key?.Parent != null && Game.Key.Parent is MazingPlayer)
+        if (_huntedPlayer != null && !(_huntedPlayer.IsValid && _huntedPlayer.IsAliveInMaze))
         {
-            if(!IsHuntingPlayer || _huntedPlayer != Game.Key.Parent)
+            _huntedPlayer = null;
+            IsHuntingPlayer = false;
+        }
+
+        if (Game.Key?.Parent != null && Game.Key.Parent is MazingPlayer keyHolder)
+        {
+            if (!IsHuntingPlayer || _huntedPlayer != keyHolder)
             {
                 IsHuntingPlayer = true;
-                _huntedPlayer = (MazingPlayer)Game.Key.Parent;
+                _huntedPlayer = keyHolder;
 
                 Sound.FromEntity("keyhunter.alert", this);
                 _huntStartTime = 0f;
                 OnReachTarget();
             }
-        }
-
-        if(IsHuntingPlayer && (_huntedPlayer == null || _huntedPlayer.HasExited || !_huntedPlayer.IsAlive))
-        {
-            IsHuntingPlayer = false;
-            _huntedPlayer = null;
         }
 
         RenderColor = Color.Lerp( _colorNormal, _colorHunting, IsHuntingPlayer ? _huntStartTime / HuntStartDelay : 0f );
