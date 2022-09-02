@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Mazing;
+using Mazing.Enemies;
+using Mazing.Items;
 using Sandbox;
 
 namespace Mazing;
@@ -12,10 +14,10 @@ public record struct GeneratedMaze( MazeData MazeData,
 	GridCoord Exit,
     GridCoord Key,
 	GridCoord[] Players,
-    GridCoord[] Enemies,
-    GridCoord[] Coins );
+    (TypeDescription Type, GridCoord Coord)[] Enemies,
+    (TreasureKind Kind, GridCoord Coord)[] Treasure );
 
-public static class MazeGenerator
+public static partial class MazeGenerator
 {
     public static GeneratedMaze GenerateLobby()
     {
@@ -49,14 +51,78 @@ public static class MazeGenerator
         return new GeneratedMaze( maze,
             exits[Rand.Int( exits.Length - 1 )],
             keys[Rand.Int( keys.Length - 1 )],
-            players,
-            new[] { enemies[Rand.Int( enemies.Length - 1 )] },
-            coins );
+            players.OrderBy(x => Rand.Float()).ToArray(),
+            new[] { (TypeLibrary.GetDescription<Wanderer>(), enemies[Rand.Int( enemies.Length - 1 )]) },
+            coins.Select(x => (TreasureKind.Emerald, x)).ToArray() );
     }
 
-	public static GeneratedMaze Generate( int seed, int rows, int cols, int playerCount, int enemyCount, int coinCount )
-	{
-        if ( playerCount + enemyCount + coinCount + 2 > rows * cols)
+    record struct FinalLevelSegment(int TotalThreat, int TotalTreasureValue, params TypeDescription[] EnemyTypes);
+
+    public const int FinalLevelCols = 8;
+    public const int FinalLevelSegmentRows = 12;
+
+    public static GeneratedMaze GenerateFinalLevel( int seed, int playerCount )
+    {
+        var rand = new Random(seed);
+
+        var segments = new FinalLevelSegment[]
+        {
+			new(10, 500, TypeLibrary.GetDescription<Wanderer>(), TypeLibrary.GetDescription<EliteWanderer>()),
+            new(12, 400, TypeLibrary.GetDescription<Seeker>(), TypeLibrary.GetDescription<EliteSeeker>()),
+            new(14, 300, TypeLibrary.GetDescription<Charger>(), TypeLibrary.GetDescription<EliteCharger>()),
+            new(16, 200, TypeLibrary.GetDescription<Wizard>(), TypeLibrary.GetDescription<EliteWizard>()),
+            new(18, 100, TypeLibrary.GetDescription<Keyhunter>(), TypeLibrary.GetDescription<EliteKeyhunter>()),
+		};
+
+        var (spawnArea, specialCells) = MazeData.Load(4, FinalLevelCols, FileSystem.Mounted.OpenRead("mazes/final_start.txt"));
+
+        var finalMaze = new MazeData(FinalLevelSegmentRows * segments.Length + spawnArea.Rows, FinalLevelCols);
+        var players = specialCells.Where(x => x.Char == 'P')
+            .Select(x => x.Coord)
+            .ToArray();
+
+        var enemies = new List<(TypeDescription Type, GridCoord Coord)>();
+        var treasure = new List<(TreasureKind Kind, GridCoord Coord)>();
+
+        MazeData.Copy(spawnArea, 0, 0, MazeTransform.Identity, finalMaze, 0, 0, spawnArea.Rows, spawnArea.Cols);
+
+        var dstRow = spawnArea.Rows;
+
+        GridCoord key = default;
+        GridCoord exit = default;
+
+        foreach (var segment in segments)
+        {
+            var generated = Generate(rand.Next(), FinalLevelSegmentRows, FinalLevelCols, 0,
+                GetSpawningEnemyCounts(segment.EnemyTypes.Select(x => (x, 1f)).ToArray(), rand.Next(),
+                    segment.TotalThreat),
+                GetSpawningTreasureCounts(segment.TotalTreasureValue, rand.Next()));
+
+            MazeData.Copy(generated.MazeData, 0, 0, MazeTransform.Identity, finalMaze, dstRow, 0, FinalLevelSegmentRows, FinalLevelCols);
+
+            enemies.AddRange(generated.Enemies.Select(x => (x.Type, x.Coord + (dstRow, 0))));
+			treasure.AddRange(generated.Treasure.Select(x => (x.Kind, x.Coord + (dstRow, 0))));
+
+            key = generated.Key + (dstRow, 0);
+            exit = generated.Exit + (dstRow, 0);
+
+            dstRow += FinalLevelSegmentRows;
+        }
+
+        return new GeneratedMaze(finalMaze, exit, key, players, enemies.ToArray(), treasure.ToArray());
+    }
+
+	public static GeneratedMaze Generate( int seed, int rows, int cols, int playerCount, (TypeDescription Type, int Count)[] enemyTypes, (TreasureKind Kind, int Count)[] treasureKinds )
+    {
+        var flatEnemyTypes = enemyTypes
+            .SelectMany(x => Enumerable.Range(0, x.Count).Select(_ => x.Type))
+            .ToArray();
+
+		var flatTreasureKinds = treasureKinds
+			.SelectMany(x => Enumerable.Range(0, x.Count).Select(_ => x.Kind))
+            .ToArray();
+		
+		if ( playerCount + flatEnemyTypes.Length + flatTreasureKinds.Length + 2 > rows * cols)
         {
             throw new ArgumentException( "Maze is too small to fit that many players, enemies, coins, an exit and a key." );
         }
@@ -143,8 +209,8 @@ public static class MazeGenerator
 		}
 
         var players = new List<GridCoord>();
-		var enemies = new List<GridCoord>();
-        var coins = new List<GridCoord>();
+		var enemies = new List<(TypeDescription Type, GridCoord Coord)>();
+        var treasure = new List<(TreasureKind Kind, GridCoord Coord)>();
 
         var available = new Queue<GridCoord>( Enumerable.Range( 0, rows )
             .SelectMany( row => Enumerable.Range( 0, cols ).Select( col => new GridCoord( row, col ) ) )
@@ -157,15 +223,16 @@ public static class MazeGenerator
         {
             players.Add( available.Dequeue() );
         }
-
-        for ( var i = 0; i < enemyCount; ++i )
+		
+        foreach (var enemyType in flatEnemyTypes)
         {
-            enemies.Add( available.Dequeue() );
+            enemies.Add((enemyType, available.Dequeue()));
         }
 
-        for ( var i = 0; i < coinCount; ++i )
+        foreach (var treasureKind in flatTreasureKinds)
         {
-            coins.Add( available.Dequeue() );
+            treasure.Add((treasureKind, available.Dequeue()));
+
         }
 
 		var possibleBridges = new List<(GridCoord From, Direction Dir, GridCoord To)>();
@@ -267,7 +334,7 @@ public static class MazeGenerator
 			maze.SetWall( next.From, next.dir, false );
 		}
 
-        return new GeneratedMaze( maze, exit, key, players.ToArray(), enemies.ToArray(), coins.ToArray() );
+        return new GeneratedMaze( maze, exit, key, players.ToArray(), enemies.ToArray(), treasure.ToArray() );
     }
 
 	private static MazeData PlaceRandom( Random rand, MazeData maze, IEnumerable<MazeData> available, bool[,] occupied, int stride )

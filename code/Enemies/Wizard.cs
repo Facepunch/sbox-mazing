@@ -175,7 +175,7 @@ internal partial class Wizard : Enemy
                 _popParticles?.Destroy();
                 _popParticles = Particles.Create("particles/wizard_spawn_end.vpcf", Position);
 
-                _teleportCell = Game.GetRandomEmptyCell();
+                _teleportCell = Game.GetRandomConnectedEmptyCell(this.GetCellIndex());
 
                 Sound.FromWorld( "wizard.disappear", Position );
 

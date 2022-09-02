@@ -120,162 +120,6 @@ public partial class MazingGame : Sandbox.Game
         Current.NextLevelCountdown = -1.5f;
     }
 
-    private record struct EnemyType(
-        TypeDescription Type,
-        int FirstLevel,
-        int Threat,
-        int SpawnCount,
-        bool CanBeOnlyEnemy,
-        TypeDescription Replaces,
-        int FullyReplaceLevel );
-
-    [ConCmd.Client("mazing_spawntest")]
-    public static void EnemyTypeTest()
-    {
-        var lastSpawnLevels = new Dictionary<TypeDescription, int>();
-
-        for (var i = 0; i < 50; ++i)
-        {
-            var seed = Rand.Int(int.MaxValue - 1);
-            var types = GetSpawningEnemyTypes(i, seed, lastSpawnLevels)
-                .GroupBy( x => x )
-                .OrderByDescending(x => x.Count())
-                .Select( x => $"{x.Key.Name} x{x.Count()}")
-                .ToArray();
-
-            Log.Info($"Level {i + 1}: {string.Join(", ", types)}");
-        }
-    }
-
-    public static IEnumerable<TypeDescription> GetSpawningEnemyTypes( int levelIndex, int seed, Dictionary<TypeDescription, int> lastSpawnLevels )
-    {
-        var rand = new Random( seed );
-
-        var totalThreat = levelIndex == 0 ? 1 : levelIndex + 2;
-        var levelNumber = levelIndex + 1;
-
-        var unlocked = TypeLibrary.GetDescriptions<Enemy>()
-            .Select( x =>
-            {
-                var threatAttrib = x.GetAttribute<ThreatValueAttribute>();
-                var replacesAttrib = x.GetAttribute<ReplacesAttribute>();
-
-                var firstLevel = x.GetAttribute<UnlockLevelAttribute>()?.Level ?? int.MaxValue;
-                
-                return new EnemyType(
-                    Type: x,
-                    FirstLevel: firstLevel,
-                    Threat: threatAttrib?.Value ?? 1,
-                    SpawnCount: threatAttrib?.SpawnCount ?? 1,
-                    CanBeOnlyEnemy: x.GetAttribute<CantBeOnlyEnemyAttribute>() == null,
-                    Replaces: replacesAttrib?.ReplacedType != null ? TypeLibrary.GetDescription( replacesAttrib.ReplacedType ) : null,
-                    FullyReplaceLevel: firstLevel == int.MaxValue ? int.MaxValue : firstLevel + replacesAttrib?.LevelsUntilFullyReplaced ?? 0);
-            } )
-            .Where( x => x.FirstLevel <= levelNumber)
-            .ToArray();
-
-        var replacedBy = unlocked
-            .Where(x => x.Replaces != null)
-            .ToDictionary(x => x.Replaces, x => x);
-
-        var justUnlocked = unlocked
-            .Where( x => x.FirstLevel == levelNumber)
-            .ToArray();
-
-        var alreadyUnlocked = unlocked
-            .Where( x => x.FirstLevel < levelNumber && !replacedBy.ContainsKey(x.Type) )
-            .OrderByDescending( x => rand.NextSingle() * Math.Max(1, lastSpawnLevels.TryGetValue(x.Type, out var lastLevel) ? levelIndex + 1 - lastLevel : 1))
-            .ToArray();
-
-        // Make sure first enemy in list can be the only enemy in the level
-        var canBeOnlyIndex = Array.FindIndex( alreadyUnlocked, x => x.CanBeOnlyEnemy );
-
-        if ( canBeOnlyIndex > 0 )
-        {
-            (alreadyUnlocked[0], alreadyUnlocked[canBeOnlyIndex]) = (alreadyUnlocked[canBeOnlyIndex], alreadyUnlocked[0]);
-        }
-
-        // Choose which types of enemies will spawn:
-        // * Any that have just unlocked are guaranteed to spawn
-        // * Pick at least one other type too, if possible
-
-        var canBeOnlyJustUnlocked = justUnlocked.Length > 1
-            || justUnlocked.Length == 1 && justUnlocked[0].CanBeOnlyEnemy
-            || alreadyUnlocked.Length == 0;
-
-        var totalCount = canBeOnlyJustUnlocked
-            ? rand.Next(justUnlocked.Length, Math.Max(justUnlocked.Length, 3) + 1)
-            : rand.Next(justUnlocked.Length + 1, Math.Max(justUnlocked.Length + 1, 3) + 1);
-
-        if (unlocked.Length > 1 && rand.NextSingle() < 0.8f)
-        {
-            totalCount = Math.Max(2, totalCount);
-        }
-
-        var usedTypes = justUnlocked
-            .Concat( alreadyUnlocked.Take(totalCount - justUnlocked.Length) )
-            .Select(x => (x.Type, x.Threat, x.SpawnCount, x.Replaces,
-                Weight: x.Replaces == null || x.FullyReplaceLevel <= levelNumber ? 1f
-                : (levelNumber - x.FirstLevel + 1f) / (x.FullyReplaceLevel - x.FirstLevel + 1)))
-            .ToList();
-
-        for (var i = usedTypes.Count - 1; i >= 0; --i)
-        {
-            var replacer = usedTypes[i];
-            if (replacer.Replaces == null || replacer.Weight >= 1f) continue;
-
-            var replaced = unlocked.FirstOrDefault(x => x.Type == replacer.Replaces);
-            if (replaced.Type == null) continue;
-
-            usedTypes.Add((replaced.Type, replaced.Threat, replaced.SpawnCount, null, Weight: 1f - replacer.Weight));
-        }
-        
-        var spawned = new List<TypeDescription>();
-
-        // Make sure at least one enemy of each chosen type spawns
-        for ( var i = 0; totalThreat > 0 && i < usedTypes.Count; ++i )
-        {
-            var type = usedTypes[i];
-
-            if ( type.Threat > totalThreat )
-            {
-                continue;
-            }
-
-            totalThreat -= type.Threat;
-            lastSpawnLevels[type.Type] = levelIndex;
-
-            for ( var j = 0; j < type.SpawnCount; ++j )
-            {
-                spawned.Add(type.Type);
-            }
-        }
-
-        // Spawn other enemies until the total threat is reached
-        while ( totalThreat > 0 )
-        {
-            var next = usedTypes
-                .Where(x => x.Threat <= totalThreat)
-                .OrderBy(x => spawned.Count(y => y == x.Type) * x.Threat * x.SpawnCount / x.Weight)
-                .FirstOrDefault();
-
-            if (next.Type == null)
-            {
-                next = usedTypes.MinBy(x => x.Threat + Rand.Float() * 0.5f);
-            }
-
-            totalThreat -= next.Threat;
-            lastSpawnLevels[next.Type] = levelIndex;
-
-            for (var j = 0; j < next.SpawnCount; ++j)
-            {
-                spawned.Add(next.Type);
-            }
-        }
-
-        return spawned;
-    }
-
     private static float GetLevelSizeScore( int length, int cross, int targetArea )
     {
         var area = length * cross;
@@ -396,25 +240,24 @@ public partial class MazingGame : Sandbox.Game
             seed = Rand.Int(1, int.MaxValue - 1);
         }
 
-		Log.Info( $"Generating level {LevelIndex + 1} with seed {seed:x8} ");
+        var rand = new Random(seed);
 
-        var typesToSpawn = GetSpawningEnemyTypes( LevelIndex, seed, _enemyTypeLastSpawnLevel )
-            .ToArray();
+		Log.Info( $"Generating level {LevelIndex + 1} with seed {seed:x8} ");
         
-        var (rows, cols) = GetLevelSize( LevelIndex, seed );
+        var (rows, cols) = GetLevelSize( LevelIndex, rand.Next() );
         
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
-            : MazeGenerator.Generate( seed, rows, cols, MaxPlayers, typesToSpawn.Length,
-                LevelIndex * 2 + 2 );
+            : LevelIndex == 49
+                ? MazeGenerator.GenerateFinalLevel(rand.Next(), MaxPlayers )
+                : MazeGenerator.Generate(rand.Next(), rows, cols, MaxPlayers,
+                    MazeGenerator.GetSpawningEnemyCounts(LevelIndex, rand.Next(), _enemyTypeLastSpawnLevel),
+                    MazeGenerator.GetSpawningTreasureCounts((LevelIndex * 2 + 2) * Items.Treasure.GetValue(TreasureKind.Emerald), rand.Next()));
 
         CurrentMaze = generated.MazeData;
         CurrentMaze.WriteNetworkData();
 
         _playerSpawns = generated.Players;
-        
-        var enemies = typesToSpawn.Select(x => x.Create<Enemy>())
-            .ToArray();
 
         ExitCell = generated.Exit;
 
@@ -469,48 +312,30 @@ public partial class MazingGame : Sandbox.Game
             lights.Add( light );
         }
 
-        for ( var i = 0; i < enemies.Length; i++ )
+        foreach (var (enemyType, cell) in generated.Enemies)
         {
-            var enemyCell = generated.Enemies[i % generated.Enemies.Length];
-            
-            enemies[i].PostSpawn( i, CellToPosition( enemyCell.Row + 0.5f, enemyCell.Col + 0.5f ) );
+            var enemy = enemyType.Create<Enemy>();
 
-            _enemies.Add( enemies[i] );
+            enemy.PostSpawn(_enemies.Count, CellCenterToPosition(cell));
+
+            _enemies.Add(enemy);
         }
 
-        TotalTreasureValue = generated.Coins.Length * Items.Treasure.GetValue( TreasureKind.Emerald );
+        TotalTreasureValue = 0;
 
-        var possibleKinds = new List<TreasureKind>();
-        var treasureIndex = 0;
-
-        var totalTreasureValue = TotalTreasureValue;
-
-        while ( totalTreasureValue > 0 )
+        foreach (var (treasureKind, cell) in generated.Treasure)
         {
-            possibleKinds.Clear();
-
-            foreach ( var kind in Enum.GetValues<TreasureKind>() )
+            var treasure = new Treasure(treasureKind)
             {
-                if ( Items.Treasure.GetValue( kind ) <= totalTreasureValue )
-                {
-                    possibleKinds.Add( kind );
-                }
-            }
-
-            var chosenKind = possibleKinds[Rand.Int( possibleKinds.Count - 1 )];
-            var coinCell = generated.Coins[treasureIndex++];
-
-            new Treasure( chosenKind )
-            {
-                Position = CellToPosition( coinCell.Row + 0.5f, coinCell.Col + 0.5f )
+                Position = CellCenterToPosition(cell)
             };
 
-            totalTreasureValue -= Items.Treasure.GetValue( chosenKind );
+            TotalTreasureValue += treasure.Value;
         }
         
         Key = new Key
         {
-            Position = CellToPosition( generated.Key.Row + 0.5f, generated.Key.Col + 0.5f ) + Vector3.Up * 64f
+            Position = CellCenterToPosition( generated.Key ) + Vector3.Up * 64f
         };
 
 		for (var row = 0; row <= CurrentMaze.Rows; row++)
@@ -636,6 +461,14 @@ public partial class MazingGame : Sandbox.Game
             .FirstOrDefault(x => x.GetCellIndex() == coord);
     }
 
+    public bool IsCellEmpty(GridCoord coord)
+    {
+        return !IsEnemyInCell(coord)
+            && !IsPlayerInCell(coord)
+            && !(Key != null && Key.GetCellIndex() == coord)
+            && ExitCell != coord;
+    }
+
     public bool IsEnemyInCell(GridCoord coord)
     {
         // TODO: optimize
@@ -643,20 +476,55 @@ public partial class MazingGame : Sandbox.Game
             .Any( x => x.GetCellIndex() == coord );
     }
 
-    public GridCoord GetRandomEmptyCell()
-    {
-        for ( var i = 0; i < 100; ++i )
-        {
-            var cell = new GridCoord( Rand.Int( 0, CurrentMaze.Rows - 1 ), Rand.Int( 0, CurrentMaze.Cols - 1 ) );
+    [ThreadStatic]
+    private static HashSet<GridCoord> _sFloodFillSet;
 
-            if ( cell != ExitCell )
+    [ThreadStatic]
+    private static List<GridCoord> _sFloodFillList;
+
+    public GridCoord GetRandomConnectedEmptyCell(GridCoord connectedCell)
+    {
+        var set = _sFloodFillSet ??= new HashSet<GridCoord>();
+        var list = _sFloodFillList ?? new List<GridCoord>();
+
+        set.Clear();
+        list.Clear();
+
+        set.Add(connectedCell);
+        list.Add(connectedCell);
+
+        for (var i = 0; i < list.Count; ++i)
+        {
+            var prev = list[i];
+
+            foreach (var (dir, delta) in MazeData.Directions)
+            {
+                var next = prev + delta;
+
+                if (set.Contains(next) || !IsInMaze(next) || CurrentMaze.GetWall(prev, dir))
+                {
+                    continue;
+                }
+
+                set.Add(next);
+                list.Add(next);
+            }
+        }
+
+        while (list.Count > 0)
+        {
+            var index = Rand.Int(0, list.Count - 1);
+            var cell = list[index];
+
+            list.RemoveAt(index);
+
+            if (IsCellEmpty(cell))
             {
                 return cell;
             }
         }
 
-        // Give up
-        return new GridCoord(Rand.Int(0, CurrentMaze.Rows - 1), Rand.Int(0, CurrentMaze.Cols - 1));
+        return connectedCell;
     }
 
     public bool IsInMaze(GridCoord cell)

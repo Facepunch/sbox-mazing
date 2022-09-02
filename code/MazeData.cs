@@ -125,7 +125,7 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 				continue;
 			}
 
-            if ( file.Contains( "_lobby" ) )
+            if ( file.Contains( "_lobby" ) || file.Contains("final_"))
             {
                 continue;
             }
