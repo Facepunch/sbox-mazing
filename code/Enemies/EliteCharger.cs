@@ -1,5 +1,6 @@
 ﻿using Sandbox;
 using System.Linq;
+using Mazing.Player;
 
 namespace Mazing.Enemies;
 
@@ -12,9 +13,7 @@ internal partial class EliteCharger : Enemy
 
     private bool _isHunting;
     private Mazing.Player.MazingPlayer _huntedPlayer;
-    private bool _wasHuntedPlayerVaulting;
-    private bool _huntedPlayerVaulted;
-    private GridCoord _vaultCell;
+    private GridCoord _lastKnownPlayerCell;
 
     private bool _isCharging;
 
@@ -73,8 +72,6 @@ internal partial class EliteCharger : Enemy
         IsCharging = false;
         IsHunting = false;
         _huntedPlayer = null;
-        _wasHuntedPlayerVaulting = false;
-        _huntedPlayerVaulted = false;
     }
 
     protected override void OnServerTick()
@@ -102,20 +99,15 @@ internal partial class EliteCharger : Enemy
             _lookTimer = LOOK_DELAY;
         }
 
-        if(IsHunting && _huntedPlayer != null)
+        if (!IsHunting || _huntedPlayer == null) return;
+
+        if (!_huntedPlayer.IsValid || _huntedPlayer.IsVaulting || !_huntedPlayer.IsAliveInMaze)
         {
-            //DebugOverlay.Line(EyePosition, _huntedPlayer.EyePosition, 0f, false);
-
-            if ((!_wasHuntedPlayerVaulting && _huntedPlayer.IsVaulting && !_huntedPlayerVaulted)
-                || !_huntedPlayer.IsAliveInMaze)
-            {
-                _vaultCell = _huntedPlayer.GetCellIndex();
-                _huntedPlayerVaulted = true;
-            }
-
-            if (_wasHuntedPlayerVaulting && !_huntedPlayer.IsVaulting)
-                _wasHuntedPlayerVaulting = false;
+            _huntedPlayer = null;
+            return;
         }
+        
+        _lastKnownPlayerCell = _huntedPlayer.GetCellIndex();
     }
 
     protected void ScanForPlayer(Mazing.GridCoord curr, Mazing.GridCoord end, Direction dir)
@@ -124,26 +116,25 @@ internal partial class EliteCharger : Enemy
         {
             curr += dir;
 
-            if (Game.IsPlayerInCell(curr))
+            if (!Game.IsPlayerInCell(curr)) continue;
+
+            var player = Game.GetPlayerInCell(curr);
+            if (player == null || player.IsVaulting) continue;
+
+            if ( !IsCharging && !IsHunting )
             {
-                if ( !IsCharging && !IsHunting )
-                {
-                    Sound.FromEntity( "charger.alert", this );
-                }
-
-                _huntedPlayer = Game.GetPlayerInCell(curr);
-                if (_huntedPlayer != null)
-                {
-                    IsHunting = true;
-                    TargetCell = GetNextInPathTo(_huntedPlayer.Position);
-                    _wasHuntedPlayerVaulting = _huntedPlayer.IsVaulting;
-                    _huntedPlayerVaulted = false;
-                }
-
-                IsCharging = false;
-
-                break;
+                Sound.FromEntity( "charger.alert", this );
             }
+
+            _huntedPlayer = player;
+            _lastKnownPlayerCell = player.GetCellIndex();
+
+            IsHunting = true;
+            TargetCell = GetNextInPathTo(_huntedPlayer.Position);
+
+            IsCharging = false;
+
+            break;
         }
     }
 
@@ -152,28 +143,25 @@ internal partial class EliteCharger : Enemy
         var cell = this.GetCellIndex();
         var facingDir = this.GetFacingDirection();
 
-        if(IsHunting && _huntedPlayer != null)
+        if (IsHunting)
         {
-            if(_huntedPlayerVaulted)
-            {
-                if (cell == _vaultCell)
-                {
-                    IsHunting = false;
-                    _huntedPlayer = null;
-
-                    IsCharging = true;
-
-                    var wallCell = Game.CurrentMaze.RayCast(cell, facingDir);
-                    TargetCell = wallCell;
-                } 
-                else
-                {
-                    TargetCell = GetNextInPathTo(Game.CellCenterToPosition(_vaultCell));
-                }
-            } 
-            else
+            if (_huntedPlayer != null)
             {
                 TargetCell = GetNextInPathTo(_huntedPlayer.Position);
+            }
+            else if (cell == _lastKnownPlayerCell)
+            {
+                IsHunting = false;
+                _huntedPlayer = null;
+
+                IsCharging = true;
+
+                var wallCell = Game.CurrentMaze.RayCast(cell, facingDir);
+                TargetCell = wallCell;
+            }
+            else
+            {
+                TargetCell = GetNextInPathTo(_lastKnownPlayerCell);
             }
         }
         else if ( !IsCharging )
