@@ -106,7 +106,8 @@ internal partial class EliteCharger : Enemy
         {
             //DebugOverlay.Line(EyePosition, _huntedPlayer.EyePosition, 0f, false);
 
-            if (!_wasHuntedPlayerVaulting && _huntedPlayer.IsVaulting && !_huntedPlayerVaulted)
+            if ((!_wasHuntedPlayerVaulting && _huntedPlayer.IsVaulting && !_huntedPlayerVaulted)
+                || !_huntedPlayer.IsAliveInMaze)
             {
                 _vaultCell = _huntedPlayer.GetCellIndex();
                 _huntedPlayerVaulted = true;
