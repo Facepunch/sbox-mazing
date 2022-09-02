@@ -1,4 +1,5 @@
 ﻿using Sandbox;
+using System.Linq;
 
 namespace Mazing.Enemies;
 
@@ -12,6 +13,8 @@ internal partial class EliteCharger : Enemy
     private bool _isHunting;
     private Mazing.Player.MazingPlayer _huntedPlayer;
     private bool _wasHuntedPlayerVaulting;
+    private bool _huntedPlayerVaulted;
+    private GridCoord _vaultCell;
 
     private bool _isCharging;
 
@@ -23,7 +26,7 @@ internal partial class EliteCharger : Enemy
         set
         {
             _isHunting = value;
-            RenderColor = IsCharging || IsHunting ? new Color( 1f, 0f, 1f, 1f ) : new Color(0.8f, 0.5f, 1f, 1f);
+            RenderColor = IsHunting ? new Color(1f, 0f, 1f, 1f) : (IsCharging ? new Color( 1f, 0f, 0.4f, 1f ) : new Color(1f, 0.75f, 1f, 1f));
         }
     }
 
@@ -33,7 +36,7 @@ internal partial class EliteCharger : Enemy
         set
         {
             _isCharging = value;
-            RenderColor = IsCharging || IsHunting ? new Color(1f, 0f, 1f, 1f) : new Color(0.8f, 0.5f, 1f, 1f);
+            RenderColor = IsHunting ? new Color(1f, 0f, 1f, 1f) : (IsCharging ? new Color(1f, 0f, 0.4f, 1f) : new Color(1f, 0.75f, 1f, 1f));
         }
     }
 
@@ -48,7 +51,17 @@ internal partial class EliteCharger : Enemy
         AddClothingItem("models/citizen_clothes/skin04.clothing");
         AddClothingItem("models/citizen_clothes/hat/hardhat.yellow.clothing");
         AddClothingItem("models/citizen_clothes/gloves/leather_gloves/leather_gloves.clothing");
+        AddClothingItem("models/citizen_clothes/shoes/Boots/army_boots.clothing");
         Clothing.DressEntity(this);
+
+        foreach (var child in Children.ToArray())
+        {
+            if (child is ModelEntity e && e.Tags.Has("clothes"))
+            {
+                Log.Info(child.Name);
+                e.RenderColor = new Color(0f, 0f, 0f, 1f);
+            }
+        }
 
         Scale = 1.2f;
     }
@@ -61,11 +74,16 @@ internal partial class EliteCharger : Enemy
         IsHunting = false;
         _huntedPlayer = null;
         _wasHuntedPlayerVaulting = false;
+        _huntedPlayerVaulted = false;
     }
 
     protected override void OnServerTick()
     {
         base.OnServerTick();
+
+        //DebugOverlay.Text("Charging: " + IsCharging.ToString() + "\nHunting: " + IsHunting.ToString() + "\n_huntedPlayerVaulted: " + _huntedPlayerVaulted.ToString(), EyePosition, 0f, float.MaxValue);
+        //if(_huntedPlayerVaulted)
+        //    DebugOverlay.Line(EyePosition, Game.CellCenterToPosition(_vaultCell), 0f, false);
 
         if ( !IsAwake )
         {
@@ -73,7 +91,7 @@ internal partial class EliteCharger : Enemy
         }
 
         _lookTimer -= Time.Delta;
-        if (_lookTimer <= 0f && !IsCharging)
+        if (_lookTimer <= 0f && !IsCharging && !IsHunting)
         {
             var cell = this.GetCellIndex();
             var facingDir = this.GetFacingDirection();
@@ -86,19 +104,12 @@ internal partial class EliteCharger : Enemy
 
         if(IsHunting && _huntedPlayer != null)
         {
-            //DebugOverlay.Line(EyePosition, _huntedPlayer.EyePosition, 0.05f, false);
+            //DebugOverlay.Line(EyePosition, _huntedPlayer.EyePosition, 0f, false);
 
-            if(!_wasHuntedPlayerVaulting && _huntedPlayer.IsVaulting)
+            if (!_wasHuntedPlayerVaulting && _huntedPlayer.IsVaulting && !_huntedPlayerVaulted)
             {
-                IsHunting = false;
-                _huntedPlayer = null;
-
-                IsCharging = true;
-
-                var cell = this.GetCellIndex();
-                var facingDir = this.GetFacingDirection();
-                var wallCell = Game.CurrentMaze.RayCast(cell, facingDir);
-                TargetCell = wallCell;
+                _vaultCell = _huntedPlayer.GetCellIndex();
+                _huntedPlayerVaulted = true;
             }
 
             if (_wasHuntedPlayerVaulting && !_huntedPlayer.IsVaulting)
@@ -114,7 +125,7 @@ internal partial class EliteCharger : Enemy
 
             if (Game.IsPlayerInCell(curr))
             {
-                if ( !IsCharging )
+                if ( !IsCharging && !IsHunting )
                 {
                     Sound.FromEntity( "charger.alert", this );
                 }
@@ -125,6 +136,7 @@ internal partial class EliteCharger : Enemy
                     IsHunting = true;
                     TargetCell = GetNextInPathTo(_huntedPlayer.Position);
                     _wasHuntedPlayerVaulting = _huntedPlayer.IsVaulting;
+                    _huntedPlayerVaulted = false;
                 }
 
                 IsCharging = false;
@@ -141,7 +153,27 @@ internal partial class EliteCharger : Enemy
 
         if(IsHunting && _huntedPlayer != null)
         {
-            TargetCell = GetNextInPathTo(_huntedPlayer.Position);
+            if(_huntedPlayerVaulted)
+            {
+                if (cell == _vaultCell)
+                {
+                    IsHunting = false;
+                    _huntedPlayer = null;
+
+                    IsCharging = true;
+
+                    var wallCell = Game.CurrentMaze.RayCast(cell, facingDir);
+                    TargetCell = wallCell;
+                } 
+                else
+                {
+                    TargetCell = GetNextInPathTo(Game.CellCenterToPosition(_vaultCell));
+                }
+            } 
+            else
+            {
+                TargetCell = GetNextInPathTo(_huntedPlayer.Position);
+            }
         }
         else if ( !IsCharging )
         {
