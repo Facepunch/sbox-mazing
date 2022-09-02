@@ -281,11 +281,11 @@ public abstract partial class Enemy : AnimatedEntity
 
     }
 
-    protected virtual void OnServerTick()
+    protected virtual void OnHandleMovement( MazingWalkController walkController )
     {
         var cell = this.GetCellIndex();
 
-        if ( AwakeTime > 0f )
+        if (AwakeTime > 0f && !walkController.IsVaulting)
         {
             var targetPos = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f);
 
@@ -303,22 +303,26 @@ public abstract partial class Enemy : AnimatedEntity
             }
         }
 
-        if ( Controller is MazingWalkController walkController )
+        var otherEnemy = Game.GetClosestEnemy(Position, 32f, except: this);
+
+        walkController.DefaultSpeed = otherEnemy == null || otherEnemy.MoveSpeed < MoveSpeed || otherEnemy.Index > Index
+            ? MoveSpeed
+            : MoveSpeed * 0.5f;
+
+        var dir = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f) - Position;
+
+        //DebugOverlay.Box(Game.CellToPosition(TargetCell.Row, TargetCell.Col),
+        //    Game.CellToPosition(TargetCell.Row + 1f, TargetCell.Col + 1f),
+        //    new Color(0f, 1f, 0f, 0.1f), depthTest: false);
+
+        walkController.InputVector = dir;
+    }
+
+    protected virtual void OnServerTick()
+    {
+        if (Controller is MazingWalkController walkController)
         {
-            var otherEnemy = Game.GetClosestEnemy( Position, 32f, except: this );
-
-            walkController.DefaultSpeed = otherEnemy == null || otherEnemy.MoveSpeed < MoveSpeed || otherEnemy.Index > Index
-                ? MoveSpeed
-                : MoveSpeed * 0.5f;
-
-            var dir = Game.CellToPosition(TargetCell.Row + 0.5f, TargetCell.Col + 0.5f) - Position;
-
-            //DebugOverlay.Box(Game.CellToPosition(TargetCell.Row, TargetCell.Col),
-            //    Game.CellToPosition(TargetCell.Row + 1f, TargetCell.Col + 1f),
-            //    new Color(0f, 1f, 0f, 0.1f), depthTest: false);
-
-
-            walkController.InputVector = dir;
+            OnHandleMovement(walkController);
         }
 
         //DebugOverlay.Text(Velocity.Length.ToString(), EyePosition, 0f, float.MaxValue);

@@ -18,6 +18,10 @@ partial class EliteSeeker : Enemy
     public TimeSince LastVault { get; set; }
     public Vector3 VaultDir { get; set; }
 
+    private bool _wasPreparingToVault;
+
+    protected override int HoldType => LastVault < 0f ? 0 : 5;
+
     //protected override int HoldType => 4;
     public override Vector3 LookPos
     {
@@ -64,6 +68,28 @@ partial class EliteSeeker : Enemy
     //    }
     //}
 
+    protected override void OnHandleMovement(MazingWalkController walkController)
+    {
+        if (LastVault < 0f)
+        {
+            walkController.InputVector = VaultDir;
+            walkController.DefaultSpeed = 32f;
+            return;
+        }
+
+        if (_wasPreparingToVault)
+        {
+            _wasPreparingToVault = false;
+
+            Sound.FromEntity("player.vault", this);
+
+            walkController.Vault(TargetCell, false);
+            return;
+        }
+
+        base.OnHandleMovement(walkController);
+    }
+    
     protected override void OnReachTarget()
     {
         var player = Game.GetClosestPlayer(Position);
@@ -97,16 +123,15 @@ partial class EliteSeeker : Enemy
                 }
             }
 
-            if (bestVaultDir != null && Controller is MazingWalkController walkController)
+            if (bestVaultDir != null)
             {
                 TargetCell = this.GetCellIndex() + bestVaultDir.Value;
 
-                walkController.Vault(TargetCell, false);
-
-                LastVault = 0f;
+                LastVault = -0.5f;
                 VaultDir = ((GridCoord)bestVaultDir.Value).Normal;
 
-                Sound.FromEntity("player.vault", this);
+                _wasPreparingToVault = true;
+
                 return;
             }
         }
