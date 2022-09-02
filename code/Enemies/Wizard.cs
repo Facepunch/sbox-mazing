@@ -316,8 +316,7 @@ partial class WizardBolt : ModelEntity
         
         splash1.SetPosition(1, Position - forward * (6f + particleBoundsRadius));
 
-        Sound.FromEntity("wizard.bolthitwall", this)
-            .SetPitch(IsElite ? 1.25f : 1f);
+        Sound.FromEntity(IsElite ? "wizard.elitebolthitwall" : "wizard.bolthitwall", this);
 
         if (!outOfBounds && IsElite)
         {

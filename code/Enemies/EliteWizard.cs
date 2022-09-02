@@ -91,7 +91,7 @@ internal partial class EliteWizard : Enemy
         IsTeleporting = true;
 
         _teleportCell = this.GetCellIndex();
-        _spawnParticles = Particles.Create("particles/wizard_spawn.vpcf", Game.CellCenterToPosition(_teleportCell));
+        _spawnParticles = Particles.Create("particles/wizard_spawn_elite.vpcf", Game.CellCenterToPosition(_teleportCell));
 
         Hide();
     }
