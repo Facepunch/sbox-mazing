@@ -119,20 +119,7 @@ public abstract partial class Enemy : AnimatedEntity
 
     private static string GetRandomDeathVerb()
     {
-        var totalWeight = _sDeathVerbs.Sum( x => x.Weight );
-        var randomWeight = Rand.Float( 0f, totalWeight );
-
-        for ( var i = 0; i < _sDeathVerbs.Length; ++i )
-        {
-            randomWeight -= _sDeathVerbs[i].Weight;
-
-            if ( randomWeight < 0f )
-            {
-                return _sDeathVerbs[i].Verb;
-            }
-        }
-
-        return "killed";
+        return MazingGame.GetRandomWeighted(_sDeathVerbs);
     }
 
     [ConCmd.Client("mazing_deathtest")]

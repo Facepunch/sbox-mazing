@@ -57,6 +57,9 @@ public partial class MazingGame : Sandbox.Game
     public Hatch Hatch { get; set; }
 
     [Net]
+    public Lava Lava { get; set; }
+
+    [Net]
     public bool IsEditorMode { get; set; }
 
     private bool _hasCheated;
@@ -338,6 +341,18 @@ public partial class MazingGame : Sandbox.Game
             Position = CellCenterToPosition( generated.Key ) + Vector3.Up * 64f
         };
 
+        if (LevelIndex == 49)
+        {
+            Lava = new Lava
+            {
+                Position = CellToPosition(0f, CurrentMaze.Cols * 0.5f)
+            };
+        }
+        else
+        {
+            Lava = null;
+        }
+
 		for (var row = 0; row <= CurrentMaze.Rows; row++)
 		{
 			for (var col = 0; col <= CurrentMaze.Cols; col++)
@@ -615,6 +630,8 @@ public partial class MazingGame : Sandbox.Game
             treasure.ServerTick();
         }
 
+        Lava?.ServerTick();
+
         if ( !float.IsPositiveInfinity( RestartCountdown ) )
         {
             if ( RestartCountdown > 0f )
@@ -751,5 +768,23 @@ public partial class MazingGame : Sandbox.Game
 
             RespawnPlayer( player );
         }
+    }
+
+    public static T GetRandomWeighted<T>(params (T Value, float Weight)[] weights)
+    {
+        var totalWeight = weights.Sum(x => x.Weight);
+        var randomWeight = Rand.Float(0f, totalWeight);
+
+        for (var i = 0; i < weights.Length; ++i)
+        {
+            randomWeight -= weights[i].Weight;
+
+            if (randomWeight < 0f)
+            {
+                return weights[i].Value;
+            }
+        }
+
+        return default;
     }
 }

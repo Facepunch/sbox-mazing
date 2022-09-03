@@ -74,7 +74,7 @@ public static partial class MazeGenerator
             new(18, 100, TypeLibrary.GetDescription<Keyhunter>(), TypeLibrary.GetDescription<EliteKeyhunter>()),
 		};
 
-        var (spawnArea, specialCells) = MazeData.Load(4, FinalLevelCols, FileSystem.Mounted.OpenRead("mazes/final_start.txt"));
+        var (spawnArea, specialCells) = MazeData.Load(8, FinalLevelCols, FileSystem.Mounted.OpenRead("mazes/final_start.txt"));
 
         var finalMaze = new MazeData(FinalLevelSegmentRows * segments.Length + spawnArea.Rows, FinalLevelCols);
         var players = specialCells.Where(x => x.Char == 'P')

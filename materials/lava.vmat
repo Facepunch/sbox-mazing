@@ -41,7 +41,7 @@ Layer0
 	g_flSelfIllumBrightness "0.000"
 	g_flSelfIllumScale "1.000"
 	g_vSelfIllumScrollSpeed "[0.000 0.000]"
-	g_vSelfIllumTint "[1.000000 0.831373 0.000000 0.000000]"
+	g_vSelfIllumTint "[1.000000 0.713726 0.000000 0.000000]"
 	TextureSelfIllumMask "materials/nick-rossi-gam322-nrossi-m11-lavagloss.jpg"
 
 	//---- Texture Coordinates ----
@@ -49,5 +49,5 @@ Layer0
 	g_nScaleTexCoordVByModelScaleAxis "0"
 	g_vTexCoordOffset "[0.000 0.000]"
 	g_vTexCoordScale "[2.000 2.000]"
-	g_vTexCoordScrollSpeed "[0.000 0.125]"
+	g_vTexCoordScrollSpeed "[0.000 -0.063]"
 }
