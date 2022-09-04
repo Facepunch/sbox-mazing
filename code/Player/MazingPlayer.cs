@@ -22,6 +22,8 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     public bool IsAliveInMaze => IsAlive && !HasExited;
 
+    public bool IsSpawning { get; set; }
+
     [Net]
     public Entity HeldEntityNetworked { get; set; }
 
@@ -122,6 +124,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         EnableShadowInFirstPerson = true;
 
         IsAlive = true;
+        IsSpawning = true;
 
         HeldEntity?.OnThrown( this.GetCellIndex(), this.GetFacingDirection() );
         HeldEntity = null;

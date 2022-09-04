@@ -290,7 +290,7 @@ public partial class MazingWalkController : BasePlayerController
 
             if ( !IsGhost )
             {
-                if ( !IsVaultOnCooldown && IsPlayer && ((MazingPlayer) Pawn).IsAliveInMaze && !IsBot && Input.Down( InputButton.Jump ) )
+                if ( !IsVaultOnCooldown && IsPlayer && ((MazingPlayer) Pawn).IsAliveInMaze && !IsBot && !((MazingPlayer)Pawn).IsSpawning && Input.Down( InputButton.Jump ) )
                 {
                     var dir = Pawn.GetFacingDirection();
                     var next = cell + dir;
@@ -711,6 +711,11 @@ public partial class MazingWalkController : BasePlayerController
         if ( GroundEntity == null && Pawn is not Enemy )
         {
             Sound.FromWorld("player.land", Position);
+
+            if (Pawn is MazingPlayer player && player.IsSpawning)
+            {
+                player.IsSpawning = false;
+            }
         }
 
         GroundEntity = tr.Entity;
