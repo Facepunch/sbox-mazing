@@ -719,20 +719,35 @@ public partial class MazingGame : Sandbox.Game
 
         if ( anyPlayers && allExited )
         {
-            NextLevelCountdown = -1.5f;
-            NextLevelIndex = LevelIndex + 1;
+            if (LevelIndex >= 49)
+            {
+                RestartCountdown = -5f;
+                ClientNotifyFinalScore( true, TotalCoins );
+            }
+            else
+            {
+                NextLevelCountdown = -1.5f;
+                NextLevelIndex = LevelIndex + 1;
+            }
         }
         else if ( !anyPlayers && anyDeadPlayers )
         {
             RestartCountdown = -3f;
-            ClientNotifyFinalScore( TotalCoins );
+            ClientNotifyFinalScore( false, TotalCoins );
         }
     }
     
     [ClientRpc]
-    public void ClientNotifyFinalScore( int score )
+    public void ClientNotifyFinalScore( bool victory, int score )
     {
-        ChatBox.AddInformation( $"Everyone is dead! Final score: ${score}" );
+        if (victory)
+        {
+            ChatBox.AddInformation($"You have escaped! Final score: ${score}");
+        }
+        else
+        {
+            ChatBox.AddInformation($"Everyone is dead! Final score: ${score}");
+        }
     }
 
     public void DestroyWall( GridCoord coord, Direction dir )
