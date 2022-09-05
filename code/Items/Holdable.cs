@@ -14,6 +14,8 @@ public interface IHoldable
 
     void OnPickedUp( MazingPlayer holder );
     void OnThrown( GridCoord target, Direction direction );
+
+    bool IsHeavy { get; }
 }
 
 public abstract partial class Holdable : AnimatedEntity, IHoldable
@@ -26,6 +28,8 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
 
     private bool _firstTick;
     private bool _hadParent;
+
+    public virtual bool IsHeavy => false;
 
     [Net]
     public MazingPlayer LastHolder { get; set; }
@@ -58,6 +62,19 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
     [Event.Tick.Server]
     public void ServerTick()
     {
+        if (!IsHeld && _hadParent)
+        {
+            Sound.FromEntity("key.drop", this);
+        }
+
+        _hadParent = IsHeld;
+
+        if (!IsHeld && Parent != null)
+        {
+            OnServerTick();
+            return;
+        }
+
         if (_firstTick)
         {
             _firstTick = false;
@@ -65,13 +82,6 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
         }
 
         LocalPosition += (TargetPosition - LocalPosition) * 0.125f;
-
-        if (!IsHeld && _hadParent)
-        {
-            Sound.FromEntity("key.drop", this);
-        }
-
-        _hadParent = IsHeld;
 
         // Don't tick if moving to target position
         if ((TargetPosition - LocalPosition).LengthSquared > 4f * 4f)

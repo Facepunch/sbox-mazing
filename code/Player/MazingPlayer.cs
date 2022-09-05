@@ -20,6 +20,8 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     [Net]
     public bool IsAlive { get; set; }
 
+    public bool IsHeavy => true;
+
     public bool IsAliveInMaze => IsAlive && !HasExited;
 
     public bool IsSpawning { get; set; }

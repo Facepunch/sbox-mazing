@@ -326,7 +326,7 @@ public partial class MazingGame : Sandbox.Game
 
         TotalTreasureValue = 0;
 
-        foreach (var (treasureKind, cell) in generated.Treasure)
+        foreach (var (treasureKind, cell) in generated.Treasure.Skip(1))
         {
             var treasure = new Treasure(treasureKind)
             {
@@ -346,6 +346,11 @@ public partial class MazingGame : Sandbox.Game
             Lava = new Lava
             {
                 Position = CellToPosition(0f, CurrentMaze.Cols * 0.5f)
+            };
+
+            var diamond = new BigTreasure
+            {
+                Position = CellToPosition(6f, 4f)
             };
         }
         else

@@ -10,15 +10,17 @@ namespace Mazing.Items;
 
 public enum TreasureKind
 {
+    Key = 0,
     Emerald = 1,
     Sapphire = 2,
-    Ruby = 3
+    Ruby = 3,
+    Diamond = 4
 }
 
 public partial class Treasure : AnimatedEntity
 {
     public const float FadeOutStartTime = 0.5f;
-    public const float FaceOutDuration = 0.25f;
+    public const float FadeOutDuration = 0.25f;
 
     private TreasureKind _kind;
     private PointLightEntity _light;
@@ -47,6 +49,7 @@ public partial class Treasure : AnimatedEntity
             TreasureKind.Emerald => 5,
             TreasureKind.Sapphire => 20,
             TreasureKind.Ruby => 100,
+            TreasureKind.Diamond => 2500,
             _ => 1
         };
     }
@@ -58,6 +61,7 @@ public partial class Treasure : AnimatedEntity
             TreasureKind.Emerald => Color.FromRgb(0x32cd32),
             TreasureKind.Sapphire => Color.FromRgb(0x3150cd),
             TreasureKind.Ruby => Color.FromRgb(0x8b0000),
+            TreasureKind.Diamond => Color.FromRgb(0xabcdff),
             _ => Color.FromRgb(0xf2d873)
         };
     }
@@ -69,8 +73,14 @@ public partial class Treasure : AnimatedEntity
             TreasureKind.Emerald => "gem1.collect",
             TreasureKind.Sapphire => "gem2.collect",
             TreasureKind.Ruby => "gem3.collect",
+            TreasureKind.Diamond => "gem3.collect",
             _ => "gem1.collect"
         };
+    }
+
+    public static bool CanSpawnRandomly(TreasureKind kind)
+    {
+        return kind != TreasureKind.Key && kind != TreasureKind.Diamond;
     }
 
     public int Value => GetValue(Kind);
@@ -117,13 +127,11 @@ public partial class Treasure : AnimatedEntity
     {
         if (IsCollected)
         {
-            LocalPosition = LocalPosition.WithZ(LocalPosition.z + (192f - LocalPosition.z) * 0.25f);
-
             _light.Brightness = Math.Max(0.75f - _collectedTime / FadeOutStartTime, 0f);
 
             if (_collectedTime > FadeOutStartTime)
             {
-                var alpha = 1f - (_collectedTime - FadeOutStartTime) / FaceOutDuration;
+                var alpha = 1f - (_collectedTime - FadeOutStartTime) / FadeOutDuration;
 
                 RenderColor = RenderColor.WithAlpha(Math.Clamp(alpha, 0f, 1f));
 
@@ -155,6 +163,8 @@ public partial class Treasure : AnimatedEntity
         LocalPosition = Vector3.Zero;
 
         Sound.FromEntity(GetSound(Kind), this);
+
+        CurrentSequence.Name = "collect";
 
         _collectedTime = 0f;
 

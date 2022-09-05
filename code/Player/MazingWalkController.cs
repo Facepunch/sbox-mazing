@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Mazing.Enemies;
+using Mazing.Items;
 using Sandbox;
 
 namespace Mazing.Player;
@@ -405,7 +406,7 @@ public partial class MazingWalkController : BasePlayerController
 
     public virtual float GetWishSpeed()
     {
-        if ( Pawn is MazingPlayer player && player.HeldEntity is MazingPlayer )
+        if ( Pawn is MazingPlayer { HeldEntity.IsHeavy: true })
         {
             return DefaultSpeed * 2f / 3f;
         }

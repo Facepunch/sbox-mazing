@@ -12,7 +12,9 @@ public static partial class MazeGenerator
     public static (TreasureKind Kind, int Count)[] GetSpawningTreasureCounts(int totalValue, int seed)
     {
         var rand = new Random(seed);
-        var possibleKinds = new List<TreasureKind>(Enum.GetValues<TreasureKind>());
+        var possibleKinds = new List<TreasureKind>(Enum.GetValues<TreasureKind>()
+            .Where(Treasure.CanSpawnRandomly));
+
         var spawned = new List<TreasureKind>();
 
         while (totalValue > 0 && possibleKinds.Count > 0)
