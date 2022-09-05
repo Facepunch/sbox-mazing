@@ -138,3 +138,29 @@ text.diff.negative {
     font-size: 4vh;
     text-align: center;
 }
+
+.times {
+    position: absolute;
+
+    right: 2vh;
+    top: 2vh;
+}
+
+.times text {
+    margin-left: 0.5vh;
+    margin-right: 0.5vh;
+    margin-top: 0.5vh;
+    font-size: 5vh;
+    color: rgba(255, 255, 255, 0.5);
+
+    transition: opacity 0.5s linear;
+}
+
+.times text.level-time {
+    font-size: 6vh;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 0vh;
+}
+
+.times text.total-time {
+}

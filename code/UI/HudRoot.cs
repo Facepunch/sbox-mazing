@@ -25,15 +25,34 @@ namespace Mazing.UI
 
         public Label EditorWarning { get; set; }
 
+        public Label LevelTime { get; set; }
+        public Label TotalTime { get; set; }
+
         private readonly ValueTicker _totalCoinsTicker = new ValueTicker( "${0:N0}" );
 
         private Panel _overlay;
 
         private int _lastStreak = -1;
         private TimeSince _streakChangeTime;
-        
+
+        private int _lastLevelTimeSeconds = -1;
+        private int _lastTotalTimeSeconds = -1;
+
         public HudRoot()
         {
+
+        }
+
+        private bool UpdateTimeText(Label label, TimeSpan time, ref int lastSeconds)
+        {
+            var seconds = (int)time.TotalSeconds;
+
+            if (seconds == lastSeconds) return false;
+
+            lastSeconds = seconds;
+            label.Text = time.ToString("mm\\:ss");
+
+            return true;
 
         }
         
@@ -47,6 +66,13 @@ namespace Mazing.UI
             if ( player == null || game == null )
             {
                 return;
+            }
+
+            LevelTime.Parent.Style.Opacity = game.LevelIndex > 0 ? 1f : 0f;
+
+            if (UpdateTimeText(LevelTime, game.LevelTime, ref _lastLevelTimeSeconds))
+            {
+                UpdateTimeText(TotalTime, game.TotalTime, ref _lastTotalTimeSeconds);
             }
 
             EditorWarning.Style.Display = game.IsEditorMode ? DisplayMode.Flex : DisplayMode.None;

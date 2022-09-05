@@ -24,6 +24,8 @@ namespace Mazing;
 /// </summary>
 public partial class MazingGame : Sandbox.Game
 {
+    public const int TotalLevelCount = 50;
+
     public const int MaxPlayers = 8;
 
 	public new static MazingGame Current => Game.Current as MazingGame;
@@ -91,7 +93,31 @@ public partial class MazingGame : Sandbox.Game
     private readonly Dictionary<(GridCoord Coord, Direction Dir), ModelEntity> _walls = new();
     private GridCoord[] _playerSpawns;
 
-	public MazingGame()
+    private readonly List<TimeSpan> _levelTimes = new List<TimeSpan>();
+
+    [Net]
+    public bool LevelStarted { get; set; }
+
+    [Net]
+    public bool LevelCompleted { get; set; }
+
+    [Net]
+    public TimeSince SinceLevelStart { get; set; }
+
+    [Net]
+    public TimeSpan LastLevelTime { get; set; }
+
+    [Net]
+    public TimeSpan LastTotalTime { get; set; }
+
+    public TimeSpan LevelTime => !LevelStarted
+        ? TimeSpan.Zero : !LevelCompleted
+            ? TimeSpan.FromSeconds(SinceLevelStart)
+            : LastLevelTime;
+
+    public TimeSpan TotalTime => LastTotalTime + LevelTime;
+
+    public MazingGame()
 	{
         if ( IsClient )
         {
@@ -251,7 +277,7 @@ public partial class MazingGame : Sandbox.Game
         
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
-            : LevelIndex == 49
+            : LevelIndex == TotalLevelCount - 1
                 ? MazeGenerator.GenerateFinalLevel(rand.Next(), MaxPlayers )
                 : MazeGenerator.Generate(rand.Next(), rows, cols, MaxPlayers,
                     MazeGenerator.GetSpawningEnemyCounts(LevelIndex, rand.Next(), _enemyTypeLastSpawnLevel),
@@ -259,6 +285,18 @@ public partial class MazingGame : Sandbox.Game
 
         CurrentMaze = generated.MazeData;
         CurrentMaze.WriteNetworkData();
+
+        if (LevelIndex <= 0)
+        {
+            _levelTimes.Clear();
+        }
+
+        SinceLevelStart = -1.6f;
+        LastLevelTime = TimeSpan.Zero;
+        LastTotalTime = TimeSpan.FromSeconds(_levelTimes.Sum(x => x.TotalSeconds));
+
+        LevelStarted = false;
+        LevelCompleted = false;
 
         _playerSpawns = generated.Players;
 
@@ -341,7 +379,7 @@ public partial class MazingGame : Sandbox.Game
             Position = CellCenterToPosition( generated.Key ) + Vector3.Up * 64f
         };
 
-        if (LevelIndex == 49)
+        if (LevelIndex == TotalLevelCount - 1)
         {
             Lava = new Lava
             {
@@ -672,21 +710,6 @@ public partial class MazingGame : Sandbox.Game
 
                 LevelIndex = NextLevelIndex;
 
-                if ( !_hasCheated && !Host.IsToolsEnabled )
-                {
-                    foreach (var player in All.OfType<MazingPlayer>())
-                    {
-                        if ( player.Client == null ) continue;
-                        if ( LevelIndex < player.FirstSeenLevelIndex * 2 )
-                        {
-                            Log.Info( $"Not submitting score for {player.Client.Name}" );
-                        }
-
-                        GameServices.UpdateLeaderboard(player.Client.PlayerId, TotalCoins, "money");
-                        GameServices.UpdateLeaderboard(player.Client.PlayerId, LevelIndex, "depth");
-                    }
-                }
-
                 GenerateMaze( _nextLevelSeed );
                 ResetPlayers();
 
@@ -696,6 +719,8 @@ public partial class MazingGame : Sandbox.Game
             return;
         }
 
+        var anySpawning = false;
+        var anyExited = false;
         var allExited = true;
         var anyPlayers = false;
         var anyDeadPlayers = false;
@@ -710,16 +735,62 @@ public partial class MazingGame : Sandbox.Game
 
             anyPlayers = true;
 
-            if ( !player.HasExited )
+            if (player.IsSpawning)
             {
-                allExited = false;
-				break;
+                anySpawning = true;
+            }
+
+            if (player.HasExited)
+            {
+                anyExited = true;
+                continue;
+            }
+
+            allExited = false;
+			break;
+        }
+
+        if (!LevelStarted && !anySpawning)
+        {
+            LevelStarted = true;
+
+            SinceLevelStart = 0f;
+        }
+
+        if (LevelStarted && !LevelCompleted && anyExited)
+        {
+            LevelCompleted = true;
+            LastLevelTime = TimeSpan.FromSeconds(SinceLevelStart);
+
+            if (LevelIndex > 0)
+            {
+                _levelTimes.Add(LastLevelTime);
             }
         }
 
         if ( anyPlayers && allExited )
         {
-            if (LevelIndex >= 49)
+            if (!_hasCheated && !Host.IsToolsEnabled)
+            {
+                foreach (var player in All.OfType<MazingPlayer>())
+                {
+                    if (player.Client == null) continue;
+                    if (LevelIndex < player.FirstSeenLevelIndex * 2)
+                    {
+                        Log.Info($"Not submitting score for {player.Client.Name}");
+                    }
+
+                    GameServices.UpdateLeaderboard(player.Client.PlayerId, TotalCoins, "money");
+                    GameServices.UpdateLeaderboard(player.Client.PlayerId, LevelIndex + 1, "depth");
+
+                    if (LevelIndex == TotalLevelCount - 1)
+                    {
+                        GameServices.UpdateLeaderboard(player.Client.PlayerId, (float) TotalTime.TotalSeconds, "time50");
+                    }
+                }
+            }
+
+            if (LevelIndex >= TotalLevelCount - 1)
             {
                 RestartCountdown = -5f;
                 ClientNotifyFinalScore( true, TotalCoins );
