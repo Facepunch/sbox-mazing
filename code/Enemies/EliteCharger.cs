@@ -57,7 +57,6 @@ internal partial class EliteCharger : Enemy
         {
             if (child is ModelEntity e && e.Tags.Has("clothes"))
             {
-                Log.Info(child.Name);
                 e.RenderColor = new Color(0f, 0f, 0f, 1f);
             }
         }

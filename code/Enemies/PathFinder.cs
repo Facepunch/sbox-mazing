@@ -68,6 +68,13 @@ internal class PathFinder
             return true;
         }
 
+        var game = MazingGame.Current;
+
+        if (!game.CurrentMaze.IsConnected(from, to))
+        {
+            return false;
+        }
+
         _openSet.Clear();
         _openSet.Enqueue( from, Heuristic( from, to ) );
 
@@ -80,8 +87,6 @@ internal class PathFinder
         _fScore.Add( from, Heuristic( from, to ) );
 
         _costs.Clear();
-
-        var game = MazingGame.Current;
 
         AddCost( game.Hatch.GetCellIndex(), game.Hatch.IsOpen ? OpenHatchCost : ClosedHatchCost );
 

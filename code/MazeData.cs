@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -286,6 +287,11 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 		_horzWalls = new bool[(rows + 1) * cols];
 	}
 
+    public bool Contains( GridCoord cell )
+    {
+        return cell.Col >= 0 && cell.Row >= 0 && cell.Col < Cols && cell.Row < Rows;
+    }
+
 	public void SetBorder( bool isSolid )
 	{
 		for ( var i = 0; i < Cols; i++ )
@@ -361,7 +367,9 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
 				_vertWalls[Rows * coord.Col + coord.Row] = isSolid;
 				break;
 		}
-	}
+
+        InvalidateConnectivity();
+    }
 
     public GridCoord RayCast( GridCoord from, Direction direction )
     {
@@ -406,8 +414,86 @@ public partial class MazeData : BaseNetworkable, INetworkSerializer
         return vec.y < 0f ? Direction.South : Direction.North;
     }
 
+    private HashSet<GridCoord>[] _islands;
+
+    private void InvalidateConnectivity()
+    {
+        _islands = null;
+    }
+
+    private void UpdateConnectivity()
+    {
+        if (_islands != null) return;
+
+        var unvisited = Enumerable.Range(0, Cols)
+            .SelectMany(col => Enumerable.Range(0, Rows).Select(row => new GridCoord(row, col)))
+            .ToHashSet();
+
+        var queue = new Queue<GridCoord>();
+        var islands = new List<HashSet<GridCoord>>();
+
+        while (unvisited.Count > 0)
+        {
+            var root = unvisited.First();
+
+            queue.Clear();
+
+			var island = new HashSet<GridCoord>{ root };
+
+            queue.Enqueue(root);
+            unvisited.Remove(root);
+
+			while (queue.Count > 0)
+            {
+                var next = queue.Dequeue();
+
+                foreach (var (dir, _) in Directions)
+                {
+                    var neighbor = next + dir;
+
+                    if (GetWall(next, dir)) continue;
+                    if (!island.Add(neighbor)) continue;
+
+                    queue.Enqueue(neighbor);
+
+					Assert.True(unvisited.Remove(neighbor));
+                }
+            }
+
+            islands.Add(new HashSet<GridCoord>(island));
+        }
+
+        _islands = islands.ToArray();
+    }
+
+    public bool IsConnected(GridCoord a, GridCoord b)
+    {
+        if (!Contains(a) || !Contains(b))
+        {
+            return false;
+        }
+
+        UpdateConnectivity();
+
+        foreach (var island in _islands)
+        {
+            var foundA = island.Contains(a);
+            var foundB = island.Contains(b);
+
+            if (foundA && foundB) return true;
+            if (foundA || foundB) return false;
+        }
+
+        return false;
+    }
+
 	public int GetDistance( GridCoord a, GridCoord b )
 	{
+        if (!IsConnected(a, b))
+        {
+            return -1;
+        }
+
 		var queue = new Queue<(GridCoord Coord, int Dist)>();
 		var visited = new HashSet<GridCoord> { a };
 

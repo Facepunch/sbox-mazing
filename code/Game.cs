@@ -549,10 +549,7 @@ public partial class MazingGame : Sandbox.Game
 
     public bool IsInMaze(GridCoord cell)
     {
-        if (cell.Col < 0 || cell.Row < 0 || cell.Col >= CurrentMaze.Cols || cell.Row >= CurrentMaze.Rows)
-            return false;
-
-        return true;
+        return CurrentMaze?.Contains(cell) ?? false;
     }
 
     [ClientRpc]
