@@ -31,7 +31,7 @@
 						_class = "RenderMeshFile"
 						name = "lava"
 						filename = "models/lava.fbx"
-						import_translation = [ 0.0, -48.0, 0.0 ]
+						import_translation = [ 0.0, 0.0, 0.0 ]
 						import_rotation = [ 0.0, 180.0, 0.0 ]
 						import_scale = 1.0
 						align_origin_x_type = "None"
