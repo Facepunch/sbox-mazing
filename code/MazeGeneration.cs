@@ -208,33 +208,6 @@ public static partial class MazeGenerator
 			}
 		}
 
-        var players = new List<GridCoord>();
-		var enemies = new List<(TypeDescription Type, GridCoord Coord)>();
-        var treasure = new List<(TreasureKind Kind, GridCoord Coord)>();
-
-        var available = new Queue<GridCoord>( Enumerable.Range( 0, rows )
-            .SelectMany( row => Enumerable.Range( 0, cols ).Select( col => new GridCoord( row, col ) ) )
-            .OrderBy( x => rand.NextSingle() ) );
-
-        var exit = available.Dequeue();
-        var key = available.Dequeue();
-
-        for ( var i = 0; i < playerCount; ++i )
-        {
-            players.Add( available.Dequeue() );
-        }
-		
-        foreach (var enemyType in flatEnemyTypes)
-        {
-            enemies.Add((enemyType, available.Dequeue()));
-        }
-
-        foreach (var treasureKind in flatTreasureKinds)
-        {
-            treasure.Add((treasureKind, available.Dequeue()));
-
-        }
-
 		var possibleBridges = new List<(GridCoord From, Direction Dir, GridCoord To)>();
 
 		while ( islands.Count > 1 )
@@ -334,7 +307,43 @@ public static partial class MazeGenerator
 			maze.SetWall( next.From, next.dir, false );
 		}
 
-        return new GeneratedMaze( maze, exit, key, players.ToArray(), enemies.ToArray(), treasure.ToArray() );
+        var players = new List<GridCoord>();
+        var enemies = new List<(TypeDescription Type, GridCoord Coord)>();
+        var treasure = new List<(TreasureKind Kind, GridCoord Coord)>();
+
+        var available = new Queue<GridCoord>(Enumerable.Range(0, rows)
+            .SelectMany(row => Enumerable.Range(0, cols).Select(col => new GridCoord(row, col)))
+            .OrderBy(x => rand.NextSingle()));
+
+        var exitAttempts = available.Count;
+
+        var exit = available.Dequeue();
+
+		// Exit should have a wall 2 tiles away, so players can throw the key in
+        while (exitAttempts-- > 0 && MazeData.Directions.All(y => !maze.Contains(exit + y.Delta * 2) || !maze.GetWall(exit + y.Delta, y.Direction)))
+        {
+            available.Enqueue(exit);
+            exit = available.Dequeue();
+        }
+
+        var key = available.Dequeue();
+
+        for (var i = 0; i < playerCount; ++i)
+        {
+            players.Add(available.Dequeue());
+        }
+
+        foreach (var enemyType in flatEnemyTypes)
+        {
+            enemies.Add((enemyType, available.Dequeue()));
+        }
+
+        foreach (var treasureKind in flatTreasureKinds)
+        {
+            treasure.Add((treasureKind, available.Dequeue()));
+        }
+
+		return new GeneratedMaze( maze, exit, key, players.ToArray(), enemies.ToArray(), treasure.ToArray() );
     }
 
 	private static MazeData PlaceRandom( Random rand, MazeData maze, IEnumerable<MazeData> available, bool[,] occupied, int stride )
