@@ -16,7 +16,7 @@ public class Lava : ModelEntity
     private const float MaxLightBrightness = 3f;
 
     private PointLightEntity[] _clientLights;
-
+    
     public override void Spawn()
     {
         SetModel("models/lava.vmdl");

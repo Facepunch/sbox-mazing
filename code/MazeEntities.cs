@@ -21,40 +21,38 @@ public partial class Border : ModelEntity
     }
 }
 
-public partial class Wall : ModelEntity
+public partial class MazeEntity : ModelEntity
 {
-	public override void Spawn()
-	{
-		base.Spawn();
-
-		SetModel( "models/wall.vmdl" );
+    public override void Spawn()
+    {
+        base.Spawn();
 
         Tags.Add("solid");
 
-        UsePhysicsCollision = true;
-
-		EnableDrawing = true;
-        EnableSolidCollisions = true;
-    }
-}
-
-public partial class Post : ModelEntity
-{
-	public override void Spawn()
-	{
-		base.Spawn();
-
-        SetModel( "models/post.vmdl" );
-
-        // This seems to cause prediction issues
-        // SetupPhysicsFromCapsule( PhysicsMotionType.Static, Capsule.FromHeightAndRadius( 256f, 4f ) );
-
-        Tags.Add("solid");
-        
         UsePhysicsCollision = true;
 
         EnableDrawing = true;
         EnableSolidCollisions = true;
+    }
+}
+
+public partial class Wall : MazeEntity
+{
+	public override void Spawn()
+    {
+        SetModel("models/wall.vmdl");
+
+        base.Spawn();
+    }
+}
+
+public partial class Post : MazeEntity
+{
+	public override void Spawn()
+    {
+        SetModel("models/post.vmdl");
+
+        base.Spawn();
     }
 }
 

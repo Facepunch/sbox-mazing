@@ -81,7 +81,7 @@ public partial class MazingGame : Sandbox.Game
     public IEnumerable<MazingPlayer> PlayersAliveInMaze => Players
         .Where( x => x.IsAliveInMaze );
 
-    public IEnumerable<Enemy> Enemies => _enemies;
+    public IEnumerable<Enemy> Enemies => _enemies.Where(x => x.IsValid());
 
     public IEnumerable<Treasure> Treasure => Entity.All.OfType<Treasure>();
 
@@ -364,7 +364,8 @@ public partial class MazingGame : Sandbox.Game
 			{
 				if (row < CurrentMaze.Rows && CurrentMaze.GetWall((row, col), Direction.West))
                 {
-                    var height = col <= 0 || col >= CurrentMaze.Cols ? outerWallHeight : innerWallHeight;
+                    var isOuter = col <= 0 || col >= CurrentMaze.Cols;
+                    var height = isOuter ? outerWallHeight : innerWallHeight;
                     var wall = new Wall
                     {
                         Position = CellToPosition( row + 1f, col ) + Vector3.Up * (height - wallModelHeight)
@@ -375,8 +376,9 @@ public partial class MazingGame : Sandbox.Game
                 }
 
 				if (col < CurrentMaze.Cols && CurrentMaze.GetWall((row, col), Direction.South))
-				{
-                    var height = row <= 0 || row >= CurrentMaze.Rows ? outerWallHeight : innerWallHeight;
+                {
+                    var isOuter = row <= 0 || row >= CurrentMaze.Rows;
+                    var height = isOuter ? outerWallHeight : innerWallHeight;
                     var wall = new Wall
                     {
                         Position = CellToPosition( row, col ) + Vector3.Up * (height - wallModelHeight),
@@ -393,9 +395,9 @@ public partial class MazingGame : Sandbox.Game
 				var east = CurrentMaze.GetWall((row, col), Direction.South);
 
 				if (north != south || west != east || north && west)
-				{
-                    var height = row <= 0 || row >= CurrentMaze.Rows || col <= 0 || col >= CurrentMaze.Cols
-                        ? outerWallHeight : innerWallHeight;
+                {
+                    var isOuter = row <= 0 || row >= CurrentMaze.Rows || col <= 0 || col >= CurrentMaze.Cols;
+                    var height = isOuter ? outerWallHeight : innerWallHeight;
 
                     new Post
                     {
@@ -622,8 +624,16 @@ public partial class MazingGame : Sandbox.Game
     [Event.Tick.Server]
     public void ServerTick()
     {
-        foreach ( var enemy in Enemies )
+        for (var i = _enemies.Count - 1; i >= 0; --i)
         {
+            var enemy = _enemies[i];
+
+            if (!enemy.IsValid())
+            {
+                _enemies.RemoveAt(i);
+                continue;
+            }
+
             enemy.ServerTick();
         }
 
