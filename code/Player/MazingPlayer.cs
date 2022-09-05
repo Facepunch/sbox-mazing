@@ -64,7 +64,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     private Particles _sweatParticles;
     private Particles _burstParticles;
-    private ModelEntity _ragdoll;
+    private AnimatedEntity _ragdoll;
 
     public MazingGame Game => MazingGame.Current;
 
@@ -256,7 +256,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
         if ( ragdoll )
         {
-            _ragdoll = new ModelEntity();
+            _ragdoll = new AnimatedEntity();
 
             _ragdoll.SetModel("models/citizen/citizen.vmdl");
             _ragdoll.Position = Position;
@@ -264,20 +264,14 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
             _ragdoll.SetupPhysicsFromModel(PhysicsMotionType.Dynamic, false);
             _ragdoll.PhysicsGroup.Velocity = damageDir.Normal * 100f;
             _ragdoll.Tags.Add("ragdoll");
+            
+            Clothing.DressEntity(_ragdoll);
         }
 
         foreach ( var child in Children.ToArray() )
         {
-            if ( child is ModelEntity e && e.Tags.Has( "clothes" ) )
+            if ( child is ModelEntity e && child.Tags.Has("clothes") )
             {
-                if ( _ragdoll != null )
-                {
-                    var clothing = new ModelEntity();
-                    clothing.CopyFrom(e);
-                    clothing.SetParent(_ragdoll, true);
-                    clothing.RenderColor = RenderColor;
-                }
-
                 e.RenderColor = new Color(1f, 1f, 1f, 0.25f);
             }
         }
