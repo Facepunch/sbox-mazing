@@ -67,11 +67,11 @@ public static partial class MazeGenerator
 
         var segments = new FinalLevelSegment[]
         {
-			new(20, 250, TypeLibrary.GetDescription<Wanderer>(), TypeLibrary.GetDescription<EliteWanderer>()),
-            new(24, 200, TypeLibrary.GetDescription<Seeker>(), TypeLibrary.GetDescription<EliteSeeker>()),
-            new(26, 150, TypeLibrary.GetDescription<Charger>(), TypeLibrary.GetDescription<EliteCharger>()),
-            new(28, 100, TypeLibrary.GetDescription<Wizard>(), TypeLibrary.GetDescription<EliteWizard>()),
-            new(30, 50, TypeLibrary.GetDescription<Keyhunter>(), TypeLibrary.GetDescription<EliteKeyhunter>()),
+			new(20, 250, TypeLibrary.GetDescription<Wanderer>(), TypeLibrary.GetDescription<EliteWanderer>(), TypeLibrary.GetDescription<SpikeTrap>()),
+            new(24, 200, TypeLibrary.GetDescription<Seeker>(), TypeLibrary.GetDescription<EliteSeeker>(), TypeLibrary.GetDescription<SpikeTrap>()),
+            new(26, 150, TypeLibrary.GetDescription<Charger>(), TypeLibrary.GetDescription<EliteCharger>(), TypeLibrary.GetDescription<SpikeTrap>()),
+            new(28, 100, TypeLibrary.GetDescription<Wizard>(), TypeLibrary.GetDescription<EliteWizard>(), TypeLibrary.GetDescription<SpikeTrap>()),
+            new(30, 50, TypeLibrary.GetDescription<Keyhunter>(), TypeLibrary.GetDescription<EliteKeyhunter>(), TypeLibrary.GetDescription<SpikeTrap>()),
 		};
 
         var (spawnArea, specialCells) = MazeData.Load(8, FinalLevelCols, FileSystem.Mounted.OpenRead("mazes/final_start.txt"));
