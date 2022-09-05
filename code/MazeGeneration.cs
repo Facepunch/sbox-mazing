@@ -59,7 +59,7 @@ public static partial class MazeGenerator
     record struct FinalLevelSegment(int TotalThreat, int TotalTreasureValue, params TypeDescription[] EnemyTypes);
 
     public const int FinalLevelCols = 8;
-    public const int FinalLevelSegmentRows = 12;
+    public const int FinalLevelSegmentRows = 16;
 
     public static GeneratedMaze GenerateFinalLevel( int seed, int playerCount )
     {
@@ -67,11 +67,11 @@ public static partial class MazeGenerator
 
         var segments = new FinalLevelSegment[]
         {
-			new(10, 500, TypeLibrary.GetDescription<Wanderer>(), TypeLibrary.GetDescription<EliteWanderer>()),
-            new(12, 400, TypeLibrary.GetDescription<Seeker>(), TypeLibrary.GetDescription<EliteSeeker>()),
-            new(14, 300, TypeLibrary.GetDescription<Charger>(), TypeLibrary.GetDescription<EliteCharger>()),
-            new(16, 200, TypeLibrary.GetDescription<Wizard>(), TypeLibrary.GetDescription<EliteWizard>()),
-            new(18, 100, TypeLibrary.GetDescription<Keyhunter>(), TypeLibrary.GetDescription<EliteKeyhunter>()),
+			new(20, 250, TypeLibrary.GetDescription<Wanderer>(), TypeLibrary.GetDescription<EliteWanderer>()),
+            new(24, 200, TypeLibrary.GetDescription<Seeker>(), TypeLibrary.GetDescription<EliteSeeker>()),
+            new(26, 150, TypeLibrary.GetDescription<Charger>(), TypeLibrary.GetDescription<EliteCharger>()),
+            new(28, 100, TypeLibrary.GetDescription<Wizard>(), TypeLibrary.GetDescription<EliteWizard>()),
+            new(30, 50, TypeLibrary.GetDescription<Keyhunter>(), TypeLibrary.GetDescription<EliteKeyhunter>()),
 		};
 
         var (spawnArea, specialCells) = MazeData.Load(8, FinalLevelCols, FileSystem.Mounted.OpenRead("mazes/final_start.txt"));
