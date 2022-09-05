@@ -326,7 +326,7 @@ public partial class MazingGame : Sandbox.Game
 
         TotalTreasureValue = 0;
 
-        foreach (var (treasureKind, cell) in generated.Treasure.Skip(1))
+        foreach (var (treasureKind, cell) in generated.Treasure)
         {
             var treasure = new Treasure(treasureKind)
             {
