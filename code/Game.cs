@@ -72,6 +72,7 @@ public partial class MazingGame : Sandbox.Game
     private bool _firstSpawn = true;
 
     private readonly List<Enemy> _enemies = new();
+    private readonly List<(TypeDescription Type, GridCoord Coord)> _enemiesToSpawn = new();
 
     private readonly Dictionary<TypeDescription, int> _enemyTypeLastSpawnLevel
         = new Dictionary<TypeDescription, int>();
@@ -263,6 +264,7 @@ public partial class MazingGame : Sandbox.Game
 
         _walls.Clear();
         _enemies.Clear();
+        _enemiesToSpawn.Clear();
 
         if ( seed == -1 )
         {
@@ -353,14 +355,7 @@ public partial class MazingGame : Sandbox.Game
             lights.Add( light );
         }
 
-        foreach (var (enemyType, cell) in generated.Enemies)
-        {
-            var enemy = enemyType.Create<Enemy>();
-
-            enemy.PostSpawn(_enemies.Count, CellCenterToPosition(cell));
-
-            _enemies.Add(enemy);
-        }
+        _enemiesToSpawn.AddRange(generated.Enemies);
 
         TotalTreasureValue = 0;
 
@@ -659,9 +654,57 @@ public partial class MazingGame : Sandbox.Game
         Log.Info( $"Suicide is disabled" );
     }
 
+    private void SpawnEnemies()
+    {
+        if (_enemiesToSpawn.Count == 0) return;
+
+        var playerBoundsMin = new Vector3(float.PositiveInfinity, float.PositiveInfinity);
+        var playerBoundsMax = new Vector3(float.NegativeInfinity, float.NegativeInfinity);
+
+        var anyPlayers = false;
+
+        foreach (var player in PlayersAliveInMaze)
+        {
+            anyPlayers = true;
+
+            playerBoundsMin = Vector3.Min(playerBoundsMin, player.Position);
+            playerBoundsMax = Vector3.Max(playerBoundsMax, player.Position);
+        }
+
+        if (!anyPlayers)
+        {
+            return;
+        }
+
+        const float spawnDist = 48f * 8;
+
+        for (var i = _enemiesToSpawn.Count - 1; i >= 0; --i)
+        {
+            var (enemyType, cell) = _enemiesToSpawn[i];
+            var spawnPos = CellCenterToPosition(cell);
+
+            var distX = Math.Max(spawnPos.x - playerBoundsMax.x, playerBoundsMin.x - spawnPos.x);
+            var distY = Math.Max(spawnPos.y - playerBoundsMax.y, playerBoundsMin.y - spawnPos.y);
+
+            var dist = Math.Max(distX, distY);
+
+            if (dist >= spawnDist) continue;
+
+            _enemiesToSpawn.RemoveAt(i);
+
+            var enemy = enemyType.Create<Enemy>();
+
+            enemy.PostSpawn(_enemies.Count, spawnPos);
+
+            _enemies.Add(enemy);
+        }
+    }
+
     [Event.Tick.Server]
     public void ServerTick()
     {
+        SpawnEnemies();
+
         for (var i = _enemies.Count - 1; i >= 0; --i)
         {
             var enemy = _enemies[i];

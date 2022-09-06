@@ -78,6 +78,8 @@ public abstract partial class Enemy : AnimatedEntity
 
     public virtual float MoveSpeed => 100f;
 
+    public bool IsAlive { get; private set; } = true;
+
     public PawnController Controller { get; set; }
     public PawnAnimator Animator { get; set; }
 
@@ -243,47 +245,50 @@ public abstract partial class Enemy : AnimatedEntity
     
     public void ServerTick()
     {
-        var cell = this.GetCellIndex();
-
-        if (_cellVisitTimes == null)
+        using (Performance.Scope("Enemy Tick"))
         {
-            TargetCell = cell;
+            var cell = this.GetCellIndex();
 
-            _wakeDelay = 1f + Rand.Float(0.5f);
-            AwakeTime = -_wakeDelay;
-
-            _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
-
-            OnLevelChange();
-        }
-
-        if (!IsAwake && !_startWakingUp)
-        {
-            if (AwakeTime > -_wakeDelay)
+            if (_cellVisitTimes == null)
             {
+                TargetCell = cell;
+
+                _wakeDelay = 1f + Rand.Float(0.5f);
                 AwakeTime = -_wakeDelay;
+
+                _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
+
+                OnLevelChange();
             }
 
-            foreach (var player in Game.PlayersAliveInMaze)
+            if (!IsAwake && !_startWakingUp)
             {
-                if (player.IsVaulting || (player.Controller as MazingWalkController)?.GroundEntity == null) continue;
-
-                if (Game.CurrentMaze.IsConnected(cell, player.GetCellIndex()))
+                if (AwakeTime > -_wakeDelay)
                 {
-                    _startWakingUp = true;
-                    break;
+                    AwakeTime = -_wakeDelay;
+                }
+
+                foreach (var player in Game.PlayersAliveInMaze)
+                {
+                    if (player.IsVaulting || (player.Controller as MazingWalkController)?.GroundEntity == null) continue;
+
+                    if (Game.CurrentMaze.IsConnected(cell, player.GetCellIndex()))
+                    {
+                        _startWakingUp = true;
+                        break;
+                    }
                 }
             }
+
+            if (!IsInBounds(cell))
+            {
+                return;
+            }
+
+            _cellVisitTimes[cell.Row, cell.Col] = 0f;
+
+            OnServerTick();
         }
-
-        if (!IsInBounds(cell))
-        {
-            return;
-        }
-
-        _cellVisitTimes[cell.Row, cell.Col] = 0f;
-
-        OnServerTick();
     }
 
     protected virtual void OnLevelChange()
@@ -336,7 +341,7 @@ public abstract partial class Enemy : AnimatedEntity
         }
 
         //DebugOverlay.Text(Velocity.Length.ToString(), EyePosition, 0f, float.MaxValue);
-
+        
         Controller?.Simulate(default, this, null);
         Animator?.Simulate(default, this, null);
 
@@ -367,6 +372,32 @@ public abstract partial class Enemy : AnimatedEntity
 
             closestPlayer.Kill( (closestPlayer.Position - Position).WithZ( 0f ), DeathMessage, this );
         }
+    }
+
+    public void Kill(Vector3 damageDir, bool ragdoll = true)
+    {
+        if (!IsServer || !IsAlive)
+        {
+            return;
+        }
+
+        IsAlive = false;
+
+        if (ragdoll && ModelPath == "models/citizen/citizen.vmdl")
+        {
+            var ragdollEnt = new AnimatedEntity();
+
+            ragdollEnt.SetModel("models/citizen/citizen.vmdl");
+            ragdollEnt.Position = Position;
+            ragdollEnt.Rotation = Rotation;
+            ragdollEnt.SetupPhysicsFromModel(PhysicsMotionType.Dynamic, false);
+            ragdollEnt.PhysicsGroup.Velocity = damageDir.Normal * 100f;
+            ragdollEnt.Tags.Add("ragdoll");
+
+            Clothing.DressEntity(ragdollEnt);
+        }
+
+        OnKilled();
     }
 
     [Event.Tick.Client]
