@@ -24,6 +24,7 @@ namespace Mazing.UI
         public Label LevelNumberText { get; set; }
 
         public Label EditorWarning { get; set; }
+        public Label DailyChallengeInfo { get; set; }
 
         public Label LevelTime { get; set; }
         public Label TotalTime { get; set; }
@@ -37,6 +38,9 @@ namespace Mazing.UI
 
         private int _lastLevelTimeSeconds = -1;
         private int _lastTotalTimeSeconds = -1;
+
+        private bool _wasDailyEnabled;
+        private bool _hasDailyEnded;
 
         public HudRoot()
         {
@@ -53,7 +57,6 @@ namespace Mazing.UI
             label.Text = time.ToString("mm\\:ss");
 
             return true;
-
         }
         
         public override void Tick()
@@ -66,6 +69,20 @@ namespace Mazing.UI
             if ( player == null || game == null )
             {
                 return;
+            }
+
+            if (DailyChallengeInfo != null)
+            {
+                if (game.DailyChallengeEnabled != _wasDailyEnabled || game.DailyChallengeComplete != _hasDailyEnded)
+                {
+                    _wasDailyEnabled = game.DailyChallengeEnabled;
+                    _hasDailyEnded = game.DailyChallengeComplete;
+
+                    DailyChallengeInfo.Style.Display = DisplayMode.Flex;
+                    DailyChallengeInfo.Text = game.DailyChallengeComplete
+                        ? "DAILY CHALLENGE COMPLETE, COME BACK TOMORROW!"
+                        : $"DAILY CHALLENGE {game.DailyChallengeDateUtc.Year}-{game.DailyChallengeDateUtc.Month:00}-{game.DailyChallengeDateUtc.Day:00}";
+                }
             }
 
             LevelTime.Parent.Style.Opacity = game.LevelIndex > 0 ? 1f : 0f;

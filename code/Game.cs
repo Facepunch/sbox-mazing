@@ -28,6 +28,18 @@ public partial class MazingGame : Sandbox.Game
 
     public const int MaxPlayers = 8;
 
+    [ConVar.Replicated("mazing_daily", Help = "Enable to do a daily challenge.")]
+    public static bool StartDailyChallenge { get; set; }
+
+    [Net, HideInEditor]
+    public bool DailyChallengeEnabled { get; set; }
+
+    [Net, HideInEditor]
+    public bool DailyChallengeComplete { get; set; }
+
+    [Net, HideInEditor]
+    public DateTime DailyChallengeDateUtc { get; set; }
+
 	public new static MazingGame Current => Game.Current as MazingGame;
 
 	[Net]
@@ -603,24 +615,61 @@ public partial class MazingGame : Sandbox.Game
         if ( CurrentMaze == null )
 		{
 			GenerateMaze();
-		}
 
-		// Create a pawn for this client to play with
-		var mazingPlayer = new MazingPlayer( client );
+            DailyChallengeEnabled = StartDailyChallenge;
+            DailyChallengeDateUtc = DateTime.UtcNow;
+
+            StartDailyChallenge = false;
+        }
+
+        _ = ClientJoinedAsync(client);
+    }
+
+    private async Task ClientJoinedAsync( Client client )
+    {
+        var isSpectator = DailyChallengeComplete;
+
+        if (DailyChallengeEnabled && !DailyChallengeComplete)
+        {
+            var result = await GameServices.Leaderboard.Query(Global.GameIdent,
+                client.PlayerId, GetDailyChallengeBucket(DailyChallengeDateUtc, "money"));
+
+            Log.Info($"Found {result.Count} entries for {client.Name}");
+
+            foreach (var entry in result.Entries)
+            {
+                Log.Info($"{entry.DisplayName}: {entry.Rating}");
+            }
+
+            if (result.Count > 0)
+            {
+                isSpectator = true;
+
+                if (client.IsListenServerHost)
+                {
+                    DailyChallengeComplete = true;
+                }
+            }
+        }
+
+        // Create a pawn for this client to play with
+        var mazingPlayer = new MazingPlayer(client)
+        {
+            IsSpectatorOnly = isSpectator,
+            FirstSeenLevelIndex = LevelIndex
+        };
 
         client.Pawn = mazingPlayer;
 
-        mazingPlayer.FirstSeenLevelIndex = LevelIndex;
+        RespawnPlayer(mazingPlayer);
 
-        RespawnPlayer( mazingPlayer );
-
-        if ( LevelIndex > 0 )
+        if (LevelIndex > 0 || mazingPlayer.IsSpectatorOnly)
         {
-            mazingPlayer.Kill( Vector3.Up, "{0} has joined as a ghost", this, false );
+            mazingPlayer.Kill(Vector3.Up, "{0} has joined as a ghost", this, false);
         }
         else
         {
-            ClientJoinNotify( client.Name, client.PlayerId );
+            ClientJoinNotify(client.Name, client.PlayerId);
         }
     }
 
@@ -700,6 +749,29 @@ public partial class MazingGame : Sandbox.Game
         }
     }
 
+    private static string GetDailyChallengeBucket(DateTime dateUtc, string category)
+    {
+        var day = new DateTime(dateUtc.Year, dateUtc.Month, dateUtc.Day);
+
+        return $"daily-{day.Year}-{day.Month}-{day.Day}-{category}";
+    }
+
+    private static int GetDailyChallengeSeed(DateTime dateUtc, int levelIndex)
+    {
+        var day = new DateTime(dateUtc.Year, dateUtc.Month, dateUtc.Day);
+        var firstDay = new DateTime(2022, 9, 6);
+        var diff = (int) Math.Round((day - firstDay).TotalDays);
+
+        var rand = new Random(diff ^ 0x7dcb0789);
+
+        for (var i = 0; i < levelIndex + 10; ++i)
+        {
+            rand.Next();
+        }
+
+        return rand.Next();
+    }
+
     [Event.Tick.Server]
     public void ServerTick()
     {
@@ -753,7 +825,9 @@ public partial class MazingGame : Sandbox.Game
 
                 LevelIndex = NextLevelIndex;
 
-                GenerateMaze( _nextLevelSeed );
+                GenerateMaze( DailyChallengeEnabled
+                    ? GetDailyChallengeSeed(DailyChallengeDateUtc, LevelIndex)
+                    : _nextLevelSeed );
                 ResetPlayers();
 
                 _nextLevelSeed = -1;
@@ -770,6 +844,8 @@ public partial class MazingGame : Sandbox.Game
 
         foreach ( var player in Players )
         {
+            if (player.IsSpectatorOnly) continue;
+
             if ( !player.IsAlive )
             {
                 anyDeadPlayers = true;
@@ -818,7 +894,7 @@ public partial class MazingGame : Sandbox.Game
                 foreach (var player in All.OfType<MazingPlayer>())
                 {
                     if (player.Client == null) continue;
-                    if (LevelIndex < player.FirstSeenLevelIndex * 2)
+                    if (LevelIndex < player.FirstSeenLevelIndex * 2 || player.IsSpectatorOnly)
                     {
                         Log.Info($"Not submitting score for {player.Client.Name}");
                     }
@@ -826,15 +902,31 @@ public partial class MazingGame : Sandbox.Game
                     GameServices.UpdateLeaderboard(player.Client.PlayerId, TotalCoins, "money");
                     GameServices.UpdateLeaderboard(player.Client.PlayerId, LevelIndex + 1, "depth");
 
+                    if (DailyChallengeEnabled)
+                    {
+                        GameServices.UpdateLeaderboard(player.Client.PlayerId, TotalCoins, GetDailyChallengeBucket(DailyChallengeDateUtc, "money"));
+                        GameServices.UpdateLeaderboard(player.Client.PlayerId, LevelIndex + 1, GetDailyChallengeBucket(DailyChallengeDateUtc, "depth"));
+                    }
+
                     if (LevelIndex == TotalLevelCount - 1)
                     {
                         GameServices.UpdateLeaderboard(player.Client.PlayerId, (float) TotalTime.TotalSeconds, "time50");
+
+                        if (DailyChallengeEnabled)
+                        {
+                            GameServices.UpdateLeaderboard(player.Client.PlayerId, (float)TotalTime.TotalSeconds, GetDailyChallengeBucket(DailyChallengeDateUtc, "time50"));
+                        }
                     }
                 }
             }
 
             if (LevelIndex >= TotalLevelCount - 1)
             {
+                if (DailyChallengeEnabled)
+                {
+                    DailyChallengeComplete = true;
+                }
+
                 RestartCountdown = -5f;
                 ClientNotifyFinalScore( true, TotalCoins );
             }
@@ -846,6 +938,11 @@ public partial class MazingGame : Sandbox.Game
         }
         else if ( !anyPlayers && anyDeadPlayers )
         {
+            if (DailyChallengeEnabled)
+            {
+                DailyChallengeComplete = true;
+            }
+
             RestartCountdown = -3f;
             ClientNotifyFinalScore( false, TotalCoins );
         }
@@ -907,7 +1004,19 @@ public partial class MazingGame : Sandbox.Game
         {
             player.FirstSeenLevelIndex = LevelIndex;
 
-            RespawnPlayer( player );
+            if (DailyChallengeComplete)
+            {
+                player.IsSpectatorOnly = true;
+            }
+
+            if (!player.IsSpectatorOnly)
+            {
+                RespawnPlayer(player);
+            }
+            else if (player.IsAlive)
+            {
+                player.Kill(Vector3.Zero, "{0} is now a spectator", null, false);
+            }
         }
     }
 

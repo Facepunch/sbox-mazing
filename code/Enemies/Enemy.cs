@@ -387,7 +387,7 @@ public abstract partial class Enemy : AnimatedEntity
         {
             var ragdollEnt = new AnimatedEntity();
 
-            ragdollEnt.SetModel("models/citizen/citizen.vmdl");
+            ragdollEnt.SetModel(ModelPath);
             ragdollEnt.Position = Position;
             ragdollEnt.Rotation = Rotation;
             ragdollEnt.SetupPhysicsFromModel(PhysicsMotionType.Dynamic, false);

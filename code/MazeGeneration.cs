@@ -328,11 +328,6 @@ public static partial class MazeGenerator
 
         var key = available.Dequeue();
 
-        for (var i = 0; i < playerCount; ++i)
-        {
-            players.Add(available.Dequeue());
-        }
-
         foreach (var enemyType in flatEnemyTypes)
         {
             enemies.Add((enemyType, available.Dequeue()));
@@ -341,6 +336,11 @@ public static partial class MazeGenerator
         foreach (var treasureKind in flatTreasureKinds)
         {
             treasure.Add((treasureKind, available.Dequeue()));
+		}
+
+        for (var i = 0; i < playerCount; ++i)
+        {
+            players.Add(available.Dequeue());
         }
 
 		return new GeneratedMaze( maze, exit, key, players.ToArray(), enemies.ToArray(), treasure.ToArray() );

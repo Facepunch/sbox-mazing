@@ -259,6 +259,15 @@
           "r": "Ignore"
         }
       ]
+    },
+    "GameSettings": {
+      "mazing_daily": {
+        "DisplayType": "Boolean",
+        "Choices": [],
+        "ConVarName": "mazing_daily",
+        "DisplayName": "Daily Challenge",
+        "DefaultValue": "false"
+      }
     }
   }
 }

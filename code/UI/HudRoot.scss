@@ -129,14 +129,19 @@ text.diff.negative {
     color: red;
 }
 
-.editor-warning {
+.editor-warning, .daily-info {
     position: absolute;
-    top: 1vh;
+    top: 6vh;
     width: 100%;
     color: rgba(255, 255, 255, 0.25);
     text-shadow: 2px 2px 4px black;
     font-size: 4vh;
     text-align: center;
+}
+
+.daily-info {
+    top: 1vh;
+    display: none;
 }
 
 .times {

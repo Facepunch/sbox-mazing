@@ -62,6 +62,9 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     public bool IsVaulting => Controller is MazingWalkController controller && controller.IsVaulting;
 
+    [Net]
+    public bool IsSpectatorOnly { get; set; }
+
     private Particles _sweatParticles;
     private Particles _burstParticles;
     private AnimatedEntity _ragdoll;
