@@ -627,12 +627,12 @@ public partial class MazingGame : Sandbox.Game
 
     private async Task ClientJoinedAsync( Client client )
     {
-        var isSpectator = DailyChallengeComplete;
+        var isSpectator = DailyChallengeComplete || DailyChallengeEnabled && LevelIndex > 0;
 
-        if (DailyChallengeEnabled && !DailyChallengeComplete)
+        if (DailyChallengeEnabled && !isSpectator)
         {
             var result = await GameServices.Leaderboard.Query(Global.GameIdent,
-                client.PlayerId, GetDailyChallengeBucket(DailyChallengeDateUtc, "money"));
+                client.PlayerId, bucket: GetDailyChallengeBucket(DailyChallengeDateUtc, "money"), take: 1);
 
             Log.Info($"Found {result.Count} entries for {client.Name}");
 
@@ -753,7 +753,7 @@ public partial class MazingGame : Sandbox.Game
     {
         var day = new DateTime(dateUtc.Year, dateUtc.Month, dateUtc.Day);
 
-        return $"daily-{day.Year}-{day.Month}-{day.Day}-{category}";
+        return $"daily-{day.Year}-{day.Month:00}-{day.Day:00}-{category}";
     }
 
     private static int GetDailyChallengeSeed(DateTime dateUtc, int levelIndex)
@@ -796,6 +796,11 @@ public partial class MazingGame : Sandbox.Game
         }
 
         Lava?.ServerTick();
+
+        if (DailyChallengeComplete)
+        {
+            return;
+        }
 
         if ( !float.IsPositiveInfinity( RestartCountdown ) )
         {
@@ -899,24 +904,9 @@ public partial class MazingGame : Sandbox.Game
                         Log.Info($"Not submitting score for {player.Client.Name}");
                     }
 
-                    GameServices.UpdateLeaderboard(player.Client.PlayerId, TotalCoins, "money");
-                    GameServices.UpdateLeaderboard(player.Client.PlayerId, LevelIndex + 1, "depth");
-
-                    if (DailyChallengeEnabled)
-                    {
-                        GameServices.UpdateLeaderboard(player.Client.PlayerId, TotalCoins, GetDailyChallengeBucket(DailyChallengeDateUtc, "money"));
-                        GameServices.UpdateLeaderboard(player.Client.PlayerId, LevelIndex + 1, GetDailyChallengeBucket(DailyChallengeDateUtc, "depth"));
-                    }
-
-                    if (LevelIndex == TotalLevelCount - 1)
-                    {
-                        GameServices.UpdateLeaderboard(player.Client.PlayerId, (float) TotalTime.TotalSeconds, "time50");
-
-                        if (DailyChallengeEnabled)
-                        {
-                            GameServices.UpdateLeaderboard(player.Client.PlayerId, (float)TotalTime.TotalSeconds, GetDailyChallengeBucket(DailyChallengeDateUtc, "time50"));
-                        }
-                    }
+                    _ = SubmitScoresAsync(player.Client, TotalCoins,
+                        LevelIndex + 1, TotalTime, DailyChallengeEnabled,
+                        DailyChallengeDateUtc);
                 }
             }
 
@@ -943,8 +933,32 @@ public partial class MazingGame : Sandbox.Game
                 DailyChallengeComplete = true;
             }
 
-            RestartCountdown = -3f;
+            LevelCompleted = true;
+            LastLevelTime = TimeSpan.FromSeconds(SinceLevelStart);
+
             ClientNotifyFinalScore( false, TotalCoins );
+        }
+    }
+
+    private static async Task SubmitScoresAsync(Client client, int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
+    {
+        if (daily)
+        {
+            await GameServices.UpdateLeaderboard(client.PlayerId, coins, GetDailyChallengeBucket(dailyDate, "money"));
+            await GameServices.UpdateLeaderboard(client.PlayerId, depth, GetDailyChallengeBucket(dailyDate, "depth"));
+        }
+
+        await GameServices.UpdateLeaderboard(client.PlayerId, coins, "money");
+        await GameServices.UpdateLeaderboard(client.PlayerId, depth, "depth");
+        
+        if (depth == TotalLevelCount)
+        {
+            if (daily)
+            {
+                await GameServices.UpdateLeaderboard(client.PlayerId, (float)time.TotalSeconds, GetDailyChallengeBucket(dailyDate, "time50"));
+            }
+
+            await GameServices.UpdateLeaderboard(client.PlayerId, (float)time.TotalSeconds, "time50");
         }
     }
     
