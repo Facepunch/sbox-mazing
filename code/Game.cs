@@ -631,18 +631,15 @@ public partial class MazingGame : Sandbox.Game
 
         if (DailyChallengeEnabled && !isSpectator)
         {
+            var bucket = GetDailyChallengeBucket(DailyChallengeDateUtc, "money");
+
             var result = await GameServices.Leaderboard.Query(Global.GameIdent,
-                client.PlayerId, bucket: GetDailyChallengeBucket(DailyChallengeDateUtc, "money"), take: 1);
-
-            Log.Info($"Found {result.Count} entries for {client.Name}");
-
-            foreach (var entry in result.Entries)
+                client.PlayerId, bucket: bucket, take: 1);
+            
+            if (result.Entries.Any(x => x.PlayerId == client.PlayerId))
             {
-                Log.Info($"{entry.DisplayName}: {entry.Rating}");
-            }
+                Log.Info($"Found entry for {client.Name} in {bucket}");
 
-            if (result.Count > 0)
-            {
                 isSpectator = true;
 
                 if (client.IsListenServerHost)
@@ -902,6 +899,7 @@ public partial class MazingGame : Sandbox.Game
                     if (LevelIndex < player.FirstSeenLevelIndex * 2 || player.IsSpectatorOnly)
                     {
                         Log.Info($"Not submitting score for {player.Client.Name}");
+                        continue;
                     }
 
                     _ = SubmitScoresAsync(player.Client, TotalCoins,
@@ -932,6 +930,10 @@ public partial class MazingGame : Sandbox.Game
             {
                 DailyChallengeComplete = true;
             }
+            else
+            {
+                RestartCountdown = -3f;
+            }
 
             LevelCompleted = true;
             LastLevelTime = TimeSpan.FromSeconds(SinceLevelStart);
@@ -940,25 +942,32 @@ public partial class MazingGame : Sandbox.Game
         }
     }
 
+    private static async Task SubmitScoreAndLog(Client client, float value, string bucket)
+    {
+        var result = await GameServices.UpdateLeaderboard(client.PlayerId, value, bucket);
+
+        Log.Info($"Submit (\"{client.Name}\", {value}, \"{bucket}\"): ({result.OldRank}, {result.NewRank}, {result.ScoreDelta}, {result.ScoreFinal})");
+    }
+
     private static async Task SubmitScoresAsync(Client client, int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
     {
         if (daily)
         {
-            await GameServices.UpdateLeaderboard(client.PlayerId, coins, GetDailyChallengeBucket(dailyDate, "money"));
-            await GameServices.UpdateLeaderboard(client.PlayerId, depth, GetDailyChallengeBucket(dailyDate, "depth"));
+            await SubmitScoreAndLog(client, coins, GetDailyChallengeBucket(dailyDate, "money"));
+            await SubmitScoreAndLog(client, depth, GetDailyChallengeBucket(dailyDate, "depth"));
         }
 
-        await GameServices.UpdateLeaderboard(client.PlayerId, coins, "money");
-        await GameServices.UpdateLeaderboard(client.PlayerId, depth, "depth");
+        await SubmitScoreAndLog(client, coins, "money");
+        await SubmitScoreAndLog(client, depth, "depth");
         
         if (depth == TotalLevelCount)
         {
             if (daily)
             {
-                await GameServices.UpdateLeaderboard(client.PlayerId, (float)time.TotalSeconds, GetDailyChallengeBucket(dailyDate, "time50"));
+                await SubmitScoreAndLog(client, (float)time.TotalSeconds, GetDailyChallengeBucket(dailyDate, "time50"));
             }
 
-            await GameServices.UpdateLeaderboard(client.PlayerId, (float)time.TotalSeconds, "time50");
+            await SubmitScoreAndLog(client, (float)time.TotalSeconds, "time50");
         }
     }
     
@@ -1016,7 +1025,7 @@ public partial class MazingGame : Sandbox.Game
 
         foreach ( var player in Players.ToArray() )
         {
-            player.FirstSeenLevelIndex = LevelIndex;
+            player.FirstSeenLevelIndex = Math.Min(player.FirstSeenLevelIndex, LevelIndex);
 
             if (DailyChallengeComplete)
             {
