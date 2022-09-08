@@ -24,8 +24,7 @@ public partial class Treasure : AnimatedEntity
 
     private TreasureKind _kind;
     private PointLightEntity _light;
-
-    [Net]
+    
     public TreasureKind Kind
     {
         get => _kind;
