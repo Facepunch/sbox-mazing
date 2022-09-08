@@ -81,7 +81,9 @@ namespace Mazing.UI
                     DailyChallengeInfo.Style.Display = DisplayMode.Flex;
                     DailyChallengeInfo.Text = game.DailyChallengeComplete
                         ? "DAILY CHALLENGE COMPLETE, COME BACK TOMORROW!"
-                        : $"DAILY CHALLENGE {game.DailyChallengeDateUtc.Year}-{game.DailyChallengeDateUtc.Month:00}-{game.DailyChallengeDateUtc.Day:00}";
+                        : player.IsSpectatorOnly
+                            ? "DAILY CHALLENGE IN PROGRESS, YOU ARE SPECTATING"
+                            : $"DAILY CHALLENGE {game.DailyChallengeDateUtc.Year}-{game.DailyChallengeDateUtc.Month:00}-{game.DailyChallengeDateUtc.Day:00}";
                 }
             }
 
