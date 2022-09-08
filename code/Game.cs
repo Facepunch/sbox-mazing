@@ -242,7 +242,7 @@ public partial class MazingGame : Sandbox.Game
         }
         else if (DailyChallengeEnabled && LevelIndex == 1)
         {
-            ClientStartDaily(To.Multiple(Players.Where(CanSubmitScore).Select(x => x.Client)), DailyChallengeDateUtc);
+            _ = StartDailyAsync(Players.Where(CanSubmitScore).ToArray(), DailyChallengeDateUtc);
         }
 
         foreach (var pair in _enemyTypeLastSpawnLevel.ToArray())
@@ -937,60 +937,73 @@ public partial class MazingGame : Sandbox.Game
 
     private void SubmitScore(int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
     {
-        var targets = To.Multiple(Players.Where(CanSubmitScore).Select(x => x.Client));
-        ClientSubmitScore(targets, coins, depth, time, daily, dailyDate);
+        _ = SubmitScoreAsync(Players
+            .Where(CanSubmitScore)
+            .Select(x => x.Client)
+            .ToArray(),
+            coins, depth, time, daily, dailyDate);
     }
-
-    [ClientRpc]
-    private void ClientSubmitScore( int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate )
-    {
-        _ = ClientSubmitScoreAsync(coins, depth, time, daily, dailyDate);
-    }
-
-    private static async Task ClientSubmitScoreAsync(int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
+    
+    private static async Task SubmitScoreAsync( Client[] clients, int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
     {
         if (daily)
         {
-            await ClientSubmitScoreAsync(coins, depth, time,
+            await SubmitScoreAsync(clients, coins, depth, time,
                 GetDailyChallengeBucket(dailyDate, "money"),
                 GetDailyChallengeBucket(dailyDate, "depth"),
                 GetDailyChallengeBucket(dailyDate, $"time{depth}"));
         }
 
-        await ClientSubmitScoreAsync(coins, depth, time, "money", "depth", $"time{depth}");
+        await SubmitScoreAsync(clients, coins, depth, time, "money", "depth", $"time{depth}");
     }
 
-    private static async Task ClientSubmitScoreAsync(int coins, int depth, TimeSpan time, string moneyLbName, string depthLbName, string timeLbName)
+    private static async Task SubmitScoreAsync( Client[] clients, int coins, int depth, TimeSpan time, string moneyLbName, string depthLbName, string timeLbName)
     {
         if (await Leaderboard.FindOrCreate(moneyLbName, false) is { } moneyLb)
         {
-            await moneyLb.Submit(coins);
+            foreach (var client in clients)
+            {
+                Log.Info($"Submit {client} {moneyLb.Name}: {await moneyLb.Submit(client, coins)}");
+            }
         }
 
         if (await Leaderboard.FindOrCreate(depthLbName, false) is { } depthLb)
         {
-            await depthLb.Submit(depth);
+            foreach (var client in clients)
+            {
+                Log.Info($"Submit {client} {depthLb.Name}: {await depthLb.Submit(client, depth)}");
+            }
         }
 
         if (depth == TotalLevelCount && await Leaderboard.FindOrCreate(timeLbName, true) is { } timeLb)
         {
-            await timeLb.Submit((int) time.TotalMilliseconds);
+            foreach (var client in clients)
+            {
+                Log.Info($"Submit {client} {timeLb.Name}: {await timeLb.Submit(client, (int)time.TotalMilliseconds)}");
+            }
         }
     }
-
-    [ClientRpc]
-    private void ClientStartDaily(DateTime dailyDate)
+    
+    private async Task StartDailyAsync(MazingPlayer[] players, DateTime dailyDate)
     {
-        _ = ClientStartDailyAsync(dailyDate);
-    }
+        var dailyLb = await Leaderboard.FindOrCreate(GetDailyChallengeBucket(dailyDate, "money"), false);
 
-    private static async Task<bool> ClientStartDailyAsync(DateTime dailyDate)
-    {
-        if (await Leaderboard.FindOrCreate(GetDailyChallengeBucket(dailyDate, "money"), false) is not { } dailyLb) return false;
+        foreach (var player in players)
+        {
+            var result = dailyLb is { IsValid: true }
+                ? await dailyLb.Value.Submit(player.Client, 0)
+                : null;
 
-        var result = await dailyLb.Submit(0);
+            if (result is { Changed: true })
+            {
+                continue;
+            }
 
-        return result is { Changed: true };
+            Log.Error($"Unable to start daily with {player.Client}");
+
+            player.IsSpectatorOnly = true;
+            player.Kill(Vector3.Zero, "An error occurred when starting the daily challenge for {0}", null, false);
+        }
     }
     
     [ClientRpc]
