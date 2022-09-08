@@ -962,17 +962,17 @@ public partial class MazingGame : Sandbox.Game
 
     private static async Task ClientSubmitScoreAsync(int coins, int depth, TimeSpan time, string moneyLbName, string depthLbName, string timeLbName)
     {
-        if (await Leaderboard.FindOrCreate(moneyLbName, LeaderboardSort.Descending) is { } moneyLb)
+        if (await Leaderboard.FindOrCreate(moneyLbName, false) is { } moneyLb)
         {
             await moneyLb.Submit(coins);
         }
 
-        if (await Leaderboard.FindOrCreate(depthLbName, LeaderboardSort.Descending) is { } depthLb)
+        if (await Leaderboard.FindOrCreate(depthLbName, false) is { } depthLb)
         {
             await depthLb.Submit(depth);
         }
 
-        if (depth == TotalLevelCount && await Leaderboard.FindOrCreate(timeLbName, LeaderboardSort.Ascending) is { } timeLb)
+        if (depth == TotalLevelCount && await Leaderboard.FindOrCreate(timeLbName, true) is { } timeLb)
         {
             await timeLb.Submit((int) time.TotalMilliseconds);
         }
@@ -986,7 +986,7 @@ public partial class MazingGame : Sandbox.Game
 
     private static async Task<bool> ClientStartDailyAsync(DateTime dailyDate)
     {
-        if (await Leaderboard.FindOrCreate(GetDailyChallengeBucket(dailyDate, "money"), LeaderboardSort.Descending) is not { } dailyLb) return false;
+        if (await Leaderboard.FindOrCreate(GetDailyChallengeBucket(dailyDate, "money"), false) is not { } dailyLb) return false;
 
         var result = await dailyLb.Submit(0);
 
