@@ -252,7 +252,7 @@ public abstract partial class Enemy : AnimatedEntity
             {
                 TargetCell = cell;
 
-                _wakeDelay = 1f + Rand.Float(0.5f);
+                _wakeDelay = 2.5f + Rand.Float(0.5f);
                 AwakeTime = -_wakeDelay;
 
                 _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
