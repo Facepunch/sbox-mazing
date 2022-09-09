@@ -154,15 +154,15 @@ text.diff.negative {
 .times text {
     margin-left: 0.5vh;
     margin-right: 0.5vh;
-    margin-top: 0.5vh;
-    font-size: 5vh;
+    margin-top: 1vh;
+    font-size: 3vh;
     color: rgba(255, 255, 255, 0.5);
 
     transition: opacity 0.5s linear;
 }
 
 .times text.level-time {
-    font-size: 6vh;
+    font-size: 4vh;
     color: rgba(255, 255, 255, 0.75);
     margin-top: 0vh;
 }

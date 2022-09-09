@@ -122,7 +122,7 @@ namespace Mazing.UI
                 StreakBonusLabel.Style.Opacity = 0f;
             }
 
-            LevelNumberText.Text = $"Floor {game.LevelIndex + 1}";
+            LevelNumberText.Text = $"Floor {game.LevelIndex + 1} of {MazingGame.TotalLevelCount}";
 
             _overlay ??= Children.FirstOrDefault( x => x.HasClass( "overlay" ) );
             _overlay?.SetClass( "ghost", !player.IsAlive );
