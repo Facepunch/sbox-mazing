@@ -912,9 +912,12 @@ public partial class MazingGame : Sandbox.Game
         }
         else if ( !anyPlayers && anyDeadPlayers )
         {
-            SubmitScore(TotalCoins, LevelIndex + 1, TotalTime, DailyChallengeEnabled, DailyChallengeDateUtc);
+            if ( LevelIndex > 0 )
+            {
+                SubmitScore(TotalCoins, LevelIndex, TotalTime, DailyChallengeEnabled, DailyChallengeDateUtc);
+            }
 
-            if (DailyChallengeEnabled)
+            if ( DailyChallengeEnabled )
             {
                 DailyChallengeComplete = true;
             }
