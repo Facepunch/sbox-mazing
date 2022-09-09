@@ -96,7 +96,7 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
         var travelDist = (TargetPosition - _startPosition).WithZ(0f);
         var travelTime = travelDist.Length / ThrowSpeed;
 
-        if (_throwTime >= 0f && _throwTime <= travelTime)
+        if (_throwTime <= travelTime)
         {
             var t = _throwTime/ travelTime;
 
@@ -106,10 +106,8 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
             // Don't tick if being thrown
             return;
         }
-        else
-        {
-            LocalPosition += (TargetPosition - LocalPosition) * 0.125f;
-        }
+
+        LocalPosition += (TargetPosition - LocalPosition) * 0.125f;
         
         OnServerTick();
     }
