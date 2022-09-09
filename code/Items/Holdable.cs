@@ -20,11 +20,16 @@ public interface IHoldable
 
 public abstract partial class Holdable : AnimatedEntity, IHoldable
 {
+    public const float ThrowSpeed = 192f;
+
     public bool IsHeld => Parent is MazingPlayer;
 
     protected MazingGame Game => MazingGame.Current;
 
-    public Vector3 TargetPosition { get; set; }
+    public Vector3 TargetPosition { get; private set; }
+
+    private Vector3 _startPosition;
+    private TimeSince _throwTime;
 
     private bool _firstTick;
     private bool _hadParent;
@@ -48,6 +53,8 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
     {
         Parent = holder;
         LastHolder = holder;
+
+        _throwTime = float.PositiveInfinity;
         TargetPosition = Vector3.Up * 64f + Vector3.Forward * 8f;
         
         Sound.FromEntity("key.collect", this);
@@ -56,6 +63,10 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
     public void OnThrown( GridCoord target, Direction direction )
     {
         Parent = null;
+
+        _throwTime = 0f;
+
+        _startPosition = LocalPosition;
         TargetPosition = MazingGame.Current.CellCenterToPosition( target );
     }
 
@@ -78,17 +89,28 @@ public abstract partial class Holdable : AnimatedEntity, IHoldable
         if (_firstTick)
         {
             _firstTick = false;
-            TargetPosition = LocalPosition.WithZ(0f);
+            _startPosition = TargetPosition = LocalPosition.WithZ(0f);
+            _throwTime = float.PositiveInfinity;
         }
 
-        LocalPosition += (TargetPosition - LocalPosition) * 0.125f;
+        var travelDist = (TargetPosition - _startPosition).WithZ(0f);
+        var travelTime = travelDist.Length / ThrowSpeed;
 
-        // Don't tick if moving to target position
-        if ((TargetPosition - LocalPosition).LengthSquared > 4f * 4f)
+        if (_throwTime >= 0f && _throwTime <= travelTime)
         {
+            var t = _throwTime/ travelTime;
+
+            LocalPosition = Vector3.Lerp(_startPosition, TargetPosition, t)
+                + Vector3.Up * (1f - (2f * t - 1f) * (2f * t - 1f)) * 192f;
+
+            // Don't tick if being thrown
             return;
         }
-
+        else
+        {
+            LocalPosition += (TargetPosition - LocalPosition) * 0.125f;
+        }
+        
         OnServerTick();
     }
 
