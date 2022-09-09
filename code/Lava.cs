@@ -65,8 +65,8 @@ public class Lava : ModelEntity
     private static string GetDeathMessage()
     {
         return MazingGame.GetRandomWeighted(
-            ("{0} was too slow", 10f),
-            ("{0} was roasted alive", 2f),
+            ("{0} was slower than the lava", 1f),
+            ("{0} was roasted alive", 1f),
             ("{0} was burnt to a crisp", 1f),
             ("{0} was sacrificed to the volcano god", 0.01f));
     }
