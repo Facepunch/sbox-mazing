@@ -95,7 +95,6 @@ public abstract partial class Enemy : AnimatedEntity
 
     public bool IsAwake => AwakeTime > 0f;
 
-    private bool _startWakingUp;
     private float _wakeDelay;
 
     public int Index { get; private set; }
@@ -259,25 +258,6 @@ public abstract partial class Enemy : AnimatedEntity
                 _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
 
                 OnLevelChange();
-            }
-
-            if (!IsAwake && !_startWakingUp)
-            {
-                if (AwakeTime > -_wakeDelay)
-                {
-                    AwakeTime = -_wakeDelay;
-                }
-
-                foreach (var player in Game.PlayersAliveInMaze)
-                {
-                    if (player.IsVaulting || (player.Controller as MazingWalkController)?.GroundEntity == null) continue;
-
-                    if (Game.CurrentMaze.IsConnected(cell, player.GetCellIndex()))
-                    {
-                        _startWakingUp = true;
-                        break;
-                    }
-                }
             }
 
             if (!IsInBounds(cell))
