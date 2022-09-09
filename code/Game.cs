@@ -932,7 +932,7 @@ public partial class MazingGame : Sandbox.Game
     
     private bool CanSubmitScore(MazingPlayer player)
     {
-        return !_hasCheated && /* !Host.IsToolsEnabled && */ player.Client != null && !player.IsSpectatorOnly && LevelIndex >= player.FirstSeenLevelIndex * 2;
+        return !_hasCheated && !Host.IsToolsEnabled && player.Client != null && !player.IsSpectatorOnly && LevelIndex >= player.FirstSeenLevelIndex * 2;
     }
 
     private void SubmitScore(int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
