@@ -15,6 +15,7 @@ using Sandbox.UI;
 
 namespace Mazing;
 
+
 /// <summary>
 /// This is your game class. This is an entity that is created serverside when
 /// the game starts, and is replicated to the client. 
@@ -39,6 +40,8 @@ public partial class MazingGame : Sandbox.Game
 
     [Net, HideInEditor]
     public DateTime DailyChallengeDateUtc { get; set; }
+
+    private Leaderboard<MoneyScore> _dailyChallengeLeaderboard;
 
 	public new static MazingGame Current => Game.Current as MazingGame;
 
@@ -619,11 +622,6 @@ public partial class MazingGame : Sandbox.Game
         if ( CurrentMaze == null )
 		{
 			GenerateMaze();
-
-            DailyChallengeEnabled = StartDailyChallenge;
-            DailyChallengeDateUtc = DateTime.UtcNow;
-
-            StartDailyChallenge = false;
         }
 
         _ = ClientJoinedAsync(client);
@@ -631,11 +629,24 @@ public partial class MazingGame : Sandbox.Game
 
     private async Task ClientJoinedAsync( Client client )
     {
+        if (StartDailyChallenge)
+        {
+            StartDailyChallenge = false;
+
+            _dailyChallengeLeaderboard = await Leaderboard<MoneyScore>.FindOrCreate(
+                "global", Leaderboard.Period.Daily, DateTime.UtcNow, isAscending:false);
+            
+            Log.Info($"Lb: {_dailyChallengeLeaderboard}");
+
+            DailyChallengeEnabled = _dailyChallengeLeaderboard != null;
+            DailyChallengeDateUtc = _dailyChallengeLeaderboard?.DateUtc ?? default;
+        }
+
         var isSpectator = DailyChallengeComplete || DailyChallengeEnabled && LevelIndex > 0;
 
-        if (DailyChallengeEnabled && !isSpectator && await Leaderboard.Find(GetDailyChallengeBucket(DailyChallengeDateUtc, "money")) is { } dailyLb)
+        if (DailyChallengeEnabled && !isSpectator)
         {
-            var result = await dailyLb.GetScore(client.PlayerId);
+            var result = await _dailyChallengeLeaderboard!.GetScore(client.PlayerId);
             
             if (result.HasValue)
             {
@@ -747,20 +758,9 @@ public partial class MazingGame : Sandbox.Game
         }
     }
 
-    private static string GetDailyChallengeBucket(DateTime dateUtc, string category)
+    private int GetDailyChallengeSeed(int levelIndex)
     {
-        var day = new DateTime(dateUtc.Year, dateUtc.Month, dateUtc.Day);
-
-        return $"daily-{day:yyyy-MM-dd}-{category}";
-    }
-
-    private static int GetDailyChallengeSeed(DateTime dateUtc, int levelIndex)
-    {
-        var day = new DateTime(dateUtc.Year, dateUtc.Month, dateUtc.Day);
-        var firstDay = new DateTime(2022, 9, 6);
-        var diff = (int) Math.Round((day - firstDay).TotalDays);
-
-        var rand = new Random(diff ^ 0x7dcb0789);
+        var rand = new Random(_dailyChallengeLeaderboard.Seed);
 
         for (var i = 0; i < levelIndex + 10; ++i)
         {
@@ -829,7 +829,7 @@ public partial class MazingGame : Sandbox.Game
                 LevelIndex = NextLevelIndex;
 
                 GenerateMaze( DailyChallengeEnabled
-                    ? GetDailyChallengeSeed(DailyChallengeDateUtc, LevelIndex)
+                    ? GetDailyChallengeSeed(LevelIndex)
                     : _nextLevelSeed );
                 ResetPlayers();
 
@@ -935,7 +935,7 @@ public partial class MazingGame : Sandbox.Game
     
     private bool CanSubmitScore(MazingPlayer player)
     {
-        return !_hasCheated && !Host.IsToolsEnabled && player.Client != null && !player.IsSpectatorOnly && LevelIndex >= player.FirstSeenLevelIndex * 2;
+        return !_hasCheated && /* !Host.IsToolsEnabled && */ player.Client != null && !player.IsSpectatorOnly && LevelIndex >= player.FirstSeenLevelIndex * 2;
     }
 
     private void SubmitScore(int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
@@ -944,58 +944,53 @@ public partial class MazingGame : Sandbox.Game
             .Where(CanSubmitScore)
             .Select(x => x.Client)
             .ToArray(),
-            coins, depth, time, daily, dailyDate);
+            coins, depth, time, daily ? Leaderboard.Period.Daily : Leaderboard.Period.None, dailyDate);
     }
     
-    private static async Task SubmitScoreAsync( Client[] clients, int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
+    private static async Task SubmitScoreAsync( Client[] clients, int coins, int depth, TimeSpan time,
+        Leaderboard.Period period, DateTime dailyDate)
     {
-        if (daily)
+        if (period != Leaderboard.Period.None)
         {
-            await SubmitScoreAsync(clients, coins, depth, time,
-                GetDailyChallengeBucket(dailyDate, "money"),
-                GetDailyChallengeBucket(dailyDate, "depth"),
-                GetDailyChallengeBucket(dailyDate, $"time{depth}"));
+            await SubmitScoreSingleAsync(clients, coins, depth, time, period, dailyDate);
         }
 
-        await SubmitScoreAsync(clients, coins, depth, time, "money", "depth", $"time{depth}");
+        await SubmitScoreSingleAsync(clients, coins, depth, time, Leaderboard.Period.None, default);
     }
 
-    private static async Task SubmitScoreAsync( Client[] clients, int coins, int depth, TimeSpan time, string moneyLbName, string depthLbName, string timeLbName)
+    private static async Task SubmitScoreSingleAsync(Client[] clients, int coins, int depth, TimeSpan time,
+        Leaderboard.Period period, DateTime dailyDate )
     {
-        if (await Leaderboard.FindOrCreate(moneyLbName, false) is { } moneyLb)
+        if (await Leaderboard<MoneyScore>.FindOrCreate("global", period, dailyDate, false) is { } moneyLb)
         {
             foreach (var client in clients)
             {
-                Log.Info($"Submit {client} {moneyLb.Name}: {await moneyLb.Submit(client, coins)}");
+                await moneyLb.Submit(client, coins, new MoneyScore
+                {
+                    Value = coins
+                });
             }
         }
 
-        if (await Leaderboard.FindOrCreate(depthLbName, false) is { } depthLb)
+        if (await Leaderboard<DepthScore>.FindOrCreate("global", period, dailyDate, false) is { } depthLb)
         {
             foreach (var client in clients)
             {
-                Log.Info($"Submit {client} {depthLb.Name}: {await depthLb.Submit(client, depth)}");
-            }
-        }
+                var score = new DepthScore{
+                    Depth = depth,
+                    Time = time
+                };
 
-        if (depth == TotalLevelCount && await Leaderboard.FindOrCreate(timeLbName, true) is { } timeLb)
-        {
-            foreach (var client in clients)
-            {
-                Log.Info($"Submit {client} {timeLb.Name}: {await timeLb.Submit(client, (int)time.TotalMilliseconds)}");
+                await depthLb.Submit(client, score.Encoded, score);
             }
         }
     }
-    
+
     private async Task StartDailyAsync(MazingPlayer[] players, DateTime dailyDate)
     {
-        var dailyLb = await Leaderboard.FindOrCreate(GetDailyChallengeBucket(dailyDate, "money"), false);
-
         foreach (var player in players)
         {
-            var result = dailyLb is { IsValid: true }
-                ? await dailyLb.Value.Submit(player.Client, 0)
-                : null;
+            var result = await _dailyChallengeLeaderboard.Submit(player.Client, 0, default);
 
             if (result is { Changed: true })
             {

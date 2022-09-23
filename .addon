@@ -269,12 +269,56 @@
         "DefaultValue": "false"
       }
     },
-    "DefaultLeaderboard": "money",
-    "DefaultLeaderboards": [
-      "money",
-      "depth",
-      "daily-{today:yyyy-MM-dd}-money",
-      "daily-{today:yyyy-MM-dd}-depth"
+    "LeaderboardTypes": [
+      {
+        "Name": "depth",
+        "Fields": [
+          {
+            "FieldTypeName": "System.Int32",
+            "Title": "Completed Levels",
+            "Format": "{0} Levels",
+            "Size": 4
+          },
+          {
+            "FieldTypeName": "System.TimeSpan",
+            "Title": "Time",
+            "Format": "{0:mm\\:ss\\.ff}",
+            "Offset": 8,
+            "Size": 8
+          }
+        ]
+      },
+      {
+        "Name": "money",
+        "Fields": [
+          {
+            "FieldTypeName": "System.Int32",
+            "Title": "Treasure Value",
+            "Format": "${0:N0}",
+            "Size": 4
+          }
+        ]
+      }
+    ],
+    "MenuLeaderboards": [
+      {
+        "Name": "global",
+        "TypeName": "money"
+      },
+      {
+        "Name": "global",
+        "TypeName": "depth"
+      },
+      {
+        "Name": "global",
+        "TypeName": "money",
+        "TimePeriod": "Daily"
+      },
+      {
+        "Name": "global",
+        "TypeName": "depth",
+        "TimePeriod": "Daily"
+      }
     ]
   }
 }
