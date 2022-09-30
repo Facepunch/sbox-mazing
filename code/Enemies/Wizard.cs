@@ -37,7 +37,7 @@ internal partial class Wizard : Enemy
 
         Clothing = new ClothingContainer();
         AddClothingItem("models/citizen_clothes/skin05.clothing");
-        AddClothingItem("models/citizen_clothes/dress/Skirt/skirt.clothing");
+        AddClothingItem("models/citizen_clothes/dress/Office_Skirt/office_skirt.clothing");
         AddClothingItem("models/citizen_clothes/necklace/necklace/necklace.clothing");
         AddClothingItem("models/citizen_clothes/hair/hair_balding/hair_baldinggrey.clothing");
         AddClothingItem("models/citizen_clothes/hair/scruffy_beard/scruffy_beard_grey.clothing");

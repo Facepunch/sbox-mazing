@@ -36,7 +36,7 @@ internal partial class EliteWizard : Enemy
 
         Clothing = new ClothingContainer();
         AddClothingItem("models/citizen_clothes/skin01.clothing");
-        AddClothingItem("models/citizen_clothes/dress/Skirt/skirt.clothing");
+        AddClothingItem("models/citizen_clothes/dress/Office_Skirt/office_skirt.clothing");
         //AddClothingItem("models/citizen_clothes/vest/Tactical_Vest/Models/tactical_vest.clothing");
         //AddClothingItem("models/citizen_clothes/hair/hair_balding/hair_baldinggrey.clothing");
         //AddClothingItem("models/citizen_clothes/hair/hair_looseblonde/hair.loose.grey.clothing");
