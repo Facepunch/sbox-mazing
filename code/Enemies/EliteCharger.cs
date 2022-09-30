@@ -48,7 +48,7 @@ internal partial class EliteCharger : Enemy
 
         Clothing = new ClothingContainer();
         AddClothingItem("models/citizen_clothes/skin04.clothing");
-        AddClothingItem("models/citizen_clothes/hat/hardhat.yellow.clothing");
+        AddClothingItem("models/citizen_clothes/hat/Hard_Hat/hard_hat.clothing");
         AddClothingItem("models/citizen_clothes/gloves/leather_gloves/leather_gloves.clothing");
         AddClothingItem("models/citizen_clothes/shoes/Boots/army_boots.clothing");
         Clothing.DressEntity(this);

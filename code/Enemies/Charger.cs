@@ -31,7 +31,7 @@ internal partial class Charger : Enemy
 
         Clothing = new ClothingContainer();
         AddClothingItem("models/citizen_clothes/skin04.clothing");
-        AddClothingItem("models/citizen_clothes/hat/hardhat.yellow.clothing");
+        AddClothingItem("models/citizen_clothes/hat/Hard_Hat/hard_hat.clothing");
         AddClothingItem("models/citizen_clothes/shoes/SmartShoes/smartshoes.clothing");
         Clothing.DressEntity(this);
 
