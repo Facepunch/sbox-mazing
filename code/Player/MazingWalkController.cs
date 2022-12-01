@@ -197,7 +197,7 @@ public partial class MazingWalkController : BasePlayerController
             if (NextVault > 0f && !IsBot && Input.Down(InputButton.Jump))
             {
                 var cell = Pawn.GetCellIndex();
-                var inputDir = new Vector3(-Input.Left, Input.Forward, 0);
+                var inputDir = new Vector3(-pawnPlayer.InputDirection.y, pawnPlayer.InputDirection.x, 0);
 
                 if (inputDir.Length < 0.25f)
                 {
@@ -264,7 +264,7 @@ public partial class MazingWalkController : BasePlayerController
                 }
                 else if ( !IsBot )
                 {
-                    WishVelocity = InputVector = new Vector3(-Input.Left, Input.Forward, 0);
+                    WishVelocity = InputVector = new Vector3(-player.InputDirection.y, player.InputDirection.x, 0);
                 }
             }
             else
