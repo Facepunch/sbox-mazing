@@ -33,6 +33,11 @@ partial class MazingPlayer
         return (min, max);
     }
 
+    private static float CalculateVerticalFoV( float horzFoV, float aspectRatio )
+    {
+        return 360 * MathF.Atan( MathF.Tan( horzFoV * MathF.PI / 360f ) * aspectRatio ) / MathF.PI;
+    }
+
     private void FrameSimulateCamera( IClient client )
     {
         Camera.Rotation = Rotation.FromYaw( 90f ) * Rotation.FromPitch( 80f );
@@ -64,6 +69,6 @@ partial class MazingPlayer
 
         Sound.Listener = new Transform( targetPawn.EyePosition, Rotation.LookAt( Camera.Rotation.Forward.WithZ( 0f ), Vector3.Up ) );
 
-        Camera.FieldOfView = 20;
+        Camera.FieldOfView = CalculateVerticalFoV( 20f, Screen.Width / Screen.Height );
     }
 }
