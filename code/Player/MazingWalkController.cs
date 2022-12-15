@@ -377,7 +377,7 @@ public partial class MazingWalkController : BasePlayerController
         // where should we be rotated to
         var turnSpeed = 0.02f;
 
-        var rotation = Rotation;
+        var rotation = EyeRotation;
 
         var idealRotation = Rotation.LookAt( rotation.Forward.WithZ( 0 ), Vector3.Up );
         Rotation = Rotation.Slerp( Rotation, idealRotation, WishVelocity.Length * Time.Delta * turnSpeed );
@@ -385,31 +385,54 @@ public partial class MazingWalkController : BasePlayerController
 
         CitizenAnimationHelper animHelper = new CitizenAnimationHelper( (AnimatedEntity) Pawn );
 
+        var player = Pawn as MazingPlayer;
+
+        var held = HasTag( "held" );
+        var isGhost = !(player?.IsAlive ?? true);
+
+        var lookPos = Pawn.AimRay.Position + EyeRotation.Forward * 200;
+
+        if ( player != null )
+        {
+            if ( player.HeldEntity != null )
+            {
+                player.SetAnimParameter( "b_vr", true );
+                player.SetAnimParameter( "aim_body_weight", 0.75f );
+                player.SetAnimParameter( "left_hand_ik.position", new Vector3( 6f, 14f, 64f ) );
+                player.SetAnimParameter( "right_hand_ik.position", new Vector3( 6f, -14f, 64f ) );
+                player.SetAnimParameter( "left_hand_ik.rotation", Rotation.From( -65f, 87f, 7f ) );
+                player.SetAnimParameter( "right_hand_ik.rotation", Rotation.From( -115f, 87f, 7f ) );
+            }
+            else
+            {
+                player.SetAnimParameter( "holdtype", 0 );
+                player.SetAnimParameter( "b_vr", false );
+                player.SetAnimParameter( "aim_body_weight", 0.5f );
+            }
+        }
+        else
+        {
+            if ( Pawn is Enemy enemy )
+            {
+                lookPos = enemy.LookPos;
+            }
+        }
+
         animHelper.WithWishVelocity( WishVelocity );
         animHelper.WithVelocity( Velocity );
-        animHelper.WithLookAt( Pawn.AimRay.Position + EyeRotation.Forward * 100.0f, 1.0f, 1.0f, 0.5f );
+        animHelper.WithLookAt( lookPos, 1.0f, 1.0f, 0.5f );
         animHelper.AimAngle = rotation;
         animHelper.FootShuffle = shuffle;
         animHelper.DuckLevel = MathX.Lerp( animHelper.DuckLevel, HasTag( "ducked" ) ? 1 : 0, Time.Delta * 10.0f );
         animHelper.VoiceLevel = (Sandbox.Game.IsClient && Client.IsValid()) ? Client.Voice.LastHeard < 0.5f ? Client.Voice.CurrentLevel : 0.0f : 0.0f;
-        animHelper.IsGrounded = GroundEntity != null;
-        animHelper.IsSitting = HasTag( "sitting" );
-        animHelper.IsNoclipping = HasTag( "noclip" );
-        animHelper.IsClimbing = HasTag( "climbing" );
+        animHelper.IsGrounded = !isGhost && (GroundEntity != null || held);
+        animHelper.IsSitting = false;
+        animHelper.IsNoclipping = isGhost && Velocity.WithZ( 0f ).LengthSquared < 50f * 50f;
+        animHelper.IsClimbing = false;
         animHelper.IsSwimming = Pawn.GetWaterLevel() >= 0.5f;
         animHelper.IsWeaponLowered = false;
 
         if ( HasEvent( "jump" ) ) animHelper.TriggerJump();
-
-        if ( Pawn is Sandbox.Player { ActiveChild: BaseCarriable carry } )
-        {
-            carry.SimulateAnimator( animHelper );
-        }
-        else
-        {
-            animHelper.HoldType = CitizenAnimationHelper.HoldTypes.None;
-            animHelper.AimBodyWeight = 0.5f;
-        }
     }
 
     public override void Simulate()
