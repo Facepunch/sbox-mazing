@@ -179,7 +179,7 @@ public partial class MazingWalkController : BasePlayerController
         }
     }
 
-    public override void Simulate()
+    private void SimulatePhysics()
     {
         EyeLocalPosition = Vector3.Up * (EyeHeight * Pawn.Scale);
         UpdateBBox();
@@ -370,7 +370,52 @@ public partial class MazingWalkController : BasePlayerController
             DebugOverlay.ScreenText( $" SurfaceFriction: {SurfaceFriction}", lineOffset + 4 );
             DebugOverlay.ScreenText( $"    WishVelocity: {WishVelocity}", lineOffset + 5 );
         }
+    }
 
+    private void SimulateAnimation()
+    {
+        // where should we be rotated to
+        var turnSpeed = 0.02f;
+
+        var rotation = Rotation;
+
+        var idealRotation = Rotation.LookAt( rotation.Forward.WithZ( 0 ), Vector3.Up );
+        Rotation = Rotation.Slerp( Rotation, idealRotation, WishVelocity.Length * Time.Delta * turnSpeed );
+        Rotation = Rotation.Clamp( idealRotation, 45.0f, out var shuffle ); // lock facing to within 45 degrees of look direction
+
+        CitizenAnimationHelper animHelper = new CitizenAnimationHelper( (AnimatedEntity) Pawn );
+
+        animHelper.WithWishVelocity( WishVelocity );
+        animHelper.WithVelocity( Velocity );
+        animHelper.WithLookAt( Pawn.AimRay.Position + EyeRotation.Forward * 100.0f, 1.0f, 1.0f, 0.5f );
+        animHelper.AimAngle = rotation;
+        animHelper.FootShuffle = shuffle;
+        animHelper.DuckLevel = MathX.Lerp( animHelper.DuckLevel, HasTag( "ducked" ) ? 1 : 0, Time.Delta * 10.0f );
+        animHelper.VoiceLevel = (Sandbox.Game.IsClient && Client.IsValid()) ? Client.Voice.LastHeard < 0.5f ? Client.Voice.CurrentLevel : 0.0f : 0.0f;
+        animHelper.IsGrounded = GroundEntity != null;
+        animHelper.IsSitting = HasTag( "sitting" );
+        animHelper.IsNoclipping = HasTag( "noclip" );
+        animHelper.IsClimbing = HasTag( "climbing" );
+        animHelper.IsSwimming = Pawn.GetWaterLevel() >= 0.5f;
+        animHelper.IsWeaponLowered = false;
+
+        if ( HasEvent( "jump" ) ) animHelper.TriggerJump();
+
+        if ( Pawn is Sandbox.Player { ActiveChild: BaseCarriable carry } )
+        {
+            carry.SimulateAnimator( animHelper );
+        }
+        else
+        {
+            animHelper.HoldType = CitizenAnimationHelper.HoldTypes.None;
+            animHelper.AimBodyWeight = 0.5f;
+        }
+    }
+
+    public override void Simulate()
+    {
+        SimulatePhysics();
+        SimulateAnimation();
     }
 
     private void WallGapAssist()
