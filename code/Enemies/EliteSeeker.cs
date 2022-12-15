@@ -54,7 +54,7 @@ partial class EliteSeeker : Enemy
         }
 
         Scale = 1f;
-        LastVault = -Rand.Float(2f, 2f + VaultPeriod);
+        LastVault = -Sandbox.Game.Random.Float(2f, 2f + VaultPeriod);
     }
 
     //protected override void OnServerTick()

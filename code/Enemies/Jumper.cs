@@ -46,7 +46,7 @@ partial class Jumper : Enemy
 
         var cell = this.GetCellIndex();
         var dir = MazeData.Directions.Where(x => Game.IsInMaze(cell + x.Direction))
-            .OrderBy(x => Rand.Float() - GetSinceLastVisited(cell + x.Delta) + GetCost(cell + x.Delta))
+            .OrderBy(x => Sandbox.Game.Random.Float() - GetSinceLastVisited(cell + x.Delta) + GetCost(cell + x.Delta))
             .FirstOrDefault();
 
         TargetCell = this.GetCellIndex() + dir.Direction;

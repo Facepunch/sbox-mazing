@@ -38,7 +38,7 @@ public partial class MazingWalkController : BasePlayerController
 
     public bool IsPlayer => Pawn is MazingPlayer;
     public bool IsBot => Pawn is MazingPlayer player && player.Client.IsBot != Input.Down( InputButton.Walk );
-    
+
     public Vector3 InputVector { get; set; }
 
     [Net, Predicted]
@@ -56,26 +56,26 @@ public partial class MazingWalkController : BasePlayerController
     private TimeSince _localSinceVault;
 
     public Unstuck Unstuck;
-    
+
     public MazingWalkController()
     {
-        Unstuck = new Unstuck(this);
+        Unstuck = new Unstuck( this );
         SinceVault = float.MaxValue;
         _localSinceVault = float.MaxValue;
     }
-    
+
     /// <summary>
     /// This is temporary, get the hull size for the player's collision
     /// </summary>
     public override BBox GetHull()
     {
         var girth = BodyGirth * 0.5f;
-        var mins = new Vector3(-girth, -girth, 0);
-        var maxs = new Vector3(+girth, +girth, BodyHeight);
+        var mins = new Vector3( -girth, -girth, 0 );
+        var maxs = new Vector3( +girth, +girth, BodyHeight );
 
-        return new BBox(mins, maxs);
+        return new BBox( mins, maxs );
     }
-    
+
     // Duck body height 32
     // Eye Height 64
     // Duck Eye Height 28
@@ -85,7 +85,7 @@ public partial class MazingWalkController : BasePlayerController
 
     public virtual void SetBBox( Vector3 mins, Vector3 maxs )
     {
-        if (this.mins == mins && this.maxs == maxs)
+        if ( this.mins == mins && this.maxs == maxs )
             return;
 
         this.mins = mins;
@@ -99,10 +99,10 @@ public partial class MazingWalkController : BasePlayerController
     {
         var girth = BodyGirth * 0.5f;
 
-        var mins = new Vector3(-girth, -girth, 0) * Pawn.Scale;
-        var maxs = new Vector3(+girth, +girth, BodyHeight) * Pawn.Scale;
-        
-        SetBBox(mins, maxs);
+        var mins = new Vector3( -girth, -girth, 0 ) * Pawn.Scale;
+        var maxs = new Vector3( +girth, +girth, BodyHeight ) * Pawn.Scale;
+
+        SetBBox( mins, maxs );
     }
 
     protected float SurfaceFriction;
@@ -120,8 +120,8 @@ public partial class MazingWalkController : BasePlayerController
         {
             return;
         }
-        
-        if ( Math.Abs(dir.x ) > Math.Abs(dir.y ) )
+
+        if ( Math.Abs( dir.x ) > Math.Abs( dir.y ) )
         {
             dir.y = 0f;
         }
@@ -130,7 +130,7 @@ public partial class MazingWalkController : BasePlayerController
             dir.x = 0f;
         }
 
-        EyeRotation = Rotation.LookAt(dir, Vector3.Up );
+        EyeRotation = Rotation.LookAt( dir, Vector3.Up );
     }
 
 
@@ -194,26 +194,26 @@ public partial class MazingWalkController : BasePlayerController
             Rotation = pawnPlayer.ParentPlayer.Rotation;
             EyeRotation = pawnPlayer.ParentPlayer.Rotation;
 
-            if (NextVault > 0f && !IsBot && Input.Down(InputButton.Jump))
+            if ( NextVault > 0f && !IsBot && Input.Down( InputButton.Jump ) )
             {
                 var cell = Pawn.GetCellIndex();
-                var inputDir = new Vector3(-pawnPlayer.InputDirection.y, pawnPlayer.InputDirection.x, 0);
+                var inputDir = new Vector3( -pawnPlayer.InputDirection.y, pawnPlayer.InputDirection.x, 0 );
 
-                if (inputDir.Length < 0.25f)
+                if ( inputDir.Length < 0.25f )
                 {
                     inputDir = EyeRotation.Forward;
                 }
 
-                var dir = MazeData.GetDirection(inputDir);
+                var dir = MazeData.GetDirection( inputDir );
                 var target = cell + dir;
 
-                if (MazingGame.Current.IsInMaze(target))
+                if ( MazingGame.Current.IsInMaze( target ) )
                 {
-                    if ( Host.IsServer )
+                    if ( Game.IsServer )
                     {
-                        pawnPlayer.ParentPlayer.ThrowItem(target, dir);
+                        pawnPlayer.ParentPlayer.ThrowItem( target, dir );
                     }
-                    
+
                     _localSinceVault = 0f;
                     NextVault = -VaultCooldown;
                 }
@@ -224,22 +224,22 @@ public partial class MazingWalkController : BasePlayerController
 
         RestoreGroundPos();
 
-        if (!IsVaulting && Unstuck.TestAndFix())
+        if ( !IsVaulting && Unstuck.TestAndFix() )
             return;
 
-        if (MazingGame.Current == null)
+        if ( MazingGame.Current == null )
             return;
 
         //
         // Start Gravity
         //
-        Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
-        Velocity += new Vector3(0, 0, BaseVelocity.z) * Time.Delta;
-        
+        Velocity -= new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta;
+        Velocity += new Vector3( 0, 0, BaseVelocity.z ) * Time.Delta;
+
         WishVelocity = default;
 
-        BaseVelocity = BaseVelocity.WithZ(0);
-        
+        BaseVelocity = BaseVelocity.WithZ( 0 );
+
         if ( IsVaulting )
         {
             VaultMove();
@@ -248,11 +248,11 @@ public partial class MazingWalkController : BasePlayerController
         {
             var game = MazingGame.Current;
             var (rowF, colF) = game.PositionToCell( Position );
-            var cell = new GridCoord(rowF.FloorToInt(), colF.FloorToInt());
+            var cell = new GridCoord( rowF.FloorToInt(), colF.FloorToInt() );
 
             if ( Debug )
             {
-                DebugOverlay.Box( game.CellToPosition(cell), game.CellToPosition( cell.Row + 1f, cell.Col + 1f ),
+                DebugOverlay.Box( game.CellToPosition( cell ), game.CellToPosition( cell.Row + 1f, cell.Col + 1f ),
                     new Color( 0.5f, 0.5f, 0.5f, 1f ), depthTest: false );
             }
 
@@ -264,7 +264,7 @@ public partial class MazingWalkController : BasePlayerController
                 }
                 else if ( !IsBot )
                 {
-                    WishVelocity = InputVector = new Vector3(-player.InputDirection.y, player.InputDirection.x, 0);
+                    WishVelocity = InputVector = new Vector3( -player.InputDirection.y, player.InputDirection.x, 0 );
                 }
             }
             else
@@ -275,9 +275,9 @@ public partial class MazingWalkController : BasePlayerController
             //
             // Work out wish velocity.. just take input, rotate it to view, clamp to -1, 1
             //
-            var inSpeed = WishVelocity.Length.Clamp(0, 1);
+            var inSpeed = WishVelocity.Length.Clamp( 0, 1 );
 
-            WishVelocity = WishVelocity.WithZ(0);
+            WishVelocity = WishVelocity.WithZ( 0 );
 
             UpdateEyeRotation();
 
@@ -291,7 +291,7 @@ public partial class MazingWalkController : BasePlayerController
 
             if ( !IsGhost )
             {
-                if ( !IsVaultOnCooldown && IsPlayer && ((MazingPlayer) Pawn).IsAliveInMaze && !IsBot && !((MazingPlayer)Pawn).IsSpawning && Input.Down( InputButton.Jump ) )
+                if ( !IsVaultOnCooldown && IsPlayer && ((MazingPlayer) Pawn).IsAliveInMaze && !IsBot && !((MazingPlayer) Pawn).IsSpawning && Input.Down( InputButton.Jump ) )
                 {
                     var dir = Pawn.GetFacingDirection();
                     var next = cell + dir;
@@ -324,7 +324,7 @@ public partial class MazingWalkController : BasePlayerController
                 }
             }
 
-            if (IsGhost)
+            if ( IsGhost )
             {
                 Velocity += Vector3.Up * (GhostHeight - Position.z);
                 Position = Position.WithZ( Math.Clamp( Position.z + Velocity.z * Time.Delta, 32f, GhostHeight + 64f ) );
@@ -346,29 +346,29 @@ public partial class MazingWalkController : BasePlayerController
         }
 
         // FinishGravity
-        Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
-        
+        Velocity -= new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta;
+
         if ( GroundEntity != null && !IsGhost )
         {
-            Velocity = Velocity.WithZ(0);
+            Velocity = Velocity.WithZ( 0 );
         }
 
         SaveGroundPos();
 
-        if (Debug)
+        if ( Debug )
         {
-            DebugOverlay.Box(Position + TraceOffset, mins, maxs, Color.Red);
-            DebugOverlay.Box(Position, mins, maxs, Color.Blue);
+            DebugOverlay.Box( Position + TraceOffset, mins, maxs, Color.Red );
+            DebugOverlay.Box( Position, mins, maxs, Color.Blue );
 
             var lineOffset = 0;
-            if (Host.IsServer) lineOffset = 10;
+            if ( Game.IsServer ) lineOffset = 10;
 
-            DebugOverlay.ScreenText($"        Position: {Position}", lineOffset + 0);
-            DebugOverlay.ScreenText($"        Velocity: {Velocity}", lineOffset + 1);
-            DebugOverlay.ScreenText($"    BaseVelocity: {BaseVelocity}", lineOffset + 2);
-            DebugOverlay.ScreenText($"    GroundEntity: {GroundEntity} [{GroundEntity?.Velocity}]", lineOffset + 3);
-            DebugOverlay.ScreenText($" SurfaceFriction: {SurfaceFriction}", lineOffset + 4);
-            DebugOverlay.ScreenText($"    WishVelocity: {WishVelocity}", lineOffset + 5);
+            DebugOverlay.ScreenText( $"        Position: {Position}", lineOffset + 0 );
+            DebugOverlay.ScreenText( $"        Velocity: {Velocity}", lineOffset + 1 );
+            DebugOverlay.ScreenText( $"    BaseVelocity: {BaseVelocity}", lineOffset + 2 );
+            DebugOverlay.ScreenText( $"    GroundEntity: {GroundEntity} [{GroundEntity?.Velocity}]", lineOffset + 3 );
+            DebugOverlay.ScreenText( $" SurfaceFriction: {SurfaceFriction}", lineOffset + 4 );
+            DebugOverlay.ScreenText( $"    WishVelocity: {WishVelocity}", lineOffset + 5 );
         }
 
     }
@@ -380,13 +380,13 @@ public partial class MazingWalkController : BasePlayerController
 
         var game = MazingGame.Current;
 
-        var dir = MazeData.GetDirection(WishVelocity);
+        var dir = MazeData.GetDirection( WishVelocity );
         var cell = Pawn.GetCellIndex();
 
         // Only if not moving directly into a wall
         if ( game.CurrentMaze.GetWall( cell, dir ) ) return;
 
-        var normal = ((GridCoord)dir).Normal;
+        var normal = ((GridCoord) dir).Normal;
         var tangent = new Vector3( -normal.y, normal.x );
 
         var frac = Vector3.Dot( tangent, Pawn.Position ) / 48f - 0.5f;
@@ -406,7 +406,7 @@ public partial class MazingWalkController : BasePlayerController
 
     public virtual float GetWishSpeed()
     {
-        if ( Pawn is MazingPlayer { HeldEntity.IsHeavy: true })
+        if ( Pawn is MazingPlayer { HeldEntity.IsHeavy: true } )
         {
             return DefaultSpeed * 2f / 3f;
         }
@@ -423,13 +423,13 @@ public partial class MazingWalkController : BasePlayerController
 
         Position = Vector3.Up * height * VaultHeight + groundPos;
 
-        if ( Host.IsServer && sinceVault > VaultTime * 0.75f && Host.IsServer && Pawn is MazingPlayer player )
+        if ( Game.IsServer && sinceVault > VaultTime * 0.75f && Game.IsServer && Pawn is MazingPlayer player )
         {
             var result = TraceBBox( Position, Position - Vector3.Up * 16f );
 
             if ( result.Hit && result.Entity is MazingPlayer otherPlayer
                             && !otherPlayer.IsVaulting && result.Entity.Position.z < Position.z - 32f
-                            && (otherPlayer.Position - Position).WithZ( 0f ).LengthSquared <= 24f * 24f)
+                            && (otherPlayer.Position - Position).WithZ( 0f ).LengthSquared <= 24f * 24f )
             {
                 otherPlayer.PickUp( player );
             }
@@ -441,12 +441,12 @@ public partial class MazingWalkController : BasePlayerController
         var wishdir = WishVelocity.Normal;
         var wishspeed = WishVelocity.Length;
 
-        WishVelocity = WishVelocity.WithZ(0);
+        WishVelocity = WishVelocity.WithZ( 0 );
         WishVelocity = WishVelocity.Normal * wishspeed;
 
-        Velocity = Velocity.WithZ(0);
-        Accelerate(wishdir, wishspeed, 0, Acceleration);
-        Velocity = Velocity.WithZ(0);
+        Velocity = Velocity.WithZ( 0 );
+        Accelerate( wishdir, wishspeed, 0, Acceleration );
+        Velocity = Velocity.WithZ( 0 );
 
         //   Player.SetAnimParam( "forward", Input.Forward );
         //   Player.SetAnimParam( "sideward", Input.Right );
@@ -461,18 +461,18 @@ public partial class MazingWalkController : BasePlayerController
 
         try
         {
-            if (Velocity.Length < 1.0f)
+            if ( Velocity.Length < 1.0f )
             {
                 Velocity = Vector3.Zero;
                 return;
             }
 
             // first try just moving to the destination
-            var dest = (Position + Velocity * Time.Delta).WithZ(Position.z);
+            var dest = (Position + Velocity * Time.Delta).WithZ( Position.z );
 
-            var pm = TraceBBox(Position, dest);
+            var pm = TraceBBox( Position, dest );
 
-            if (pm.Fraction == 1)
+            if ( pm.Fraction == 1 )
             {
                 Position = pm.EndPosition;
                 StayOnGround();
@@ -498,7 +498,7 @@ public partial class MazingWalkController : BasePlayerController
 
         ConfigureTraceTags( ref trace );
 
-        return new MoveHelper(Position, Velocity)
+        return new MoveHelper( Position, Velocity )
         {
             Trace = trace,
             MaxStandableAngle = GroundAngle
@@ -508,7 +508,7 @@ public partial class MazingWalkController : BasePlayerController
     public virtual void StepMove()
     {
         var mover = CreateMoveHelper();
-        mover.TryMoveWithStep(Time.Delta, StepSize);
+        mover.TryMoveWithStep( Time.Delta, StepSize );
 
         Position = mover.Position;
         Velocity = mover.Velocity;
@@ -519,7 +519,7 @@ public partial class MazingWalkController : BasePlayerController
         var mover = CreateMoveHelper();
         mover.MaxStandableAngle = GroundAngle;
 
-        mover.TryMove(Time.Delta);
+        mover.TryMove( Time.Delta );
 
         Position = mover.Position;
         Velocity = mover.Velocity;
@@ -530,24 +530,24 @@ public partial class MazingWalkController : BasePlayerController
     /// </summary>
     public virtual void Accelerate( Vector3 wishdir, float wishspeed, float speedLimit, float acceleration )
     {
-        if (speedLimit > 0 && wishspeed > speedLimit)
+        if ( speedLimit > 0 && wishspeed > speedLimit )
             wishspeed = speedLimit;
 
         // See if we are changing direction a bit
-        var currentspeed = Velocity.Dot(wishdir);
+        var currentspeed = Velocity.Dot( wishdir );
 
         // Reduce wishspeed by the amount of veer.
         var addspeed = wishspeed - currentspeed;
 
         // If not going to add any speed, done.
-        if (addspeed <= 0)
+        if ( addspeed <= 0 )
             return;
 
         // Determine amount of acceleration.
         var accelspeed = acceleration * Time.Delta * wishspeed * (IsGhost ? 1f : SurfaceFriction);
 
         // Cap at addspeed
-        if (accelspeed > addspeed)
+        if ( accelspeed > addspeed )
             accelspeed = addspeed;
 
         Velocity += wishdir * accelspeed;
@@ -560,7 +560,7 @@ public partial class MazingWalkController : BasePlayerController
     {
         // Calculate speed
         var speed = Velocity.Length;
-        if (speed < 0.1f) return;
+        if ( speed < 0.1f ) return;
 
         // Bleed off some speed, but if we have less than the bleed
         //  threshold, bleed the threshold amount.
@@ -571,9 +571,9 @@ public partial class MazingWalkController : BasePlayerController
 
         // scale the velocity
         float newspeed = speed - drop;
-        if (newspeed < 0) newspeed = 0;
+        if ( newspeed < 0 ) newspeed = 0;
 
-        if (newspeed != speed)
+        if ( newspeed != speed )
         {
             newspeed /= speed;
             Velocity *= newspeed;
@@ -586,11 +586,11 @@ public partial class MazingWalkController : BasePlayerController
 
         if ( Debug )
         {
-            DebugOverlay.Box(game.CellToPosition(target.Row + 0.25f, target.Col + 0.25f),
-                game.CellToPosition(target.Row + 0.75f, target.Col + 0.75f),
-                Color.White, 1f);
+            DebugOverlay.Box( game.CellToPosition( target.Row + 0.25f, target.Col + 0.25f ),
+                game.CellToPosition( target.Row + 0.75f, target.Col + 0.75f ),
+                Color.White, 1f );
         }
-        
+
         SinceVault = 0f;
 
         if ( withCooldown )
@@ -609,16 +609,16 @@ public partial class MazingWalkController : BasePlayerController
         float flGroundFactor = 1.0f;
         float flMul = 268.3281572999747f * 1.2f;
         float startz = Velocity.z;
-        
-        Velocity = Velocity.WithZ(startz + flMul * flGroundFactor);
-        Velocity -= new Vector3(0, 0, Gravity * 0.5f) * Time.Delta;
 
-        if ( Host.IsServer )
+        Velocity = Velocity.WithZ( startz + flMul * flGroundFactor );
+        Velocity -= new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta;
+
+        if ( Game.IsServer )
         {
             (Pawn as MazingPlayer)?.OnVault();
         }
 
-        AddEvent("vault");
+        AddEvent( "vault" );
     }
 
     public virtual void AirMove()
@@ -626,7 +626,7 @@ public partial class MazingWalkController : BasePlayerController
         var wishdir = WishVelocity.Normal;
         var wishspeed = WishVelocity.Length;
 
-        Accelerate(wishdir, wishspeed, AirControl, AirAcceleration);
+        Accelerate( wishdir, wishspeed, AirControl, AirAcceleration );
 
         Velocity += BaseVelocity;
 
@@ -634,7 +634,7 @@ public partial class MazingWalkController : BasePlayerController
 
         Velocity -= BaseVelocity;
     }
-    
+
     public virtual void CategorizePosition( bool bStayOnGround )
     {
         SurfaceFriction = 1.0f;
@@ -652,39 +652,39 @@ public partial class MazingWalkController : BasePlayerController
         bool bMovingUpRapidly = Velocity.z > MaxNonJumpVelocity;
         bool bMoveToEndPos = false;
 
-        if (GroundEntity != null) // and not underwater
+        if ( GroundEntity != null ) // and not underwater
         {
             bMoveToEndPos = true;
             point.z -= StepSize;
         }
-        else if (bStayOnGround)
+        else if ( bStayOnGround )
         {
             bMoveToEndPos = true;
             point.z -= StepSize;
         }
 
-        if (bMovingUpRapidly) // or ladder and moving up
+        if ( bMovingUpRapidly ) // or ladder and moving up
         {
             ClearGroundEntity();
             return;
         }
 
-        var pm = TraceBBox(vBumpOrigin, point, 4.0f);
+        var pm = TraceBBox( vBumpOrigin, point, 4.0f );
 
-        if (pm.Entity == null || Vector3.GetAngle(Vector3.Up, pm.Normal) > GroundAngle)
+        if ( pm.Entity == null || Vector3.GetAngle( Vector3.Up, pm.Normal ) > GroundAngle )
         {
             ClearGroundEntity();
             bMoveToEndPos = false;
 
-            if (Velocity.z > 0)
+            if ( Velocity.z > 0 )
                 SurfaceFriction = 0.25f;
         }
         else
         {
-            UpdateGroundEntity(pm);
+            UpdateGroundEntity( pm );
         }
 
-        if (bMoveToEndPos && !pm.StartedSolid && pm.Fraction > 0.0f && pm.Fraction < 1.0f)
+        if ( bMoveToEndPos && !pm.StartedSolid && pm.Fraction > 0.0f && pm.Fraction < 1.0f )
         {
             Position = pm.EndPosition;
         }
@@ -707,13 +707,13 @@ public partial class MazingWalkController : BasePlayerController
         // A value of 0.8f feels pretty normal for vphysics, whereas 1.0f is normal for players.
         // This scaling trivially makes them equivalent.  REVISIT if this affects low friction surfaces too much.
         SurfaceFriction = tr.Surface.Friction * 1.25f;
-        if (SurfaceFriction > 1) SurfaceFriction = 1;
+        if ( SurfaceFriction > 1 ) SurfaceFriction = 1;
 
         if ( GroundEntity == null && Pawn is not Enemy )
         {
-            Sound.FromWorld("player.land", Position);
+            Sound.FromWorld( "player.land", Position );
 
-            if (Pawn is MazingPlayer player && player.IsSpawning)
+            if ( Pawn is MazingPlayer player && player.IsSpawning )
             {
                 player.IsSpawning = false;
             }
@@ -721,7 +721,7 @@ public partial class MazingWalkController : BasePlayerController
 
         GroundEntity = tr.Entity;
 
-        if (GroundEntity != null)
+        if ( GroundEntity != null )
         {
             BaseVelocity = GroundEntity.Velocity;
         }
@@ -732,7 +732,7 @@ public partial class MazingWalkController : BasePlayerController
     /// </summary>
     public virtual void ClearGroundEntity()
     {
-        if (GroundEntity == null) return;
+        if ( GroundEntity == null ) return;
 
         GroundEntity = null;
         GroundNormal = Vector3.Up;
@@ -746,46 +746,46 @@ public partial class MazingWalkController : BasePlayerController
     /// </summary>
     public override TraceResult TraceBBox( Vector3 start, Vector3 end, float liftFeet = 0.0f )
     {
-        return TraceBBox(start, end, mins, maxs, liftFeet);
+        return TraceBBox( start, end, mins, maxs, liftFeet );
     }
 
     private void ConfigureTraceTags( ref Trace trace )
     {
-        if (!IsVaulting)
+        if ( !IsVaulting )
         {
-            trace = trace.WithAnyTags("solid");
+            trace = trace.WithAnyTags( "solid" );
         }
 
-        if (Pawn is MazingPlayer player)
+        if ( Pawn is MazingPlayer player )
         {
-            if (player.IsAliveInMaze)
+            if ( player.IsAliveInMaze )
             {
-                trace = trace.WithAnyTags("player", "trap");
+                trace = trace.WithAnyTags( "player", "trap" );
             }
-            else if (!player.IsAlive)
+            else if ( !player.IsAlive )
             {
-                trace = trace.WithAnyTags("exit");
+                trace = trace.WithAnyTags( "exit" );
             }
         }
-        else if (Pawn is Enemy)
+        else if ( Pawn is Enemy )
         {
-            trace = trace.WithAnyTags("enemy");
-            trace = trace.WithAnyTags("exit");
+            trace = trace.WithAnyTags( "enemy" );
+            trace = trace.WithAnyTags( "exit" );
         }
     }
 
     public override TraceResult TraceBBox( Vector3 start, Vector3 end, Vector3 mins, Vector3 maxs, float liftFeet = 0.0f )
     {
-        if (liftFeet > 0)
+        if ( liftFeet > 0 )
         {
             start += Vector3.Up * liftFeet;
-            maxs = maxs.WithZ(maxs.z - liftFeet);
+            maxs = maxs.WithZ( maxs.z - liftFeet );
         }
 
         var trace = Trace.Capsule( Capsule.FromHeightAndRadius( BodyHeight, BodyGirth * 0.5f ), start, end )
             .WithAnyTags( "playerclip", "passbullets" )
             .Ignore( Pawn );
-        
+
         ConfigureTraceTags( ref trace );
 
         var tr = trace.Run();
@@ -802,16 +802,16 @@ public partial class MazingWalkController : BasePlayerController
         var end = Position + Vector3.Down * StepSize;
 
         // See how far up we can go without getting stuck
-        var trace = TraceBBox(Position, start);
+        var trace = TraceBBox( Position, start );
         start = trace.EndPosition;
 
         // Now trace down from a known safe position
-        trace = TraceBBox(start, end);
+        trace = TraceBBox( start, end );
 
-        if (trace.Fraction <= 0) return;
-        if (trace.Fraction >= 1) return;
-        if (trace.StartedSolid) return;
-        if (Vector3.GetAngle(Vector3.Up, trace.Normal) > GroundAngle) return;
+        if ( trace.Fraction <= 0 ) return;
+        if ( trace.Fraction >= 1 ) return;
+        if ( trace.StartedSolid ) return;
+        if ( Vector3.GetAngle( Vector3.Up, trace.Normal ) > GroundAngle ) return;
 
         // This is incredibly hacky. The real problem is that trace returning that strange value we can't network over.
         // float flDelta = fabs( mv->GetAbsOrigin().z - trace.m_vEndPos.z );
@@ -822,7 +822,7 @@ public partial class MazingWalkController : BasePlayerController
 
     void RestoreGroundPos()
     {
-        if (GroundEntity == null || GroundEntity.IsWorld)
+        if ( GroundEntity == null || GroundEntity.IsWorld )
             return;
 
         //var Position = GroundEntity.Transform.ToWorld( GroundTransform );
@@ -831,7 +831,7 @@ public partial class MazingWalkController : BasePlayerController
 
     void SaveGroundPos()
     {
-        if (GroundEntity == null || GroundEntity.IsWorld)
+        if ( GroundEntity == null || GroundEntity.IsWorld )
             return;
 
         //GroundTransform = GroundEntity.Transform.ToLocal( new Transform( Pos, Rot ) );

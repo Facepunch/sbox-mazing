@@ -106,7 +106,7 @@ public partial class Treasure : AnimatedEntity
 
         Tags.Add("treasure");
 
-        if (IsServer)
+        if ( Game.IsServer )
         {
             _light = new PointLightEntity()
             {

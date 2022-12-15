@@ -24,7 +24,7 @@ partial class Juggernaut : Enemy
     {
         base.OnServerTick();
 
-        DebugOverlay.Text((TargetCell - this.GetCellIndex()).Distance.ToString(), EyePosition, 0f, float.MaxValue);
+        DebugOverlay.Text((TargetCell - this.GetCellIndex()).Distance.ToString(), AimRay.Position, 0f, float.MaxValue);
     }
 
     protected override void OnReachTarget()

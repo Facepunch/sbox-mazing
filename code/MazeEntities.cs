@@ -15,7 +15,7 @@ public partial class Border : ModelEntity
 
         SetModel( "models/border_plane.vmdl" );
 
-        Tags.Add("border");
+        Tags.Add( "border" );
 
         EnableDrawing = true;
     }
@@ -27,7 +27,7 @@ public partial class MazeEntity : ModelEntity
     {
         base.Spawn();
 
-        Tags.Add("solid");
+        Tags.Add( "solid" );
 
         UsePhysicsCollision = true;
 
@@ -38,9 +38,9 @@ public partial class MazeEntity : ModelEntity
 
 public partial class Wall : MazeEntity
 {
-	public override void Spawn()
+    public override void Spawn()
     {
-        SetModel("models/wall.vmdl");
+        SetModel( "models/wall.vmdl" );
 
         base.Spawn();
     }
@@ -48,9 +48,9 @@ public partial class Wall : MazeEntity
 
 public partial class Post : MazeEntity
 {
-	public override void Spawn()
+    public override void Spawn()
     {
-        SetModel("models/post.vmdl");
+        SetModel( "models/post.vmdl" );
 
         base.Spawn();
     }
@@ -58,7 +58,7 @@ public partial class Post : MazeEntity
 
 public static class EntityExtensions
 {
-    public static (float Row, float Col) GetCell( this Entity entity ) => MazingGame.Current.PositionToCell(entity.Position);
-    public static GridCoord GetCellIndex( this Entity entity ) => MazingGame.Current.PositionToCellIndex(entity.Position);
-    public static Direction GetFacingDirection( this Entity entity ) => MazeData.GetDirection(entity.EyeRotation.Forward);
+    public static (float Row, float Col) GetCell( this Entity entity ) => MazingGame.Current.PositionToCell( entity.Position );
+    public static GridCoord GetCellIndex( this Entity entity ) => MazingGame.Current.PositionToCellIndex( entity.Position );
+    public static Direction GetFacingDirection( this Entity entity ) => MazeData.GetDirection( entity.AimRay.Forward );
 }

@@ -32,8 +32,7 @@ namespace Mazing.Enemies
         public override float MoveSpeed => _lastStab > StabStart && _lastStab < StabEnd ? 200f : 10f;
 
         protected override string ModelPath => "models/spiketrap.vmdl";
-
-        protected override PawnAnimator OnCreateAnimator() => null;
+        
         protected override PawnController OnCreateController() => null;
 
         public override void Spawn()
@@ -50,7 +49,7 @@ namespace Mazing.Enemies
 
             EnableAllCollisions = false;
 
-            StabPhase = Rand.Int(0, 1) * CurrentSequence.Duration * 0.5f;
+            StabPhase = Sandbox.Game.Random.Int(0, 1) * CurrentSequence.Duration * 0.5f;
 
             CurrentSequence.Time = StabPhase;
 
@@ -59,7 +58,7 @@ namespace Mazing.Enemies
 
         protected override void OnPostSpawn()
         {
-            EyeRotation = Rotation = Rotation.FromYaw(0f);
+            Rotation = Rotation.FromYaw(0f);
         }
 
         protected override void OnServerTick()
@@ -98,7 +97,7 @@ namespace Mazing.Enemies
             base.OnSequenceFinished( looped );
 
             // Apparently only on client, but let's be safe
-            if ( !Host.IsClient )
+            if ( !Sandbox.Game.IsClient )
             {
                 return;
             }

@@ -45,7 +45,7 @@ internal partial class Wizard : Enemy
 
         RenderColor = new Color(0.75f, 0f, 0.75f);
 
-        //_teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
+        //_teleportHoldType = Game.Random.Float(0f, 1f) < 0.5f ? 1 : 3;
         _teleportHoldType = 3;
 
         _teleportTimer = 0f;
@@ -75,7 +75,7 @@ internal partial class Wizard : Enemy
         _popParticles?.Destroy();
         _popParticles = null;
 
-        _teleportTimer = -Rand.Float( 0f, TELEPORT_DELAY ) + TELEPORT_DISAPPEAR_TIME;
+        _teleportTimer = -Sandbox.Game.Random.Float( 0f, TELEPORT_DELAY ) + TELEPORT_DISAPPEAR_TIME;
         IsTeleporting = true;
 
         _teleportCell = this.GetCellIndex();
@@ -121,7 +121,7 @@ internal partial class Wizard : Enemy
                     totalDist += dist;
                 }
 
-                var targetVal = Rand.Int( 0, totalDist - 1 );
+                var targetVal = Sandbox.Game.Random.Int( 0, totalDist - 1 );
 
                 foreach ( var (dir, delta) in MazeData.Directions )
                 {
@@ -129,7 +129,7 @@ internal partial class Wizard : Enemy
 
                     if ( targetVal < 0 )
                     {
-                        EyeRotation = Rotation = Rotation.LookAt( delta.Normal, Vector3.Up );
+                        Rotation = Rotation.LookAt( delta.Normal, Vector3.Up );
                         break;
                     }
                 }
@@ -152,7 +152,7 @@ internal partial class Wizard : Enemy
             {
                 FiredBolt = true;
 
-                Animator.Trigger("b_attack");
+                // TODO: Animator.Trigger("b_attack");
 
                 _firedBoltTime = 0f;
 
@@ -191,7 +191,7 @@ internal partial class Wizard : Enemy
 
                 _teleportTimer = 0f;
 
-                //_teleportHoldType = Rand.Float(0f, 1f) < 0.5f ? 1 : 3;
+                //_teleportHoldType = Game.Random.Float(0f, 1f) < 0.5f ? 1 : 3;
                 _teleportHoldType = 3;
             }
         }
@@ -234,7 +234,7 @@ partial class WizardBolt : ModelEntity
 
         SetModel(IsElite ? "models/wizard_bolt_elite.vmdl" : "models/wizard_bolt.vmdl");
 
-        if (IsServer)
+        if ( Game.IsServer )
         {
             _light = new PointLightEntity
             {

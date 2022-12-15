@@ -64,7 +64,7 @@ namespace Mazing.UI
             base.Tick();
 
             var game = MazingGame.Current;
-            var player = Local.Pawn as MazingPlayer;
+            var player = Game.LocalPawn as MazingPlayer;
 
             if ( player == null || game == null )
             {

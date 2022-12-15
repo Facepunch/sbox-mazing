@@ -5,7 +5,7 @@ using Sandbox.Internal;
 
 namespace Mazing.Player;
 
-public class MazingCamera : CameraMode
+partial class MazingPlayer
 {
     public const float LevelEdgeMargin = 64f;
     public const float AroundPlayerMargin = 48f;
@@ -33,39 +33,37 @@ public class MazingCamera : CameraMode
         return (min, max);
     }
 
-    public override void Update()
+    private void FrameSimulateCamera( IClient client )
     {
-        Rotation = Rotation.FromYaw(90f) * Rotation.FromPitch(80f);
+        Camera.Rotation = Rotation.FromYaw( 90f ) * Rotation.FromPitch( 80f );
 
-        var targetPawn = Local.Pawn;
+        var targetPawn = this;
 
-        if ( targetPawn == null || targetPawn is MazingPlayer player && player.HasExited && player.ExitTime > 1.5f )
+        if ( targetPawn.HasExited && targetPawn.ExitTime > 1.5f )
         {
             targetPawn = MazingGame.Current.PlayersAliveInMaze.FirstOrDefault();
         }
 
-        if (targetPawn == null )
+        if ( targetPawn == null )
         {
             return;
         }
-        
+
         var center = targetPawn.Position.WithZ( 64f );
         var distance = 1600f * targetPawn.Scale;
-        var target = (Position + Rotation.Forward * distance).WithZ( center.z );
+        var target = (Camera.Position + Camera.Rotation.Forward * distance).WithZ( center.z );
         var (stageMin, stageMax) = GetCameraBounds();
 
-        target.x = Math.Clamp(target.x, center.x - AroundPlayerMargin, center.x + AroundPlayerMargin );
-        target.y = Math.Clamp(target.y, center.y - AroundPlayerMargin, center.y + AroundPlayerMargin );
+        target.x = Math.Clamp( target.x, center.x - AroundPlayerMargin, center.x + AroundPlayerMargin );
+        target.y = Math.Clamp( target.y, center.y - AroundPlayerMargin, center.y + AroundPlayerMargin );
 
-        target.x = Math.Clamp(target.x, stageMin.x, stageMax.x );
-        target.y = Math.Clamp(target.y, stageMin.y, stageMax.y );
+        target.x = Math.Clamp( target.x, stageMin.x, stageMax.x );
+        target.y = Math.Clamp( target.y, stageMin.y, stageMax.y );
 
-        Position = target - Rotation.Forward * distance;
+        Camera.Position = target - Camera.Rotation.Forward * distance;
 
-        Sound.Listener = new Transform( targetPawn.EyePosition, Rotation.LookAt( Rotation.Forward.WithZ( 0f ), Vector3.Up ) );
+        Sound.Listener = new Transform( targetPawn.EyePosition, Rotation.LookAt( Camera.Rotation.Forward.WithZ( 0f ), Vector3.Up ) );
 
-		FieldOfView = 20;
-
-		Viewer = null;
-	}
+        Camera.FieldOfView = 20;
+    }
 }

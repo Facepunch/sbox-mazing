@@ -28,7 +28,7 @@ public partial class BigTreasure : Holdable
 
         Tags.Add("treasure");
 
-        if (IsServer)
+        if (Sandbox.Game.IsServer)
         {
             _light = new PointLightEntity()
             {

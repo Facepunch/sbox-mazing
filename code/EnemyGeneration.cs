@@ -26,7 +26,7 @@ public static partial class MazeGenerator
 
         for (var i = 0; i < 50; ++i)
         {
-            var seed = Rand.Int(int.MaxValue - 1);
+            var seed = Game.Random.Int(int.MaxValue - 1);
             var types = GetSpawningEnemyCounts(i, seed, lastSpawnLevels)
                 .OrderByDescending(x => x.Count)
                 .Select(x => $"{x.Type.Name} x{x.Count}")
@@ -78,7 +78,7 @@ public static partial class MazeGenerator
 
             if (next.Type == null)
             {
-                next = usedTypes.MinBy(x => x.Threat + Rand.Float() * 0.5f);
+                next = usedTypes.MinBy(x => x.Threat + Game.Random.Float() * 0.5f);
             }
 
             totalThreat -= next.Threat;
@@ -108,7 +108,7 @@ public static partial class MazeGenerator
             Threat: threatAttrib?.Value ?? 1,
             SpawnCount: threatAttrib?.SpawnCount ?? 1,
             CanBeOnlyEnemy: x.GetAttribute<CantBeOnlyEnemyAttribute>() == null,
-            Replaces: replacesAttrib?.ReplacedType != null ? TypeLibrary.GetDescription(replacesAttrib.ReplacedType) : null,
+            Replaces: replacesAttrib?.ReplacedType != null ? TypeLibrary.GetType(replacesAttrib.ReplacedType) : null,
             FullyReplaceLevel: firstLevel == int.MaxValue ? int.MaxValue : firstLevel + replacesAttrib?.LevelsUntilFullyReplaced ?? 0);
     }
 
@@ -117,7 +117,7 @@ public static partial class MazeGenerator
         var totalThreat = levelIndex == 0 ? 1 : levelIndex + 2;
         var levelNumber = levelIndex + 1;
 
-        var unlocked = TypeLibrary.GetDescriptions<Enemy>()
+        var unlocked = TypeLibrary.GetTypes<Enemy>()
             .Select(GetEnemyTypeInfo)
             .Where(x => x.FirstLevel <= levelNumber)
             .ToArray();

@@ -78,7 +78,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     }
 
-    public MazingPlayer( Client cl )
+    public MazingPlayer( IClient cl )
     {
         Clothing.LoadFromClient(cl);
 
@@ -115,9 +115,6 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         {
             VaultCooldown = VaultCooldown
         };
-
-        Animator = new MazingPlayerAnimator();
-        CameraMode = new MazingCamera();
 
         Clothing.DressEntity(this);
 
@@ -179,7 +176,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
     {
         base.OnAnimEventFootstep( pos, foot, volume );
 
-        if ( GroundEntity != null && IsClient && _lastFootstep > 0.25f )
+        if ( GroundEntity != null && Sandbox.Game.IsClient && _lastFootstep > 0.25f )
         {
             _lastFootstep = 0f;
             var sound = Sound.FromWorld("player.footstep", pos);
@@ -225,19 +222,14 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
     public void Kill( Vector3 damageDir, string message, Entity attacker, bool ragdoll = true )
     {
-        if ( !IsServer || !IsAlive )
+        if ( !Sandbox.Game.IsServer || !IsAlive )
         {
             return;
         }
 
-        ClientDeathNotify( Client.PlayerId, string.Format( message, Client.Name ), HeldCoins, SurvivalStreak );
+        ClientDeathNotify( Client.SteamId, string.Format( message, Client.Name ), HeldCoins, SurvivalStreak );
 
         IsAlive = false;
-
-        if ( !Client.IsBot )
-        {
-            GameServices.RecordEvent( Client, $"killed ({attacker?.GetType().Name ?? "unknown"})", HeldCoins );
-        }
 
         HeldCoins = 0;
         SurvivalStreak = 0;
@@ -359,7 +351,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         var untilNextVault = walkController.IsVaulting && walkController.UntilNextVault >= 3f ? 0f : walkController.UntilNextVault;
 
         //if ( IsClient && Client.IsOwnedByLocalClient )
-        if ( IsServer && IsAliveInMaze && untilNextVault > -0.5f )
+        if ( Sandbox.Game.IsServer && IsAliveInMaze && untilNextVault > -0.5f )
         {
             if ( _lastUntilVault > 0f && untilNextVault <= 0f )
             {
@@ -377,7 +369,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
         _lastUntilVault = untilNextVault;
 
-        if ( IsServer )
+        if ( Sandbox.Game.IsServer )
         {
             if (IsAliveInMaze && _sweatParticles == null && walkController.IsVaultOnCooldown)
             {
@@ -464,7 +456,7 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
 
         DropHeldItem();
 
-        ClientExitNotify( Client.PlayerId, $"{Client.Name} has escaped", HeldCoins );
+        ClientExitNotify( Client.SteamId, $"{Client.Name} has escaped", HeldCoins );
 
         if ( Game.PlayersAliveInMaze.Any() )
         {
@@ -476,11 +468,6 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         }
 
         Game.TotalCoins += HeldCoins;
-
-        if ( !Client.IsBot )
-        {
-            GameServices.RecordEvent( Client, "escaped", HeldCoins );
-        }
 
         HeldCoins = 0;
         SurvivalStreak += 1;
@@ -513,5 +500,10 @@ public partial class MazingPlayer : Sandbox.Player, IHoldable
         }
 
         (Controller as MazingWalkController)?.Vault( target, false );
+    }
+
+    public override void FrameSimulate( IClient cl )
+    {
+        FrameSimulateCamera( cl );
     }
 }

@@ -44,14 +44,14 @@ public partial class Hatch : AnimatedEntity
 
     public void Open()
     {
-        if ( IsOpen || !IsServer )
+        if ( IsOpen || !Game.IsServer )
         {
             return;
         }
 
         var lastHolder = MazingGame.Current.Key?.LastHolder?.Client;
 
-        ClientOpenNotify( lastHolder?.PlayerId ?? 0, lastHolder?.Name );
+        ClientOpenNotify( lastHolder?.SteamId ?? 0, lastHolder?.Name );
 
         Sound.FromEntity( "hatch.open", this );
 

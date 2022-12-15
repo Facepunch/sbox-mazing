@@ -44,14 +44,10 @@ namespace Mazing.UI
 
             if ( Player == null || MazingGame.Current == null ) return;
 
-            var camera = (Local.Pawn as MazingPlayer)?.CameraMode;
-
-            if ( camera == null ) return;
-
             if ( !_setAvatar )
             {
                 _setAvatar = true;
-                Avatar.Style.SetBackgroundImage($"avatar:{Player.Client.PlayerId}");
+                Avatar.Style.SetBackgroundImage( $"avatar:{Player.Client.SteamId}" );
             }
 
             _heldTicker.SoundSource = Player;
@@ -63,10 +59,10 @@ namespace Mazing.UI
             StreakText.Style.FontColor = Player.GetSurvivalStreakColor();
             StreakText.Style.Opacity = Math.Min( Player.SurvivalStreak / 5f, 1f );
 
-            PanelBounds = new Rect(-512f, -512f, 1024f, 512f);
+            PanelBounds = new Rect( -512f, -512f, 1024f, 512f );
 
             Position = Player.Position + Vector3.Up * 128f;
-            Rotation = camera.Rotation * Rotation.FromYaw( 180f );
+            Rotation = Camera.Rotation * Rotation.FromYaw( 180f );
 
             if ( _wasAlive != Player.IsAliveInMaze )
             {

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Mazing.Player;
 using Sandbox;
+using Sandbox.Diagnostics;
 
 namespace Mazing.Enemies;
 
@@ -81,7 +82,6 @@ public abstract partial class Enemy : AnimatedEntity
     public bool IsAlive { get; private set; } = true;
 
     public PawnController Controller { get; set; }
-    public PawnAnimator Animator { get; set; }
 
     public GridCoord TargetCell { get; set; }
 
@@ -148,7 +148,7 @@ public abstract partial class Enemy : AnimatedEntity
     protected virtual int HoldType => 5;
 
     public virtual Vector3 LookPos =>
-        EyePosition + EyeRotation.Forward * 200 + Vector3.Up * Math.Clamp( AwakeTime, -1f, 0f ) * 800f;
+        AimRay.Position + AimRay.Forward * 200 + Vector3.Up * Math.Clamp( AwakeTime, -1f, 0f ) * 800f;
 
     public override void Spawn()
     {
@@ -159,9 +159,6 @@ public abstract partial class Enemy : AnimatedEntity
         Controller = OnCreateController();
 
         Tags.Add( "enemy" );
-
-
-        Animator = OnCreateAnimator();
 
         EnableAllCollisions = true;
         EnableDrawing = true;
@@ -182,9 +179,9 @@ public abstract partial class Enemy : AnimatedEntity
     protected virtual void OnPostSpawn()
     {
         var direction = MazeData.Directions
-            .MinBy(x => (CanWalkInDirection(x.Direction) ? 0f : 10f) + Rand.Float());
+            .MinBy(x => (CanWalkInDirection(x.Direction) ? 0f : 10f) + Sandbox.Game.Random.Float());
 
-        EyeRotation = Rotation = Rotation.LookAt(direction.Delta.Normal, Vector3.Up);
+        Rotation = Rotation.LookAt(direction.Delta.Normal, Vector3.Up);
     }
 
     protected virtual string ModelPath => "models/citizen/citizen.vmdl";
@@ -196,19 +193,14 @@ public abstract partial class Enemy : AnimatedEntity
             DefaultSpeed = MoveSpeed
         };
     }
-
-    protected virtual PawnAnimator OnCreateAnimator()
-    {
-        return new MazingPlayerAnimator();
-    }
-
+    
     private TimeSince _lastFootstep;
 
     public override void OnAnimEventFootstep( Vector3 pos, int foot, float volume )
     {
         base.OnAnimEventFootstep(pos, foot, volume);
 
-        if (GroundEntity != null && IsClient && _lastFootstep > 0.25f)
+        if (GroundEntity != null && Sandbox.Game.IsClient && _lastFootstep > 0.25f)
         {
             _lastFootstep = 0f;
             var sound = Sound.FromWorld("player.footstep", pos);
@@ -244,31 +236,28 @@ public abstract partial class Enemy : AnimatedEntity
     
     public void ServerTick()
     {
-        using (Performance.Scope("Enemy Tick"))
+        var cell = this.GetCellIndex();
+
+        if (_cellVisitTimes == null)
         {
-            var cell = this.GetCellIndex();
+            TargetCell = cell;
 
-            if (_cellVisitTimes == null)
-            {
-                TargetCell = cell;
+            _wakeDelay = 2.5f + Sandbox.Game.Random.Float(0.5f);
+            AwakeTime = -_wakeDelay;
 
-                _wakeDelay = 2.5f + Rand.Float(0.5f);
-                AwakeTime = -_wakeDelay;
+            _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
 
-                _cellVisitTimes = new TimeSince[Game.CurrentMaze.Rows, Game.CurrentMaze.Cols];
-
-                OnLevelChange();
-            }
-
-            if (!IsInBounds(cell))
-            {
-                return;
-            }
-
-            _cellVisitTimes[cell.Row, cell.Col] = 0f;
-
-            OnServerTick();
+            OnLevelChange();
         }
+
+        if (!IsInBounds(cell))
+        {
+            return;
+        }
+
+        _cellVisitTimes[cell.Row, cell.Col] = 0f;
+
+        OnServerTick();
     }
 
     protected virtual void OnLevelChange()
@@ -321,9 +310,8 @@ public abstract partial class Enemy : AnimatedEntity
         }
 
         //DebugOverlay.Text(Velocity.Length.ToString(), EyePosition, 0f, float.MaxValue);
-        
-        Controller?.Simulate(default, this, null);
-        Animator?.Simulate(default, this, null);
+
+        Controller?.Simulate(null, this);
 
         if ( LastAttack < 1f || !EnableDrawing )
         {
@@ -332,11 +320,11 @@ public abstract partial class Enemy : AnimatedEntity
 
         if ( AwakeTime < 0f )
         {
-            Animator?.SetAnimParameter( "holdtype", 0 );
+            // TODO: Animator?.SetAnimParameter( "holdtype", 0 );
             return;
         }
 
-        Animator?.SetAnimParameter( "holdtype", HoldType );
+        // TODO: Animator?.SetAnimParameter( "holdtype", HoldType );
 
         var closestPlayer = Game.GetClosestPlayer( Position, KillRange, ignoreZ: false );
 
@@ -344,9 +332,9 @@ public abstract partial class Enemy : AnimatedEntity
         {
             LastAttack = 0f;
 
-            //Animator?.SetAnimParameter("b_vr", false);
-            Animator?.SetAnimParameter("holdtype", 5);
-            Animator?.Trigger( "b_attack" );
+            // TODO: Animator?.SetAnimParameter("b_vr", false);
+            // TODO: Animator?.SetAnimParameter("holdtype", 5);
+            // TODO: Animator?.Trigger( "b_attack" );
 
             Sound.FromEntity( "enemy.punch", this );
 
@@ -356,7 +344,7 @@ public abstract partial class Enemy : AnimatedEntity
 
     public void Kill(Vector3 damageDir, bool ragdoll = true)
     {
-        if (!IsServer || !IsAlive)
+        if (!Sandbox.Game.IsServer || !IsAlive)
         {
             return;
         }
@@ -450,7 +438,7 @@ public abstract partial class Enemy : AnimatedEntity
         }
 
         var dir = MazeData.Directions.Where( x => CanWalkInDirection( x.Direction ) )
-            .OrderBy( x => Rand.Float() - GetSinceLastVisited( cell + x.Delta ) + GetCost( cell + x.Delta ) )
+            .OrderBy( x => Sandbox.Game.Random.Float() - GetSinceLastVisited( cell + x.Delta ) + GetCost( cell + x.Delta ) )
             .FirstOrDefault();
 
         return cell + dir.Delta;

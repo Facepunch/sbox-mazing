@@ -22,13 +22,13 @@ namespace Mazing;
 /// You can use this to create things like HUDs and declare which player class
 /// to use for spawned players.
 /// </summary>
-public partial class MazingGame : Sandbox.Game
+public partial class MazingGame : GameManager
 {
     public const int TotalLevelCount = 50;
 
     public const int MaxPlayers = 8;
 
-    [ConVar.Replicated("mazing_daily", Help = "Enable to do a daily challenge.")]
+    [ConVar.Replicated( "mazing_daily", Help = "Enable to do a daily challenge." )]
     public static bool StartDailyChallenge { get; set; }
 
     [Net, HideInEditor]
@@ -40,16 +40,16 @@ public partial class MazingGame : Sandbox.Game
     [Net, HideInEditor]
     public DateTime DailyChallengeDateUtc { get; set; }
 
-	public new static MazingGame Current => Game.Current as MazingGame;
+    public new static MazingGame Current => GameManager.Current as MazingGame;
 
-	[Net]
-	public MazeData CurrentMaze { get; set; }
+    [Net]
+    public MazeData CurrentMaze { get; set; }
 
-	[Net]
+    [Net]
     public (int Row, int Col) ExitCell { get; set; }
 
-	[Net, HideInEditor]
-	public int LevelIndex { get; set; }
+    [Net, HideInEditor]
+    public int LevelIndex { get; set; }
 
     [Net]
     public int TotalTreasureValue { get; set; }
@@ -89,14 +89,14 @@ public partial class MazingGame : Sandbox.Game
     private readonly Dictionary<TypeDescription, int> _enemyTypeLastSpawnLevel
         = new Dictionary<TypeDescription, int>();
 
-    public IEnumerable<MazingPlayer> Players => Client.All
+    public IEnumerable<MazingPlayer> Players => Game.Clients
         .Select( x => x.Pawn )
         .OfType<MazingPlayer>();
 
     public IEnumerable<MazingPlayer> PlayersAliveInMaze => Players
         .Where( x => x.IsAliveInMaze );
 
-    public IEnumerable<Enemy> Enemies => _enemies.Where(x => x.IsValid());
+    public IEnumerable<Enemy> Enemies => _enemies.Where( x => x.IsValid() );
 
     public IEnumerable<Treasure> Treasure => Entity.All.OfType<Treasure>();
 
@@ -125,20 +125,20 @@ public partial class MazingGame : Sandbox.Game
 
     public TimeSpan LevelTime => !LevelStarted
         ? TimeSpan.Zero : !LevelCompleted
-            ? TimeSpan.FromSeconds(SinceLevelStart)
+            ? TimeSpan.FromSeconds( SinceLevelStart )
             : LastLevelTime;
 
     public TimeSpan TotalTime => LastTotalTime + LevelTime;
 
     public MazingGame()
-	{
-        if ( IsClient )
+    {
+        if ( Game.IsClient )
         {
-            new HudRoot();
+            _ = new HudRoot();
         }
         else
         {
-            IsEditorMode = Host.IsToolsEnabled;
+            IsEditorMode = Game.IsToolsEnabled;
         }
 
         RestartCountdown = float.PositiveInfinity;
@@ -148,7 +148,7 @@ public partial class MazingGame : Sandbox.Game
     [ConCmd.Admin( "mazing_level", Help = "Go to a given level" )]
     public static void GoToLevel( int level, string seed = null )
     {
-        if (!string.IsNullOrEmpty( seed ) && int.TryParse(seed, NumberStyles.HexNumber, null, out var seedInt))
+        if ( !string.IsNullOrEmpty( seed ) && int.TryParse( seed, NumberStyles.HexNumber, null, out var seedInt ) )
         {
             Current._nextLevelSeed = seedInt;
         }
@@ -174,22 +174,22 @@ public partial class MazingGame : Sandbox.Game
         var max = Math.Max( length, cross );
         var min = Math.Min( length, cross );
 
-        return (float)targetArea * targetArea / (area * area) * min * min * min / (max * max * max);
+        return (float) targetArea * targetArea / (area * area) * min * min * min / (max * max * max);
     }
 
     public (int Rows, int Cols) GetLevelSize( int levelIndex, int seed )
     {
         var rand = new Random( seed );
-        var targetArea = 64 + (levelIndex < 2 ? 0 : (MathF.Sqrt(levelIndex - 1f) * 10f).FloorToInt());
+        var targetArea = 64 + (levelIndex < 2 ? 0 : (MathF.Sqrt( levelIndex - 1f ) * 10f).FloorToInt());
         var minLength = 4;
-        var maxLength = MathF.Sqrt(targetArea).FloorToInt();
+        var maxLength = MathF.Sqrt( targetArea ).FloorToInt();
 
         var candidates = new List<(int Length, int Cross, float Score)>();
         var totalScore = 0f;
 
         for ( var length = minLength; length <= maxLength; length += 4 )
         {
-            var cross = (((float)targetArea / length) / 4f).CeilToInt() * 4;
+            var cross = (((float) targetArea / length) / 4f).CeilToInt() * 4;
             var score = GetLevelSizeScore( length, cross, targetArea );
 
             candidates.Add( (length, cross, score) );
@@ -232,22 +232,18 @@ public partial class MazingGame : Sandbox.Game
         return !_worldEntities.Contains( ent );
     }
 
-	public void GenerateMaze( int seed = -1 )
-	{
-		Host.AssertServer();
+    public void GenerateMaze( int seed = -1 )
+    {
+        Game.AssertServer();
 
-        if ( LevelIndex == 0 )
+        if ( DailyChallengeEnabled && LevelIndex == 1 )
         {
-            GameServices.StartGame();
-        }
-        else if (DailyChallengeEnabled && LevelIndex == 1)
-        {
-            _ = StartDailyAsync(Players.Where(CanSubmitScore).ToArray(), DailyChallengeDateUtc);
+            _ = StartDailyAsync( Players.Where( CanSubmitScore ).ToArray(), DailyChallengeDateUtc );
         }
 
-        foreach (var pair in _enemyTypeLastSpawnLevel.ToArray())
+        foreach ( var pair in _enemyTypeLastSpawnLevel.ToArray() )
         {
-            if (pair.Value > LevelIndex)
+            if ( pair.Value > LevelIndex )
             {
                 _enemyTypeLastSpawnLevel[pair.Key] = LevelIndex;
             }
@@ -284,34 +280,34 @@ public partial class MazingGame : Sandbox.Game
 
         if ( seed == -1 )
         {
-            seed = Rand.Int(1, int.MaxValue - 1);
+            seed = Game.Random.Int( 1, int.MaxValue - 1 );
         }
 
-        var rand = new Random(seed);
+        var rand = new Random( seed );
 
-		Log.Info( $"Generating level {LevelIndex + 1} with seed {seed:x8} ");
-        
+        Log.Info( $"Generating level {LevelIndex + 1} with seed {seed:x8} " );
+
         var (rows, cols) = GetLevelSize( LevelIndex, rand.Next() );
-        
+
         var generated = LevelIndex == 0
             ? MazeGenerator.GenerateLobby()
             : LevelIndex == TotalLevelCount - 1
-                ? MazeGenerator.GenerateFinalLevel(rand.Next(), MaxPlayers )
-                : MazeGenerator.Generate(rand.Next(), rows, cols, MaxPlayers,
-                    MazeGenerator.GetSpawningEnemyCounts(LevelIndex, rand.Next(), _enemyTypeLastSpawnLevel),
-                    MazeGenerator.GetSpawningTreasureCounts((LevelIndex * 2 + 2) * Items.Treasure.GetValue(TreasureKind.Emerald), rand.Next()));
+                ? MazeGenerator.GenerateFinalLevel( rand.Next(), MaxPlayers )
+                : MazeGenerator.Generate( rand.Next(), rows, cols, MaxPlayers,
+                    MazeGenerator.GetSpawningEnemyCounts( LevelIndex, rand.Next(), _enemyTypeLastSpawnLevel ),
+                    MazeGenerator.GetSpawningTreasureCounts( (LevelIndex * 2 + 2) * Items.Treasure.GetValue( TreasureKind.Emerald ), rand.Next() ) );
 
         CurrentMaze = generated.MazeData;
         CurrentMaze.WriteNetworkData();
 
-        if (LevelIndex <= 0)
+        if ( LevelIndex <= 0 )
         {
             _levelTimes.Clear();
         }
 
         SinceLevelStart = -1.6f;
         LastLevelTime = TimeSpan.Zero;
-        LastTotalTime = TimeSpan.FromSeconds(_levelTimes.Sum(x => x.TotalSeconds));
+        LastTotalTime = TimeSpan.FromSeconds( _levelTimes.Sum( x => x.TotalSeconds ) );
 
         LevelStarted = false;
         LevelCompleted = false;
@@ -321,7 +317,7 @@ public partial class MazingGame : Sandbox.Game
         ExitCell = generated.Exit;
 
         const float outerWallHeight = 128;
-		const float innerWallHeight = 96f;
+        const float innerWallHeight = 96f;
         const float wallModelHeight = 256f;
         const float borderHeight = outerWallHeight - 16f;
 
@@ -332,7 +328,7 @@ public partial class MazingGame : Sandbox.Game
 
         var minLightDist = 128f;
 
-        var hueA = Rand.Float( 0f, 360f );
+        var hueA = Game.Random.Float( 0f, 360f );
         var hueB = hueA + 180f;
 
         for ( var i = 0; i < lightCount; ++i )
@@ -342,7 +338,7 @@ public partial class MazingGame : Sandbox.Game
 
             for ( var attempt = 0; attempt < 100; ++attempt )
             {
-                pos = this.CellCenterToPosition( (Rand.Int( 2, rows - 3 ), Rand.Int( 2, cols - 3 )) );
+                pos = this.CellCenterToPosition( (Game.Random.Int( 2, rows - 3 ), Game.Random.Int( 2, cols - 3 )) );
 
                 valid = true;
 
@@ -371,35 +367,35 @@ public partial class MazingGame : Sandbox.Game
             lights.Add( light );
         }
 
-        _enemiesToSpawn.AddRange(generated.Enemies);
+        _enemiesToSpawn.AddRange( generated.Enemies );
 
         TotalTreasureValue = 0;
 
-        foreach (var (treasureKind, cell) in generated.Treasure)
+        foreach ( var (treasureKind, cell) in generated.Treasure )
         {
-            var treasure = new Treasure(treasureKind)
+            var treasure = new Treasure( treasureKind )
             {
-                Position = CellCenterToPosition(cell)
+                Position = CellCenterToPosition( cell )
             };
 
             TotalTreasureValue += treasure.Value;
         }
-        
+
         Key = new Key
         {
             Position = CellCenterToPosition( generated.Key ) + Vector3.Up * 64f
         };
 
-        if (LevelIndex == TotalLevelCount - 1)
+        if ( LevelIndex == TotalLevelCount - 1 )
         {
             Lava = new Lava
             {
-                Position = CellToPosition(0f, CurrentMaze.Cols * 0.5f)
+                Position = CellToPosition( 0f, CurrentMaze.Cols * 0.5f )
             };
 
             var diamond = new BigTreasure
             {
-                Position = CellToPosition(6f, 4f)
+                Position = CellToPosition( 6f, 4f )
             };
         }
         else
@@ -407,11 +403,11 @@ public partial class MazingGame : Sandbox.Game
             Lava = null;
         }
 
-		for (var row = 0; row <= CurrentMaze.Rows; row++)
-		{
-			for (var col = 0; col <= CurrentMaze.Cols; col++)
-			{
-				if (row < CurrentMaze.Rows && CurrentMaze.GetWall((row, col), Direction.West))
+        for ( var row = 0; row <= CurrentMaze.Rows; row++ )
+        {
+            for ( var col = 0; col <= CurrentMaze.Cols; col++ )
+            {
+                if ( row < CurrentMaze.Rows && CurrentMaze.GetWall( (row, col), Direction.West ) )
                 {
                     var isOuter = col <= 0 || col >= CurrentMaze.Cols;
                     var height = isOuter ? outerWallHeight : innerWallHeight;
@@ -420,11 +416,11 @@ public partial class MazingGame : Sandbox.Game
                         Position = CellToPosition( row + 1f, col ) + Vector3.Up * (height - wallModelHeight)
                     };
 
-                    _walls.Add(((row, col), Direction.West), wall);
+                    _walls.Add( ((row, col), Direction.West), wall );
 
                 }
 
-				if (col < CurrentMaze.Cols && CurrentMaze.GetWall((row, col), Direction.South))
+                if ( col < CurrentMaze.Cols && CurrentMaze.GetWall( (row, col), Direction.South ) )
                 {
                     var isOuter = row <= 0 || row >= CurrentMaze.Rows;
                     var height = isOuter ? outerWallHeight : innerWallHeight;
@@ -434,16 +430,16 @@ public partial class MazingGame : Sandbox.Game
                         Rotation = Rotation.FromYaw( 90f )
                     };
 
-                    _walls.Add(((row, col), Direction.South), wall);
+                    _walls.Add( ((row, col), Direction.South), wall );
                 }
 
-				var north = CurrentMaze.GetWall((row - 1, col), Direction.West);
-				var south = CurrentMaze.GetWall((row, col), Direction.West);
+                var north = CurrentMaze.GetWall( (row - 1, col), Direction.West );
+                var south = CurrentMaze.GetWall( (row, col), Direction.West );
 
-				var west = CurrentMaze.GetWall((row, col - 1), Direction.South);
-				var east = CurrentMaze.GetWall((row, col), Direction.South);
+                var west = CurrentMaze.GetWall( (row, col - 1), Direction.South );
+                var east = CurrentMaze.GetWall( (row, col), Direction.South );
 
-				if (north != south || west != east || north && west)
+                if ( north != south || west != east || north && west )
                 {
                     var isOuter = row <= 0 || row >= CurrentMaze.Rows || col <= 0 || col >= CurrentMaze.Cols;
                     var height = isOuter ? outerWallHeight : innerWallHeight;
@@ -453,8 +449,8 @@ public partial class MazingGame : Sandbox.Game
                         Position = CellToPosition( row, col ) + Vector3.Up * (height - wallModelHeight)
                     };
                 }
-			}
-		}
+            }
+        }
 
         new Border
         {
@@ -468,10 +464,10 @@ public partial class MazingGame : Sandbox.Game
         };
     }
 
-	public Vector3 CellToPosition( float row, float col ) => new Vector3( (col - ExitCell.Col - 0.5f) * 48f, (row - ExitCell.Row - 0.5f) * 48f, 0f );
-    public Vector3 CellToPosition( GridCoord coord ) => new Vector3((coord.Col - ExitCell.Col - 0.5f) * 48f, (coord.Row - ExitCell.Row - 0.5f) * 48f, 0f);
+    public Vector3 CellToPosition( float row, float col ) => new Vector3( (col - ExitCell.Col - 0.5f) * 48f, (row - ExitCell.Row - 0.5f) * 48f, 0f );
+    public Vector3 CellToPosition( GridCoord coord ) => new Vector3( (coord.Col - ExitCell.Col - 0.5f) * 48f, (coord.Row - ExitCell.Row - 0.5f) * 48f, 0f );
 
-    public Vector3 CellCenterToPosition(GridCoord coord) => CellToPosition(coord) + new Vector3(24f, 24f, 0f);
+    public Vector3 CellCenterToPosition( GridCoord coord ) => CellToPosition( coord ) + new Vector3( 24f, 24f, 0f );
 
     public Vector3 GetCellCenter( Vector3 position )
     {
@@ -484,8 +480,8 @@ public partial class MazingGame : Sandbox.Game
         where T : Entity
     {
         var dists = ignoreZ
-            ? enumerable.Select(x => (Entity: x, DistSq: (x.Position - pos).WithZ(0f).LengthSquared))
-            : enumerable.Select(x => (Entity: x, DistSq: (x.Position - pos).LengthSquared));
+            ? enumerable.Select( x => (Entity: x, DistSq: (x.Position - pos).WithZ( 0f ).LengthSquared) )
+            : enumerable.Select( x => (Entity: x, DistSq: (x.Position - pos).LengthSquared) );
 
         return dists.OrderBy( x => x.DistSq )
             .FirstOrDefault( x => x.DistSq <= maxRange * maxRange && x.Entity != except && (!ignoreZ || x.Entity.Parent == null) )
@@ -498,10 +494,10 @@ public partial class MazingGame : Sandbox.Game
         return GetClosest( players, pos, maxRange, ignoreZ, except );
     }
 
-    public MazingPlayer GetClosestDeadPlayer(Vector3 pos, float maxRange = float.PositiveInfinity, bool ignoreZ = true, MazingPlayer except = null)
+    public MazingPlayer GetClosestDeadPlayer( Vector3 pos, float maxRange = float.PositiveInfinity, bool ignoreZ = true, MazingPlayer except = null )
     {
-        var players = Players.Where(x => !x.IsAliveInMaze);
-        return GetClosest(players, pos, maxRange, ignoreZ, except);
+        var players = Players.Where( x => !x.IsAliveInMaze );
+        return GetClosest( players, pos, maxRange, ignoreZ, except );
     }
 
     public Enemy GetClosestEnemy( Vector3 pos, float maxRange = float.PositiveInfinity, bool ignoreZ = true, Enemy except = null )
@@ -526,21 +522,21 @@ public partial class MazingGame : Sandbox.Game
             .Any( x => x.GetCellIndex() == coord );
     }
 
-    public MazingPlayer GetPlayerInCell(GridCoord coord)
+    public MazingPlayer GetPlayerInCell( GridCoord coord )
     {
         return PlayersAliveInMaze
-            .FirstOrDefault(x => x.GetCellIndex() == coord);
+            .FirstOrDefault( x => x.GetCellIndex() == coord );
     }
 
-    public bool IsCellEmpty(GridCoord coord)
+    public bool IsCellEmpty( GridCoord coord )
     {
-        return !IsEnemyInCell(coord)
-            && !IsPlayerInCell(coord)
+        return !IsEnemyInCell( coord )
+            && !IsPlayerInCell( coord )
             && !(Key != null && Key.GetCellIndex() == coord)
             && ExitCell != coord;
     }
 
-    public bool IsEnemyInCell(GridCoord coord)
+    public bool IsEnemyInCell( GridCoord coord )
     {
         // TODO: optimize
         return Enemies
@@ -553,7 +549,7 @@ public partial class MazingGame : Sandbox.Game
     [ThreadStatic]
     private static List<GridCoord> _sFloodFillList;
 
-    public GridCoord GetRandomConnectedEmptyCell(GridCoord connectedCell)
+    public GridCoord GetRandomConnectedEmptyCell( GridCoord connectedCell )
     {
         var set = _sFloodFillSet ??= new HashSet<GridCoord>();
         var list = _sFloodFillList ??= new List<GridCoord>();
@@ -561,35 +557,35 @@ public partial class MazingGame : Sandbox.Game
         set.Clear();
         list.Clear();
 
-        set.Add(connectedCell);
-        list.Add(connectedCell);
+        set.Add( connectedCell );
+        list.Add( connectedCell );
 
-        for (var i = 0; i < list.Count; ++i)
+        for ( var i = 0; i < list.Count; ++i )
         {
             var prev = list[i];
 
-            foreach (var (dir, delta) in MazeData.Directions)
+            foreach ( var (dir, delta) in MazeData.Directions )
             {
                 var next = prev + delta;
 
-                if (set.Contains(next) || !IsInMaze(next) || CurrentMaze.GetWall(prev, dir))
+                if ( set.Contains( next ) || !IsInMaze( next ) || CurrentMaze.GetWall( prev, dir ) )
                 {
                     continue;
                 }
 
-                set.Add(next);
-                list.Add(next);
+                set.Add( next );
+                list.Add( next );
             }
         }
 
-        while (list.Count > 0)
+        while ( list.Count > 0 )
         {
-            var index = Rand.Int(0, list.Count - 1);
+            var index = Game.Random.Int( 0, list.Count - 1 );
             var cell = list[index];
 
-            list.RemoveAt(index);
+            list.RemoveAt( index );
 
-            if (IsCellEmpty(cell))
+            if ( IsCellEmpty( cell ) )
             {
                 return cell;
             }
@@ -598,27 +594,27 @@ public partial class MazingGame : Sandbox.Game
         return connectedCell;
     }
 
-    public bool IsInMaze(GridCoord cell)
+    public bool IsInMaze( GridCoord cell )
     {
-        return CurrentMaze?.Contains(cell) ?? false;
+        return CurrentMaze?.Contains( cell ) ?? false;
     }
 
     [ClientRpc]
     private void ClientJoinNotify( string name, long playerId )
     {
-        ChatBox.AddInformation($"{name} has entered the maze", $"avatar:{playerId}");
+        ChatBox.AddInformation( $"{name} has entered the maze", $"avatar:{playerId}" );
     }
 
     /// <summary>
     /// A client has joined the server. Make them a pawn to play with
     /// </summary>
-    public override void ClientJoined( Client client )
+    public override void ClientJoined( IClient client )
     {
         Log.Info( $"\"{client.Name}\" has joined the game" );
 
         if ( CurrentMaze == null )
-		{
-			GenerateMaze();
+        {
+            GenerateMaze();
 
             DailyChallengeEnabled = StartDailyChallenge;
             DailyChallengeDateUtc = DateTime.UtcNow;
@@ -626,32 +622,33 @@ public partial class MazingGame : Sandbox.Game
             StartDailyChallenge = false;
         }
 
-        _ = ClientJoinedAsync(client);
+        _ = ClientJoinedAsync( client );
     }
 
-    private async Task ClientJoinedAsync( Client client )
+    private async Task ClientJoinedAsync( IClient client )
     {
         var isSpectator = DailyChallengeComplete || DailyChallengeEnabled && LevelIndex > 0;
 
-        if (DailyChallengeEnabled && !isSpectator && await Leaderboard.Find(GetDailyChallengeBucket(DailyChallengeDateUtc, "money")) is { } dailyLb)
-        {
-            var result = await dailyLb.GetScore(client.PlayerId);
-            
-            if (result.HasValue)
-            {
-                Log.Info($"Found entry for {client.Name}: {result.Value.Score}");
+        // TODO
+        //if ( DailyChallengeEnabled && !isSpectator && await Leaderboard.Find( GetDailyChallengeBucket( DailyChallengeDateUtc, "money" ) ) is { } dailyLb )
+        //{
+        //    var result = await dailyLb.GetScore( client.SteamId );
 
-                isSpectator = true;
+        //    if ( result.HasValue )
+        //    {
+        //        Log.Info( $"Found entry for {client.Name}: {result.Value.Score}" );
 
-                if (client.IsListenServerHost)
-                {
-                    DailyChallengeComplete = true;
-                }
-            }
-        }
+        //        isSpectator = true;
+
+        //        if ( client.IsListenServerHost )
+        //        {
+        //            DailyChallengeComplete = true;
+        //        }
+        //    }
+        //}
 
         // Create a pawn for this client to play with
-        var mazingPlayer = new MazingPlayer(client)
+        var mazingPlayer = new MazingPlayer( client )
         {
             IsSpectatorOnly = isSpectator,
             FirstSeenLevelIndex = LevelIndex
@@ -659,15 +656,15 @@ public partial class MazingGame : Sandbox.Game
 
         client.Pawn = mazingPlayer;
 
-        RespawnPlayer(mazingPlayer);
+        RespawnPlayer( mazingPlayer );
 
-        if (LevelIndex > 0 || mazingPlayer.IsSpectatorOnly)
+        if ( LevelIndex > 0 || mazingPlayer.IsSpectatorOnly )
         {
-            mazingPlayer.Kill(Vector3.Up, "{0} has joined as a ghost", this, false);
+            mazingPlayer.Kill( Vector3.Up, "{0} has joined as a ghost", this, false );
         }
         else
         {
-            ClientJoinNotify(client.Name, client.PlayerId);
+            ClientJoinNotify( client.Name, client.SteamId );
         }
     }
 
@@ -676,93 +673,83 @@ public partial class MazingGame : Sandbox.Game
         player.HasExited = false;
 
         player.Respawn();
-	}
+    }
 
     public override void MoveToSpawnpoint( Entity pawn )
     {
         if ( pawn is MazingPlayer player )
         {
-            var index = Array.IndexOf(Players.ToArray(), player);
+            var index = Array.IndexOf( Players.ToArray(), player );
 
             // Spawn in a random grid cell
             var spawnCell = _playerSpawns[index % _playerSpawns.Length];
 
-            player.Position = CellToPosition(spawnCell.Row + 0.5f, spawnCell.Col + 0.5f) + Vector3.Up * 1024f;
+            player.Position = CellToPosition( spawnCell.Row + 0.5f, spawnCell.Col + 0.5f ) + Vector3.Up * 1024f;
         }
-    }
-
-    public override void DoPlayerNoclip( Client player )
-    {
-        Log.Info( $"Noclip is disabled" );
-    }
-
-    public override void DoPlayerSuicide( Client cl )
-    {
-        Log.Info( $"Suicide is disabled" );
     }
 
     private void SpawnEnemies()
     {
-        if (_enemiesToSpawn.Count == 0) return;
+        if ( _enemiesToSpawn.Count == 0 ) return;
 
-        var playerBoundsMin = new Vector3(float.PositiveInfinity, float.PositiveInfinity);
-        var playerBoundsMax = new Vector3(float.NegativeInfinity, float.NegativeInfinity);
+        var playerBoundsMin = new Vector3( float.PositiveInfinity, float.PositiveInfinity );
+        var playerBoundsMax = new Vector3( float.NegativeInfinity, float.NegativeInfinity );
 
         var anyPlayers = false;
 
-        foreach (var player in PlayersAliveInMaze)
+        foreach ( var player in PlayersAliveInMaze )
         {
             anyPlayers = true;
 
-            playerBoundsMin = Vector3.Min(playerBoundsMin, player.Position);
-            playerBoundsMax = Vector3.Max(playerBoundsMax, player.Position);
+            playerBoundsMin = Vector3.Min( playerBoundsMin, player.Position );
+            playerBoundsMax = Vector3.Max( playerBoundsMax, player.Position );
         }
 
-        if (!anyPlayers)
+        if ( !anyPlayers )
         {
             return;
         }
 
         const float spawnDist = 48f * 8;
 
-        for (var i = _enemiesToSpawn.Count - 1; i >= 0; --i)
+        for ( var i = _enemiesToSpawn.Count - 1; i >= 0; --i )
         {
             var (enemyType, cell) = _enemiesToSpawn[i];
-            var spawnPos = CellCenterToPosition(cell);
+            var spawnPos = CellCenterToPosition( cell );
 
-            var distX = Math.Max(spawnPos.x - playerBoundsMax.x, playerBoundsMin.x - spawnPos.x);
-            var distY = Math.Max(spawnPos.y - playerBoundsMax.y, playerBoundsMin.y - spawnPos.y);
+            var distX = Math.Max( spawnPos.x - playerBoundsMax.x, playerBoundsMin.x - spawnPos.x );
+            var distY = Math.Max( spawnPos.y - playerBoundsMax.y, playerBoundsMin.y - spawnPos.y );
 
-            var dist = Math.Max(distX, distY);
+            var dist = Math.Max( distX, distY );
 
-            if (dist >= spawnDist) continue;
+            if ( dist >= spawnDist ) continue;
 
-            _enemiesToSpawn.RemoveAt(i);
+            _enemiesToSpawn.RemoveAt( i );
 
             var enemy = enemyType.Create<Enemy>();
 
-            enemy.PostSpawn(_enemies.Count, spawnPos);
+            enemy.PostSpawn( _enemies.Count, spawnPos );
 
-            _enemies.Add(enemy);
+            _enemies.Add( enemy );
         }
     }
 
-    private static string GetDailyChallengeBucket(DateTime dateUtc, string category)
+    private static string GetDailyChallengeBucket( DateTime dateUtc, string category )
     {
-        var day = new DateTime(dateUtc.Year, dateUtc.Month, dateUtc.Day);
+        var day = new DateTime( dateUtc.Year, dateUtc.Month, dateUtc.Day );
 
         return $"daily-{day:yyyy-MM-dd}-{category}";
     }
 
-    private static int GetDailyChallengeSeed(DateTime dateUtc, int levelIndex)
+    private static int GetDailyChallengeSeed( DateTime dateUtc, int levelIndex )
     {
-        var day = new DateTime(dateUtc.Year, dateUtc.Month, dateUtc.Day);
-        var firstDay = new DateTime(2022, 9, 6);
-        var diff = (int) Math.Round((day - firstDay).TotalDays);
+        var day = new DateTime( dateUtc.Year, dateUtc.Month, dateUtc.Day );
+        var firstDay = new DateTime( 2022, 9, 6 );
+        var diff = (int) Math.Round( (day - firstDay).TotalDays );
 
-        var rand = new Random(diff ^ 0x7dcb0789);
+        var rand = new Random( diff ^ 0x7dcb0789 );
 
-        for (var i = 0; i < levelIndex + 10; ++i)
+        for ( var i = 0; i < levelIndex + 10; ++i )
         {
             rand.Next();
         }
@@ -775,13 +762,13 @@ public partial class MazingGame : Sandbox.Game
     {
         SpawnEnemies();
 
-        for (var i = _enemies.Count - 1; i >= 0; --i)
+        for ( var i = _enemies.Count - 1; i >= 0; --i )
         {
             var enemy = _enemies[i];
 
-            if (!enemy.IsValid())
+            if ( !enemy.IsValid() )
             {
-                _enemies.RemoveAt(i);
+                _enemies.RemoveAt( i );
                 continue;
             }
 
@@ -795,7 +782,7 @@ public partial class MazingGame : Sandbox.Game
 
         Lava?.ServerTick();
 
-        if (DailyChallengeComplete)
+        if ( DailyChallengeComplete )
         {
             return;
         }
@@ -809,10 +796,8 @@ public partial class MazingGame : Sandbox.Game
                 LevelIndex = 0;
                 TotalCoins = 0;
 
-                GameServices.EndGame();
-
                 _hasCheated = false;
-                
+
                 GenerateMaze();
                 ResetPlayers();
             }
@@ -829,7 +814,7 @@ public partial class MazingGame : Sandbox.Game
                 LevelIndex = NextLevelIndex;
 
                 GenerateMaze( DailyChallengeEnabled
-                    ? GetDailyChallengeSeed(DailyChallengeDateUtc, LevelIndex)
+                    ? GetDailyChallengeSeed( DailyChallengeDateUtc, LevelIndex )
                     : _nextLevelSeed );
                 ResetPlayers();
 
@@ -847,7 +832,7 @@ public partial class MazingGame : Sandbox.Game
 
         foreach ( var player in Players )
         {
-            if (player.IsSpectatorOnly) continue;
+            if ( player.IsSpectatorOnly ) continue;
 
             if ( !player.IsAlive )
             {
@@ -857,46 +842,46 @@ public partial class MazingGame : Sandbox.Game
 
             anyPlayers = true;
 
-            if (player.IsSpawning)
+            if ( player.IsSpawning )
             {
                 anySpawning = true;
             }
 
-            if (player.HasExited)
+            if ( player.HasExited )
             {
                 anyExited = true;
                 continue;
             }
 
             allExited = false;
-			break;
+            break;
         }
 
-        if (!LevelStarted && !anySpawning)
+        if ( !LevelStarted && !anySpawning )
         {
             LevelStarted = true;
 
             SinceLevelStart = 0f;
         }
 
-        if (LevelStarted && !LevelCompleted && anyExited)
+        if ( LevelStarted && !LevelCompleted && anyExited )
         {
             LevelCompleted = true;
-            LastLevelTime = TimeSpan.FromSeconds(SinceLevelStart);
+            LastLevelTime = TimeSpan.FromSeconds( SinceLevelStart );
 
-            if (LevelIndex > 0)
+            if ( LevelIndex > 0 )
             {
-                _levelTimes.Add(LastLevelTime);
+                _levelTimes.Add( LastLevelTime );
             }
         }
 
         if ( anyPlayers && allExited )
         {
-            if (LevelIndex >= TotalLevelCount - 1)
+            if ( LevelIndex >= TotalLevelCount - 1 )
             {
-                SubmitScore(TotalCoins, LevelIndex + 1, TotalTime, DailyChallengeEnabled, DailyChallengeDateUtc);
+                SubmitScore( TotalCoins, LevelIndex + 1, TotalTime, DailyChallengeEnabled, DailyChallengeDateUtc );
 
-                if (DailyChallengeEnabled)
+                if ( DailyChallengeEnabled )
                 {
                     DailyChallengeComplete = true;
                 }
@@ -914,7 +899,7 @@ public partial class MazingGame : Sandbox.Game
         {
             if ( LevelIndex > 0 )
             {
-                SubmitScore(TotalCoins, LevelIndex, TotalTime, DailyChallengeEnabled, DailyChallengeDateUtc);
+                SubmitScore( TotalCoins, LevelIndex, TotalTime, DailyChallengeEnabled, DailyChallengeDateUtc );
             }
 
             if ( DailyChallengeEnabled )
@@ -927,104 +912,106 @@ public partial class MazingGame : Sandbox.Game
             }
 
             LevelCompleted = true;
-            LastLevelTime = TimeSpan.FromSeconds(SinceLevelStart);
+            LastLevelTime = TimeSpan.FromSeconds( SinceLevelStart );
 
             ClientNotifyFinalScore( false, TotalCoins );
         }
     }
-    
-    private bool CanSubmitScore(MazingPlayer player)
+
+    private bool CanSubmitScore( MazingPlayer player )
     {
-        return !_hasCheated && !Host.IsToolsEnabled && player.Client != null && !player.IsSpectatorOnly && LevelIndex >= player.FirstSeenLevelIndex * 2;
+        return !_hasCheated && !Game.IsToolsEnabled && player.Client != null && !player.IsSpectatorOnly && LevelIndex >= player.FirstSeenLevelIndex * 2;
     }
 
-    private void SubmitScore(int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
+    private void SubmitScore( int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate )
     {
-        _ = SubmitScoreAsync(Players
-            .Where(CanSubmitScore)
-            .Select(x => x.Client)
+        _ = SubmitScoreAsync( Players
+            .Where( CanSubmitScore )
+            .Select( x => x.Client )
             .ToArray(),
-            coins, depth, time, daily, dailyDate);
+            coins, depth, time, daily, dailyDate );
     }
-    
-    private static async Task SubmitScoreAsync( Client[] clients, int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate)
+
+    private static async Task SubmitScoreAsync( IClient[] clients, int coins, int depth, TimeSpan time, bool daily, DateTime dailyDate )
     {
-        if (daily)
+        if ( daily )
         {
-            await SubmitScoreAsync(clients, coins, depth, time,
-                GetDailyChallengeBucket(dailyDate, "money"),
-                GetDailyChallengeBucket(dailyDate, "depth"),
-                GetDailyChallengeBucket(dailyDate, $"time{depth}"));
+            await SubmitScoreAsync( clients, coins, depth, time,
+                GetDailyChallengeBucket( dailyDate, "money" ),
+                GetDailyChallengeBucket( dailyDate, "depth" ),
+                GetDailyChallengeBucket( dailyDate, $"time{depth}" ) );
         }
 
-        await SubmitScoreAsync(clients, coins, depth, time, "money", "depth", $"time{depth}");
+        await SubmitScoreAsync( clients, coins, depth, time, "money", "depth", $"time{depth}" );
     }
 
-    private static async Task SubmitScoreAsync( Client[] clients, int coins, int depth, TimeSpan time, string moneyLbName, string depthLbName, string timeLbName)
+    private static async Task SubmitScoreAsync( IClient[] clients, int coins, int depth, TimeSpan time, string moneyLbName, string depthLbName, string timeLbName )
     {
-        if (await Leaderboard.FindOrCreate(moneyLbName, false) is { } moneyLb)
-        {
-            foreach (var client in clients)
-            {
-                Log.Info($"Submit {client} {moneyLb.Name}: {await moneyLb.Submit(client, coins)}");
-            }
-        }
+        // TODO
+        //if ( await Leaderboard.FindOrCreate( moneyLbName, false ) is { } moneyLb )
+        //{
+        //    foreach ( var client in clients )
+        //    {
+        //        Log.Info( $"Submit {client} {moneyLb.Name}: {await moneyLb.Submit( client, coins )}" );
+        //    }
+        //}
 
-        if (await Leaderboard.FindOrCreate(depthLbName, false) is { } depthLb)
-        {
-            foreach (var client in clients)
-            {
-                Log.Info($"Submit {client} {depthLb.Name}: {await depthLb.Submit(client, depth)}");
-            }
-        }
+        //if ( await Leaderboard.FindOrCreate( depthLbName, false ) is { } depthLb )
+        //{
+        //    foreach ( var client in clients )
+        //    {
+        //        Log.Info( $"Submit {client} {depthLb.Name}: {await depthLb.Submit( client, depth )}" );
+        //    }
+        //}
 
-        if (depth == TotalLevelCount && await Leaderboard.FindOrCreate(timeLbName, true) is { } timeLb)
-        {
-            foreach (var client in clients)
-            {
-                Log.Info($"Submit {client} {timeLb.Name}: {await timeLb.Submit(client, (int)time.TotalMilliseconds)}");
-            }
-        }
+        //if ( depth == TotalLevelCount && await Leaderboard.FindOrCreate( timeLbName, true ) is { } timeLb )
+        //{
+        //    foreach ( var client in clients )
+        //    {
+        //        Log.Info( $"Submit {client} {timeLb.Name}: {await timeLb.Submit( client, (int) time.TotalMilliseconds )}" );
+        //    }
+        //}
     }
-    
-    private async Task StartDailyAsync(MazingPlayer[] players, DateTime dailyDate)
+
+    private async Task StartDailyAsync( MazingPlayer[] players, DateTime dailyDate )
     {
-        var dailyLb = await Leaderboard.FindOrCreate(GetDailyChallengeBucket(dailyDate, "money"), false);
+        // TODO
+        //var dailyLb = await Leaderboard.FindOrCreate( GetDailyChallengeBucket( dailyDate, "money" ), false );
 
-        foreach (var player in players)
-        {
-            var result = dailyLb is { IsValid: true }
-                ? await dailyLb.Value.Submit(player.Client, 0)
-                : null;
+        //foreach ( var player in players )
+        //{
+        //    var result = dailyLb is { IsValid: true }
+        //        ? await dailyLb.Value.Submit( player.Client, 0 )
+        //        : null;
 
-            if (result is { Changed: true })
-            {
-                continue;
-            }
+        //    if ( result is { Changed: true } )
+        //    {
+        //        continue;
+        //    }
 
-            Log.Error($"Unable to start daily with {player.Client}");
+        //    Log.Error( $"Unable to start daily with {player.Client}" );
 
-            player.IsSpectatorOnly = true;
-            player.Kill(Vector3.Zero, "An error occurred when starting the daily challenge for {0}", null, false);
-        }
+        //    player.IsSpectatorOnly = true;
+        //    player.Kill( Vector3.Zero, "An error occurred when starting the daily challenge for {0}", null, false );
+        //}
     }
-    
+
     [ClientRpc]
     public void ClientNotifyFinalScore( bool victory, int score )
     {
-        if (victory)
+        if ( victory )
         {
-            ChatBox.AddInformation($"You have escaped! Final score: ${score}");
+            ChatBox.AddInformation( $"You have escaped! Final score: ${score}" );
         }
         else
         {
-            ChatBox.AddInformation($"Everyone is dead! Final score: ${score}");
+            ChatBox.AddInformation( $"Everyone is dead! Final score: ${score}" );
         }
     }
 
     public void DestroyWall( GridCoord coord, Direction dir )
     {
-        if ( !IsServer )
+        if ( !Game.IsServer )
         {
             return;
         }
@@ -1055,7 +1042,7 @@ public partial class MazingGame : Sandbox.Game
 
         CurrentMaze.WriteNetworkData();
     }
-    
+
     private void ResetPlayers()
     {
         RestartCountdown = float.PositiveInfinity;
@@ -1063,34 +1050,34 @@ public partial class MazingGame : Sandbox.Game
 
         foreach ( var player in Players.ToArray() )
         {
-            player.FirstSeenLevelIndex = Math.Min(player.FirstSeenLevelIndex, LevelIndex);
+            player.FirstSeenLevelIndex = Math.Min( player.FirstSeenLevelIndex, LevelIndex );
 
-            if (DailyChallengeComplete)
+            if ( DailyChallengeComplete )
             {
                 player.IsSpectatorOnly = true;
             }
 
-            if (!player.IsSpectatorOnly)
+            if ( !player.IsSpectatorOnly )
             {
-                RespawnPlayer(player);
+                RespawnPlayer( player );
             }
-            else if (player.IsAlive)
+            else if ( player.IsAlive )
             {
-                player.Kill(Vector3.Zero, "{0} is now a spectator", null, false);
+                player.Kill( Vector3.Zero, "{0} is now a spectator", null, false );
             }
         }
     }
 
-    public static T GetRandomWeighted<T>(params (T Value, float Weight)[] weights)
+    public static T GetRandomWeighted<T>( params (T Value, float Weight)[] weights )
     {
-        var totalWeight = weights.Sum(x => x.Weight);
-        var randomWeight = Rand.Float(0f, totalWeight);
+        var totalWeight = weights.Sum( x => x.Weight );
+        var randomWeight = Game.Random.Float( 0f, totalWeight );
 
-        for (var i = 0; i < weights.Length; ++i)
+        for ( var i = 0; i < weights.Length; ++i )
         {
             randomWeight -= weights[i].Weight;
 
-            if (randomWeight < 0f)
+            if ( randomWeight < 0f )
             {
                 return weights[i].Value;
             }

@@ -18,7 +18,7 @@ public partial class Key : Holdable
 
         Tags.Add("key");
 
-        if (IsServer)
+        if (Sandbox.Game.IsServer)
         {
             var light = new PointLightEntity()
             {

@@ -112,14 +112,14 @@ public class Lava : ModelEntity
         }
     }
 
-    [Event.Frame]
+    [Event.Client.Frame]
     private void ClientFrame()
     {
         if (_clientLights != null)
         {
             foreach (var light in _clientLights)
             {
-                var targetBrightness = Rand.Float(MinLightBrightness, MaxLightBrightness);
+                var targetBrightness = Game.Random.Float(MinLightBrightness, MaxLightBrightness);
 
                 light.Brightness += (targetBrightness - light.Brightness) * 0.125f;
             }
