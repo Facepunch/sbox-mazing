@@ -1,0 +1,19 @@
+﻿@using Sandbox.UI
+
+@namespace Mazing.UI
+@inherits Sandbox.UI.WorldPanel
+
+@attribute [StyleSheet( "/UI/NameplateRoot.scss" )]
+
+<root>
+    <div class="value">
+        <div class="avatar-frame">
+            <div @ref="Avatar" class="avatar"></div>
+            <text class="streak" @ref="StreakText"></text>
+        </div>
+        <text @ref="ValueText"></text>
+        <div class="diff">
+            <text @ref="DiffText"></text>
+        </div>
+    </div>
+</root>

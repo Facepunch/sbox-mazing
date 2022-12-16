@@ -9,8 +9,7 @@ using Sandbox.UI;
 
 namespace Mazing.UI
 {
-    [UseTemplate]
-    internal partial class HudRoot : RootPanel
+    partial class HudRoot
     {
         public int LevelNumber => MazingGame.Current.LevelIndex + 1;
         
@@ -58,7 +57,7 @@ namespace Mazing.UI
 
             return true;
         }
-        
+
         public override void Tick()
         {
             base.Tick();

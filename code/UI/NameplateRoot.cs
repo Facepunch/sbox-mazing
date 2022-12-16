@@ -9,8 +9,7 @@ using Sandbox.UI;
 
 namespace Mazing.UI
 {
-    [UseTemplate]
-    public partial class NameplateRoot : WorldPanel
+    partial class NameplateRoot
     {
         public MazingPlayer Player { get; }
 
@@ -63,6 +62,7 @@ namespace Mazing.UI
 
             Position = Player.Position + Vector3.Up * 128f;
             Rotation = Camera.Rotation * Rotation.FromYaw( 180f );
+            WorldScale = 1f;
 
             if ( _wasAlive != Player.IsAliveInMaze )
             {

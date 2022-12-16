@@ -3,7 +3,7 @@
   "Type": "game",
   "Org": "facepunch",
   "Ident": "mazing",
-  "Tags": null,
+  "Tags": "",
   "Schema": 1,
   "HasAssets": true,
   "AssetsPath": "",
@@ -14,7 +14,6 @@
   ],
   "HasCode": true,
   "CodePath": "/code/",
-  "RootNamespace": "Mazing",
   "Metadata": {
     "MaxPlayers": 8,
     "MinPlayers": 1,
@@ -276,6 +275,10 @@
       "depth",
       "daily-{today:yyyy-MM-dd}-money",
       "daily-{today:yyyy-MM-dd}-depth"
-    ]
+    ],
+    "Summary": "Avoid enemies and collect gems in the labyrinth.",
+    "Description": "Explore a dangerous labyrinth for treasure.\nVault over walls to outsmart your enemies.\nEscape with gems to bank $ for your team of mazers.\n\nControls:\nMove: WASD\nVault: Spacebar\n\nNow featuring a Daily Challenge mode, found in Settings when creating a game.",
+    "Public": true,
+    "ReplaceTags": "coop maze arcade highscore"
   }
 }
